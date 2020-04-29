@@ -125,6 +125,7 @@ venv.bak/
 labels
 .idea
 *.pkl
+*.json
 # mkdocs documentation
 /site
 

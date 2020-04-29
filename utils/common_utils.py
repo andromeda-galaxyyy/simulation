@@ -2,8 +2,9 @@ import json
 import os
 import pickle
 import random
-from pathlib import Path
 
+
+from pathlib import Path
 import loguru
 import numpy as np
 import torch
@@ -12,7 +13,9 @@ logger = loguru.logger
 info=logger.info
 debug=logger.debug
 
-
+def check_file(fn):
+    if not Path.is_file(fn):
+        raise FileNotFoundError
 
 
 def gaussion(mean:float,std_var:float,size=1):
