@@ -53,6 +53,19 @@ class DT(Classifier):
 		self.model:DecisionTreeClassifier=load_pkl(fn_name)
 
 
+class Dumb(Classifier):
+
+	def fit(self, data):
+		pass
+
+	def predict(self, features):
+		pass
+
+	def save_model(self, fn_name):
+		pass
+
+	def load_model(self, fn_name):
+		pass
 
 
 if __name__ == '__main__':
