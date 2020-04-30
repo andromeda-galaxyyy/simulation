@@ -7,14 +7,17 @@ import random
 from pathlib import Path
 import loguru
 import numpy as np
-import torch
 
 logger = loguru.logger
 info=logger.info
 debug=logger.debug
 
+def check_dir(dir_name):
+    if not Path(dir_name).is_dir():
+        raise FileNotFoundError
+
 def check_file(fn):
-    if not Path.is_file(fn):
+    if not Path(fn).is_file():
         raise FileNotFoundError
 
 
@@ -77,7 +80,6 @@ def is_digit(x:str)->bool:
         return True
     except:
         return False
-USE_CUDA=torch.cuda.is_available()
 
 def normalize(x):
 	mi=min(x)
