@@ -1,0 +1,13 @@
+{
+  "specifier": ["45678","443","192.168.1.1","192.168.1.2","TCP"],
+  "stats": [
+    "min_pkt",
+    "max_pkt",
+    "mean_pkt",
+    "var_pkt",
+    "min_idt",
+    "max_idt",
+    "mean_idt",
+    "var_idt"
+  ]
+}
