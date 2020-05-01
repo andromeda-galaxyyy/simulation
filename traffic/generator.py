@@ -14,6 +14,10 @@ def run(commands):
 def start_new_process_and_run(commands):
     p=Process(target=run,args=[commands])
     p.start()
+    # print(p.pid)
+    # sleep(1)
+    # subprocess.run(["lsof","-i","-P","|","grep",str(p.pid)])
+    # os.system("lsof -i -P|grep {}".format(p.pid))
 
 
 def possion_interval_generator(mean:float):
@@ -54,6 +58,15 @@ class DITGGen:
             start_new_process_and_run(commands)
             debug("sleeping")
             sleep(self.interval_generator())
+
+    def stop(self):
+        #todo stop traffic generator,kill all child process
+        pass
+
+
+class IperfGen:
+    def __init__(self,src_ip,dst_ips):
+        pass
 
 
 
