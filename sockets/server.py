@@ -7,6 +7,20 @@ import socketserver
 from utils.common_utils import is_digit
 
 socketserver.TCPServer.allow_reuse_address=True
+
+BUFF_SIZE = 4096  # 4 KiB
+
+def recvall(req):
+    data = b''
+    while True:
+        part = req.recv(BUFF_SIZE)
+        data += part
+        if len(part) < BUFF_SIZE:
+            # either 0 or end of data
+            break
+    return data
+
+
 class ThreadedTCPServer(socketserver.ThreadingMixIn,socketserver.TCPServer):
 	pass
 

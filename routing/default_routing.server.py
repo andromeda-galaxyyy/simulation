@@ -5,7 +5,7 @@ from json import JSONDecodeError
 import threading
 import socketserver
 from utils.common_utils import is_digit, info,debug
-from sockets.server import Server,recvall
+from sockets.server import Server
 import random
 import networkx as nx
 from itertools import islice
@@ -25,45 +25,17 @@ for i in range(g.number_of_nodes()):
 		ksps.append(k_shortest_paths(g,i,j,K))
 
 ksps.extend(ksps)
-
 debug("ksp calculated")
-
-def check(content:str):
-	try:
-		obj=json.loads(content)
-	except JSONDecodeError:
-		return -1
-	if "volumes" not in list(obj.keys()):
-		return -1
-	volumes=obj["volumes"]
-	if len(volumes)!=nodes*(nodes-1)*2:
-		return -1
-
-	return volumes
 
 class DumbHandler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
-		req_str=str(recvall(self.request),"utf-8")
-		vols=check(req_str)
-		if vols==-1:
-			return
-		l=len(vols)
 		res=[]
-		for i in range(l):
-			randidx=random.randint(0,K-1)
-			res.append(ksps[i][randidx])
+		for i in range(nodes*(nodes-1)*2):
+			res.append(ksps[i][0])
 		res={"res":res}
 		self.request.sendall(bytes(json.dumps(res),"utf-8"))
 
-
-
 if __name__ == '__main__':
     port=10000
-    server=Server(10000,DumbHandler)
+    server=Server(port,DumbHandler)
     server.start()
-
-
-
-
-
-

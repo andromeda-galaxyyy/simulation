@@ -5,7 +5,7 @@ from json import JSONDecodeError
 import threading
 import socketserver
 from utils.common_utils import is_digit, info
-from sockets.server import Server
+from sockets.server import Server,recvall
 import random
 
 
@@ -25,7 +25,7 @@ def check(content: str):
 
 class DumbHandler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
-		req_content = str(self.request.recv(1024), "utf-8")
+		req_content = str(recvall(self.request), "utf-8")
 		stats = check(req_content)
 		if stats == -1:
 			self.request.close()

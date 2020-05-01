@@ -1,13 +1,14 @@
 import socket
 import json
 import sys
-
+from sockets.server import recvall
 if __name__ == '__main__':
 	with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sock:
 		sock.connect(("localhost",10000))
-		content={"volumes":[1,2,3,4,5,6,7,8,9,10,11,12]}
+		volumes=list(range(0,9*8*2))
+		content={"volumes":volumes}
 		sock.sendall(bytes(json.dumps(content),"utf-8"))
-		resp=str(sock.recv(2048),"utf-8")
+		resp=str(recvall(sock),"utf-8")
 		print(resp)
 
 
