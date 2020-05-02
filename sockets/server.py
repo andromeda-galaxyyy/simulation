@@ -32,7 +32,7 @@ class Server:
 		self.handler=handler
 
 	def start(self):
-		server=ThreadedTCPServer(("localhost",self.port),self.handler)
+		server=ThreadedTCPServer(("0.0.0.0",self.port),self.handler)
 		with server:
 			# ip,port=server.server_address
 			server_thread=threading.Thread(target=server.serve_forever)

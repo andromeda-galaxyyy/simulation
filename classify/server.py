@@ -25,7 +25,7 @@ def check(content: str):
 
 class DumbHandler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
-		req_content = str(recvall(self.request), "utf-8")
+		req_content = str(recvall(self.request), "ascii")
 		stats = check(req_content)
 		if stats == -1:
 			self.request.close()
@@ -36,7 +36,7 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		r = random.random()
 		if r >= 0.5:
 			res["res"] += 1
-		self.request.sendall(bytes(json.dumps(res), "utf-8"))
+		self.request.sendall(bytes(json.dumps(res), "ascii"))
 
 
 if __name__ == '__main__':

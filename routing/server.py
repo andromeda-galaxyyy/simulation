@@ -43,7 +43,7 @@ def check(content:str):
 
 class DumbHandler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
-		req_str=str(recvall(self.request),"utf-8")
+		req_str=str(recvall(self.request),"ascii")
 		vols=check(req_str)
 		if vols==-1:
 			return
@@ -53,7 +53,7 @@ class DumbHandler(socketserver.BaseRequestHandler):
 			randidx=random.randint(0,K-1)
 			res.append(ksps[i][randidx])
 		res={"res":res}
-		self.request.sendall(bytes(json.dumps(res),"utf-8"))
+		self.request.sendall(bytes(json.dumps(res),"ascii"))
 
 
 

@@ -5,7 +5,7 @@ Roadmap
 模块化
 每个模块使用dumb，先把系统运行起来，再说
 
-# 所有的编码均为UTF-8编码
+# 所有的编码均为ASCII编码
 # classify
 这个模块用于判断属于哪种流
 接受统计量，示例为receive.demo.json
@@ -19,6 +19,10 @@ Roadmap
 主机会上报流的统计信息，socket.demo.json
 specifier 字段为五元祖，均为字符串，顺序为src_port(为空字符串)，dst_port,src_ip,dst_ip,protocol,
 stats为统计信息，均为float，顺序如示例
+
+## 关于流量产生
+工具为DITG，但是有bug，目前的patch是使用脚本，进程crash之后重新运行
+ITGManager ips_file lambda duration controller_ip port
 
 #routing
 这个模块主要用于决策路由

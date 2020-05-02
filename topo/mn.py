@@ -9,11 +9,22 @@ from mininet.link import TCLink, Intf
 from subprocess import call
 import os
 from py2_utils import check_file,load_json,load_pkl,save_pkl,save_json
+import time
+from mininet.node import Controller
+from os import environ
+
+POXDIR = environ[ 'HOME' ] + '/pox'
+
 
 def get_prj_root():
 	return os.path.dirname(os.path.abspath(__file__))
 
 topo_dir = os.path.join(get_prj_root(), "files")
+
+
+daemon_sender_script=os.path.join(get_prj_root(),"../traffic/sender.sh")
+receiver_script=os.path.join(get_prj_root(),"../traffic/receiver.sh")
+manager_script=os.path.join(get_prj_root(),"../traffic/manager.sh")
 
 
 def read_topo(fn="topo.json"):
@@ -39,6 +50,9 @@ def read_topo(fn="topo.json"):
 	return topo
 
 
+
+
+
 class TopoManager:
 	def __init__(self, fn="topo.json"):
 		self.topo = read_topo(fn)
@@ -47,13 +61,26 @@ class TopoManager:
 		self.host_macs=[]
 		self.host_ips=[]
 
+	def __write_ip_file(self):
+		for ip in self.host_ips:
+			with open(os.path.join(topo_dir,"{}.ips".format(ip)),"w") as fp:
+				fp.write("{}\n".format(ip))
+				other_ips=list(filter(lambda x:x!=ip,self.host_ips))
+				for other_ip in other_ips:
+					fp.write("{}\n".format(other_ip))
+				fp.flush()
+				fp.close()
+
+
 	def set_up_mininet(self, controller="default"):
 		net = Mininet(topo=None, controller=None, ipBase="10.0.0.0/8")
-		c=RemoteController('c',controller,6633) if controller!="default" else None
+		c = RemoteController('c', '0.0.0.0', 6633)
 		net.addController(c)
 		topo = self.topo
 		nodes = len(topo)
 		info("Setting up {} switches".format(nodes))
+		#add nat
+
 
 		macs = []
 		ips = []
@@ -76,7 +103,8 @@ class TopoManager:
 			              )
 			self.hosts.append(h)
 			net.addLink(s,h)
-		#add link between switches
+		self.host_ips=ips
+		self.__write_ip_file()
 
 		for i in range(nodes):
 			src="s{}".format(i)
@@ -87,9 +115,31 @@ class TopoManager:
 				# bw="{}m".format(bw)
 				delay="{}ms".format(delay)
 				# loss=str(loss)
-				net.addLink(src,dst,cls=TCLink,bw=bw,delay=delay,loss=loss)
+				# net.addLink(src,dst,cls=TCLink,bw=bw,delay=delay,loss=loss)
+				net.addLink(src,dst)
+
+		net.addNAT(ip="10.0.0.254/8").configDefault()
 		net.start()
+
+		#set nat
+		for host in self.hosts:
+			host.cmd("route add default gw 10.0.0.254")
+
+		for idx,host in enumerate(self.hosts):
+			host.cmd("{} >/tmp/receiver_{}.log 2>&1 &".format(receiver_script,self.host_ips[idx]))
+			host.cmd("{} >/tmp/sender_{}.log 2>&1 &".format(daemon_sender_script,self.host_ips[idx]))
+
+		time.sleep(3)
+		for idx,host in enumerate(self.hosts):
+			ip_file=os.path.join(topo_dir,"{}.ips".format(self.host_ips[idx]))
+			host.cmd("{} {} >/tmp/manager_{}.log 2&1 &".format(manager_script,ip_file,self.host_ips[idx]))
+
 		CLI(net)
+		for idx,host in enumerate(self.hosts):
+			host.cmd("pkill -f receiver.sh")
+			host.cmd("pkill -f sender.sh")
+			host.cmd("pkill -f manager.sh")
+
 		net.stop()
 
 

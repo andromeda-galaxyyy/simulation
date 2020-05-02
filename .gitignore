@@ -129,6 +129,7 @@ labels
 # mkdocs documentation
 /site
 
+*.ips
 # mypy
 .mypy_cache/
 .dmypy.json
