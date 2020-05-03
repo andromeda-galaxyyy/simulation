@@ -1,11 +1,10 @@
-#Rule
-
+# Rule
 Roadmap
 
 模块化
 每个模块使用dumb，先把系统运行起来，再说
+socket+json,所有的编码均为ASCII编码
 
-# 所有的编码均为ASCII编码
 # classify
 这个模块用于判断属于哪种流
 接受统计量，示例为receive.demo.json
@@ -25,7 +24,7 @@ stats为统计信息，均为float，顺序如示例
 ITGManager ips_file lambda duration controller_ip port
 
 #routing
-这个模块主要用于决策路由
+这个模块主要用于决策路由,交互见json
 
 
 ## 测试
