@@ -173,7 +173,7 @@ class TopoManager:
 if __name__ == '__main__':
 	manager = TopoManager()
 	parser = ArgumentParser()
-	parser.add_argument("--controller_ip", type=str, default="192.168.64.5")
+	parser.add_argument("--controller_ip", type=str, default="127.0.0.1")
 	parser.add_argument("--controller_port",type=int,default=6633)
 	parser.add_argument("--controller_socket_port", type=int, default=10000)
 	args=parser.parse_args()
