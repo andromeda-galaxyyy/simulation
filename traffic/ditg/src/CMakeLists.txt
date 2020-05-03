@@ -1,0 +1,79 @@
+cmake_minimum_required(VERSION 3.15)
+project(src)
+add_definitions(-DUNIX)
+#target_compile_definitions(UNIX PUBLIC CONFIG_CTRL_IFACE)
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(common)
+include_directories(ITGLog)
+include_directories(ITGManager)
+include_directories(ITGRecv)
+include_directories(ITGSend)
+include_directories(ITGSend/newran)
+include_directories(libITG)
+
+add_executable(src
+        common/crypto.cpp
+        common/crypto.h
+        common/debug.h
+        common/ITG.cpp
+        common/ITG.h
+        common/json.hpp
+        common/pipes.cpp
+        common/pipes.h
+        common/serial.cpp
+        common/serial.h
+        common/thread.cpp
+        common/thread.h
+        common/timestamp.cpp
+        common/timestamp.h
+        ITGDec/ITGDecod.cpp
+        ITGLog/channel.cpp
+        ITGLog/channel.h
+        ITGLog/ITGLog.cpp
+        ITGLog/ITGLog.h
+        ITGManager/ITGManager.cpp
+        ITGManager/ITGManager.h
+        ITGRecv/data.cpp
+        ITGRecv/data.h
+        ITGRecv/ITGRecv.cpp
+        ITGRecv/ITGRecv.h
+        ITGSend/newran/array.h
+        ITGSend/newran/extreal.cpp
+        ITGSend/newran/extreal.h
+        ITGSend/newran/format.cpp
+        ITGSend/newran/format.h
+        ITGSend/newran/geturng.cpp
+        ITGSend/newran/include.h
+        ITGSend/newran/myexcept.cpp
+        ITGSend/newran/myexcept.h
+        ITGSend/newran/newran.h
+        ITGSend/newran/newran1.cpp
+        ITGSend/newran/newran2.cpp
+        ITGSend/newran/nr_ex.cpp
+        ITGSend/newran/simpstr.cpp
+        ITGSend/newran/simpstr.h
+        ITGSend/newran/str.cpp
+        ITGSend/newran/str.h
+        ITGSend/newran/test_lg.cpp
+        ITGSend/newran/test_out.cpp
+        ITGSend/newran/test_out.h
+        ITGSend/newran/tryrand.cpp
+        ITGSend/newran/tryrand.h
+        ITGSend/newran/tryrand1.cpp
+        ITGSend/newran/tryrand2.cpp
+        ITGSend/newran/tryrand3.cpp
+        ITGSend/newran/tryrand4.cpp
+        ITGSend/newran/tryrand5.cpp
+        ITGSend/newran/tryrand6.cpp
+        ITGSend/newran/tryurng.cpp
+        ITGSend/newran/tryurng.h
+        ITGSend/newran/tryurng1.cpp
+        ITGSend/newran/utility.cpp
+        ITGSend/newran/utility.h
+        ITGSend/ITGSend.cpp
+        ITGSend/ITGSend.h
+        ITGSend/traffic.cpp
+        ITGSend/traffic.h
+        libITG/ITGapi.cpp
+        libITG/ITGapi.h)
