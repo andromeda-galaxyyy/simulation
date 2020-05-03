@@ -8,6 +8,6 @@ fi;
 
 while :
 do
-    ITGManager $1 5 190 192.168.64.5 6654
+    ITGManager $1 1 190 192.168.64.5 10000
     result=$?
 done
