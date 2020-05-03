@@ -12,7 +12,10 @@ from py2_utils import check_file, load_json, load_pkl, save_pkl, save_json
 import time
 from mininet.node import Controller
 from os import environ
+from argparse import ArgumentParser
 
+from mininet.node import Controller
+from os import environ
 
 
 def get_prj_root():
@@ -49,6 +52,20 @@ def read_topo(fn="topo.json"):
 	return topo
 
 
+POXDIR = environ['HOME'] + '/pox'
+
+
+class DefaultController(Controller):
+	def __init__(self, name, cdir=POXDIR,
+	             command='python pox.py',
+	             cargs=('openflow.of_01 --port=%s '
+	                    'forwarding.l2_learning'),
+	             **kwargs):
+		Controller.__init__(self, name, cdir=cdir,
+		                    command=command,
+		                    cargs=cargs, **kwargs)
+
+
 class TopoManager:
 	def __init__(self, fn="topo.json"):
 		self.topo = read_topo(fn)
@@ -67,10 +84,18 @@ class TopoManager:
 				fp.flush()
 				fp.close()
 
-	def set_up_mininet(self, controller="default"):
-		net = Mininet(topo=None, controller=None, ipBase="10.0.0.0/8")
-		c = RemoteController('c', '0.0.0.0', 6633)
-		net.addController(c)
+	def set_up_mininet(self, controller="default",socket_port=10000):
+
+		if controller == "default":
+			controller_ip="127.0.0.1"
+			net = Mininet(topo=None, controller=DefaultController, ipBase="10.0.0.0/8")
+		else:
+			controller_ip, controller_port = controller.split(":")
+			controller_port=int(controller_port)
+			net = Mininet(topo=None, controller=None, ipBase="10.0.0.0/8")
+			c = RemoteController('c', controller_ip, controller_port)
+			net.addController(c)
+
 		topo = self.topo
 		nodes = len(topo)
 		info("Setting up {} switches".format(nodes))
@@ -127,8 +152,11 @@ class TopoManager:
 		time.sleep(3)
 		for idx, host in enumerate(self.hosts):
 			ip_file = os.path.join(topo_dir, "{}.ips".format(self.host_ips[idx]))
-			host.cmd("{} {} >/tmp/manager_{}.log 2>&1 &".format(manager_script, ip_file,
-			                                                   self.host_ips[idx]))
+			host.cmd("{} {} {} {} >/tmp/manager_{}.log 2>&1 &".format(manager_script,
+			                                                            ip_file,
+			                                                            controller_ip,
+			                                                            socket_port,
+			                                                            self.host_ips[idx]))
 
 		CLI(net)
 		for idx, host in enumerate(self.hosts):
@@ -144,4 +172,10 @@ class TopoManager:
 
 if __name__ == '__main__':
 	manager = TopoManager()
-	manager.set_up_mininet("127.0.0.1")
+	parser = ArgumentParser()
+	parser.add_argument("--controller_ip", type=str, default="192.168.64.5")
+	parser.add_argument("--controller_port",type=int,default=6633)
+	parser.add_argument("--controller_socket_port", type=int, default=10000)
+	args=parser.parse_args()
+
+	manager.set_up_mininet("{}:{}".format(args.controller_ip,args.controller_port),10000)
