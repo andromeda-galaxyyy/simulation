@@ -186,8 +186,8 @@ int main(int argc, char *argv[]) {
         lp = port_uniform_distribution(generator);
 
         remote_ip=ips[remote_ip_uniform_distribution(generator)];
-        specifier[0]=std::to_string(rp);
-        specifier[1]=std::to_string(lp);
+        specifier[0]=std::to_string(lp);
+        specifier[1]=std::to_string(rp);
         specifier[2]=self_ip;
         specifier[3]=remote_ip;
         specifier[4]="TCP";
