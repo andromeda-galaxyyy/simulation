@@ -12,7 +12,7 @@ socket+json,所有的编码均为ASCII编码
 返回结果  示例为resp.demo.json "0"代表大流量，"1"低时延
 
 
-#traffic
+# traffic
 这个模块主要用于主机生成流量
 
 主机会上报流的统计信息，socket.demo.json
@@ -23,14 +23,14 @@ stats为统计信息，均为float，顺序如示例
 工具为DITG，但是有bug，目前的patch是使用脚本，进程crash之后重新运行
 ITGManager ips_file lambda duration controller_ip port
 
-#routing
+# routing
 这个模块主要用于决策路由,交互见json
 
 
-## 测试
-###  编译ditg
+# 测试
+##  编译ditg
 运行deploy/ditg.sh 编译ditg
-### Mininet Topo
+## Mininet Topo
 目前可以自定义
 例子是topo/files/topo.json中给出的，三个节点，ABC，B---A---C,目前没有自定义链路QoS
 如需自定义topo，修改topo.json
