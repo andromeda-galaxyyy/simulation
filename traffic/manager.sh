@@ -6,7 +6,8 @@ echo "IP file!"
 exit -1
 fi;
 
-while [ $result -ne 0 ];do
+while :
+do
     ITGManager $1 5 190 192.168.64.5 6654
     result=$?
 done
