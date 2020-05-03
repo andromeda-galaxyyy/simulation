@@ -29,8 +29,12 @@ ITGManager ips_file lambda duration controller_ip port
 
 
 ## 测试
-各自搭建的拓扑为田字格，九个交换机，交换机编号从0-8，从上到下，从左往右
-每个交换机挂载了一个主机，ip从10.0.0.1到10.0.0.9/24
+目前可以自定义
+例子是topo/files/topo.json中给出的，三个节点，ABC，B---A---C,目前没有自定义链路QoS
+如需自定义topo，修改topo.json
+为邻接矩阵，矩阵中的每个元素代表一条链路，链路QoS为带宽、延迟、丢包率，以后的格式也这样
+ 
+运行例子需要ryu controller，监听默认端口，并且controller用于接受主机上报的socket端口为10000
 
 
 
