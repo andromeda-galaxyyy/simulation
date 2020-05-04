@@ -35,7 +35,10 @@
 
 #include "../libITG/ITGapi.h"
 #include <stdio.h>
-#include <string.h>
+#include <string>
+#include <vector>
+#include <iostream>
+#include <fstream>
 
 #ifdef UNIX
 
@@ -58,7 +61,15 @@ void read_ip_files(std::string &fn);
 
 void append_params(std::string &command, std::string key, std::string value);
 
-//void append_params(std::string& command,std::string& key);
-
-void send_socket(char *ip, int port, char *msg);
-
+using ip_addrs=std::vector<std::string>;
+void read_ip_files(std::string &fn,std::string& self_ip,ip_addrs & others) {
+    std::ifstream infile(fn);
+    std::string line;
+    while (std::getline(infile, line)) {
+        if (self_ip == "") {
+            self_ip = line;
+            continue;
+        }
+        others.emplace_back(line);
+    }
+}

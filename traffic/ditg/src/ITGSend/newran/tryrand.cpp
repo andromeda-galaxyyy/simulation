@@ -160,9 +160,9 @@ void Histogram(Random *rx, int n)          // draw histogram with n obsv
     F.Precision(5);
     F.Width(10);
     cout << "p. mean = " << F << rx->Mean();
-    cout << ", p. var = " << F << rx->Variance() << endl;
+    cout << ", p. stdvar = " << F << rx->Variance() << endl;
     cout << "s. mean = " << F << mean;
-    cout << ", s. var = " << F << sd * sd;
+    cout << ", s. stdvar = " << F << sd * sd;
     cout << ", max = " << F << amax;
     cout << ", min = " << F << amin;
     cout << endl;

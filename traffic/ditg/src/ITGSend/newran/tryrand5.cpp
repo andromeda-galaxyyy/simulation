@@ -118,7 +118,7 @@ void test5(int N) {
     cout << "Var ratio should be close to 1." << endl;
     cout << endl;
     cout <<
-         " pop. mean smpl. mean  norm diff   pop. var  smpl. var  var ratio" <<
+         " pop. mean smpl. mean  norm diff   pop. var  smpl. var  stdvar ratio" <<
          endl;
 
     TestVariPoisson(0.25, N);
@@ -161,7 +161,7 @@ void test5(int N) {
     cout << "Var ratio should be close to 1." << endl;
     cout << endl;
     cout <<
-         " pop. mean smpl. mean  norm diff   pop. var  smpl. var  var ratio" <<
+         " pop. mean smpl. mean  norm diff   pop. var  smpl. var  stdvar ratio" <<
          endl;
 
     TestVariBinomial(1, 0.2, N);
@@ -199,7 +199,7 @@ void test5(int N) {
     cout << "Var ratio should be close to 1." << endl;
     cout << endl;
     cout <<
-         " pop. mean smpl. mean  norm diff   pop. var  smpl. var  var ratio" <<
+         " pop. mean smpl. mean  norm diff   pop. var  smpl. var  stdvar ratio" <<
          endl;
 
     TestVariLogNormal(0.25, 0.5, N);

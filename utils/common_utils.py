@@ -66,7 +66,7 @@ def load_json(filename):
 
 def save_json(filename,obj,overwrite=True):
     def write():
-        with open(filename,'w') as file:
+        with open(filename,'w',encoding="utf8") as file:
             json.dump(obj,file,indent=4)
 
     if Path(filename).is_file and overwrite:

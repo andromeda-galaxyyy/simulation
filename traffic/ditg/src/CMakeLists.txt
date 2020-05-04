@@ -75,4 +75,4 @@ add_executable(src
         ITGSend/traffic.cpp
         ITGSend/traffic.h
         libITG/ITGapi.cpp
-        libITG/ITGapi.h)
+        libITG/ITGapi.h ITGManager/ITGManager2.cpp ITGManager/socket_util.h)

@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
         specifier[4] = "TCP";
         report["specifier"] = specifier;
         report["stats"] = STATS;
-        std::cout << report << std::endl;
+//        std::cout << report << std::endl;
 
         append_params(params, "-a", remote_ip);
         append_params(params, "-rp", std::to_string(rp));

@@ -145,6 +145,7 @@ def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Di
 
 		flow["proto"] = proto
 		flow["size"] = flow_size
+		flow["duration"]=timestamps[-1]-timestamps[0]
 
 		diff_ts = []
 		pre_ts = timestamps[0]

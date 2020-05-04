@@ -175,7 +175,7 @@ s. mean = -0.0032337, s. var =    0.99744, max =     4.1587, min =    -5.2177
 |
 |
 Cauchy
-p. mean =      indef, p. var =   plus-inf
+p. mean =      indef, p. stdvar =   plus-inf
 s. mean =    0.80419, s. var =     272240, max =     115160, min =     -59877
 
 

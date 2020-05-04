@@ -141,9 +141,9 @@ void test1(double N) {
     //cout << "Approx expected unseen   = " << expected << endl;
     double p = exp(-(N / M8));
     double var = expected * (1.0 - p * (1.0 + N / M8));
-    //cout << "Uncorrected s.d.         = " << sqrt(var) << endl;
+    //cout << "Uncorrected s.d.         = " << sqrt(stdvar) << endl;
     var *= (1.0 + 2.0 * pow(p, 0.30));   // approximate correction
-    //cout << "Approx s.d.              = " << sqrt(var) << endl;
+    //cout << "Approx s.d.              = " << sqrt(stdvar) << endl;
 
     NormalTestTwoSided mm_sparse("MM sparse", unseen, expected, var);
     mm_sparse.DoTest();

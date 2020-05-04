@@ -41,7 +41,7 @@ void test1(int n) {
 
     cout << "Print histograms of data from a variety distributions" << endl;
     cout << "Histograms should be close to those in sample output" << endl;
-    cout << "s. mean and s. var should be close to p. mean and s. mean" << endl << endl;
+    cout << "s. mean and s. stdvar should be close to p. mean and s. mean" << endl << endl;
 
     {
         Constant c(5.0);
