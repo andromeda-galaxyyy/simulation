@@ -142,7 +142,7 @@ bool report_to_controller(char *dst_ip, int dst_port, json &obj) {
 //controller port
 
 int main(int argc, char *argv[]) {
-    json report;
+   nlohmann:: json report;
     argc--;
 
     std::string ip_fn = std::string(argv[1]);

@@ -18,7 +18,6 @@ add_executable(src
         common/debug.h
         common/ITG.cpp
         common/ITG.h
-        common/json.hpp
         common/pipes.cpp
         common/pipes.h
         common/serial.cpp
