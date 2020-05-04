@@ -6,9 +6,10 @@ from typing import Mapping, Dict, Tuple, List
 from collections import defaultdict
 
 import shutil
-from utils.common_utils import save_json,debug,info,check_file,check_dir
+from utils.common_utils import save_json, debug, info, check_file, check_dir
 from os import listdir
 from collections import Counter
+
 
 def mac_addr(address):
 	"""Convert a MAC address to a readable/printable string
@@ -115,6 +116,8 @@ class TCPParser(Parser):
 		info("There is {} disctinct flows".format(len(res)))
 
 		return res
+
+
 # todo make timestamp start from zero
 
 
@@ -147,7 +150,9 @@ def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Di
 		pre_ts = timestamps[0]
 		for ts in timestamps:
 			# in pcap files, timestamp in in epoch time in seconds
-			diff_ts.append(int(int((ts - pre_ts) * 1000000) / 1000)+0.001)
+			diff = (int(int((ts - pre_ts) * 1000000) / 1000) + 0.01)
+			diff /= 3
+			diff_ts.append(diff)
 			pre_ts = ts
 		idts_file = os.path.join(dirname, "{}.idts".format(key))
 		ps_file = os.path.join(dirname, "{}.ps".format(key))
@@ -167,7 +172,7 @@ def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Di
 		# logger.debug("ps file written done")
 		statistics["flows"].append(flow)
 		statistics["count"] += 1
-		# print(sum(diff_ts))
+	# print(sum(diff_ts))
 	debug(counter)
 
 
