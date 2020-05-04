@@ -32,11 +32,7 @@
 #define MNG_FLOWEND    2
 
 
-
 int DITGsend(char *sender, char *message);
-
-
-
 
 
 int catchManagerMsg(char **senderIP, char **msg);

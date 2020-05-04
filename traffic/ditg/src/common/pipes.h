@@ -31,8 +31,8 @@
 extern char nameProgram[];
 
 struct pipeMsg {
-	int flowId;
-	int code;
+    int flowId;
+    int code;
 };
 
 #ifdef WIN32
@@ -41,10 +41,15 @@ extern int numPipes;
 #endif
 
 #ifdef UNIX
+
 int createNewPipe(int fd[2]);
+
 int sendPipeMsg(int fd[2], pipeMsg *msg);
+
 int recvPipeMsg(int fd[2], pipeMsg *msg);
+
 int closePipe(int fd[2]);
+
 #endif
 #ifdef WIN32
 int createNewPipe(HANDLE pipe[3]);

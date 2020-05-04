@@ -1,4 +1,9 @@
-networkx
-numpy
-keras
+networkx~=2.4
+numpy~=1.18.2
+keras~=2.3.1
 matplotlib
+mininet~=2.3.0d6
+loguru~=0.4.1
+dpkt~=1.9.2
+sklearn~=0.0
+scikit-learn~=0.22.2.post1

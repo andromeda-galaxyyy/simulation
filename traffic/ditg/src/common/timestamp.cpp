@@ -29,7 +29,9 @@
 
 
 #ifdef UNIX
+
 #include <sys/wait.h>
+
 #endif
 #ifdef WIN32
 #include <time.h>
@@ -46,24 +48,22 @@ LARGE_INTEGER freq;
 #endif
 
 
-
-void setSeedRandom()
-{
+void setSeedRandom() {
 #ifdef UNIX
-		
-		struct timeval tv;
-		
-		gettimeofday(&tv, NULL);
-		
-		srand(tv.tv_usec);
+
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+
+    srand(tv.tv_usec);
 #endif
 #ifdef WIN32
-		
-		SYSTEMTIME lpSystemTime;
-		
-		GetSystemTime(&lpSystemTime);
-		
-		srand(lpSystemTime.wSecond);
+
+    SYSTEMTIME lpSystemTime;
+
+    GetSystemTime(&lpSystemTime);
+
+    srand(lpSystemTime.wSecond);
 #endif
 
 }
@@ -71,54 +71,54 @@ void setSeedRandom()
 #ifdef WIN32
 void updateTicker(struct TTicker *Ticker, LARGE_INTEGER & _tend, LARGE_INTEGER & _tprec, LARGE_INTEGER & _tstart, int &first)
 {
-	if (first) {
-		_tprec = _tstart;
-		first = 0;
-	}
-	QueryPerformanceCounter(&_tend);
-	Ticker->count += (((((double) _tend.QuadPart - (double) _tprec.QuadPart)) / (double) freq.QuadPart) * 1e3);
-	_tprec = _tend;
+    if (first) {
+        _tprec = _tstart;
+        first = 0;
+    }
+    QueryPerformanceCounter(&_tend);
+    Ticker->count += (((((double) _tend.QuadPart - (double) _tprec.QuadPart)) / (double) freq.QuadPart) * 1e3);
+    _tprec = _tend;
 }
 
 
 int tstart(LARGE_INTEGER & _tstart, unsigned long &secs, unsigned long &msecs, int &first, BYTE meter, int flag)
 {
-	
-	SYSTEMTIME lpSystemTime;
-	
-	BOOL ret;
-	
-	if (first) {
 
-		
-		ret = QueryPerformanceFrequency(&freq);
-		if (ret == 0)
-			return -1;
-		first = 0;
-	}
-	
+    SYSTEMTIME lpSystemTime;
+
+    BOOL ret;
+
+    if (first) {
+
+
+        ret = QueryPerformanceFrequency(&freq);
+        if (ret == 0)
+            return -1;
+        first = 0;
+    }
+
     GetSystemTime(&lpSystemTime);
-	ret = QueryPerformanceCounter(&_tstart);
-	if (ret == 0)
-		return -1;
+    ret = QueryPerformanceCounter(&_tstart);
+    if (ret == 0)
+        return -1;
 
-	
 
-	
-	secs = lpSystemTime.wHour * 3600 + lpSystemTime.wMinute * 60 + lpSystemTime.wSecond;
 
-	PRINTD(3,"tstart: GetSytemTime.second %lu \n",(unsigned long)secs);
 
-    
-	msecs = lpSystemTime.wMilliseconds;
+    secs = lpSystemTime.wHour * 3600 + lpSystemTime.wMinute * 60 + lpSystemTime.wSecond;
 
-	if ((meter == METER_OWDM) || (flag == RECEIVER)) {
-		
-	msecs = lpSystemTime.wMilliseconds;
-	} else {
-		
-	msecs = lpSystemTime.wMilliseconds * 1000;
-	}
+    PRINTD(3,"tstart: GetSytemTime.second %lu \n",(unsigned long)secs);
+
+
+    msecs = lpSystemTime.wMilliseconds;
+
+    if ((meter == METER_OWDM) || (flag == RECEIVER)) {
+
+    msecs = lpSystemTime.wMilliseconds;
+    } else {
+
+    msecs = lpSystemTime.wMilliseconds * 1000;
+    }
 
    return 0;
 }
@@ -126,58 +126,59 @@ int tstart(LARGE_INTEGER & _tstart, unsigned long &secs, unsigned long &msecs, i
 int gettimeofday(struct timeval *thisTime, LARGE_INTEGER & _tend, LARGE_INTEGER & _tstart,
     unsigned long &secs, unsigned long &msecs, BYTE meter, int flag)
 {
-	
-	double secAndUsec = 0;
-	
-	long micro = 0;
-	
-	BOOL ret;
-	
-	ret = QueryPerformanceCounter(&_tend);
-	if (ret == 0)
-		return -1;
-	 
-	secAndUsec = ((((double) _tend.QuadPart - (double) _tstart.QuadPart)) / (double) freq.QuadPart);
-    	PRINTD(3,"gettimeofday: QueryPerformanceCounter:secAndUsec %lf \n", secAndUsec);
-	
-	thisTime->tv_sec = ((unsigned long) secAndUsec) + secs;
-	
-	if ((meter == METER_OWDM) || (flag == RECEIVER)) {
-		
-		micro = (long) ceil(((secAndUsec - floor(secAndUsec)) * 1e6) / 1000);
-		
-		if ((thisTime->tv_usec = (micro + msecs)) >= 1e3) {
-			
-			thisTime->tv_sec++;
-			
-			thisTime->tv_usec = (long int)(((double) (thisTime->tv_usec * 1e-3) - 1) * 1e3);
-		}
-		
-		thisTime->tv_usec = (long int)(thisTime->tv_usec * 1e3);
-	} else {
-		
-		micro = (long) ((secAndUsec - floor(secAndUsec)) * 1e6);
-		
-		if ((thisTime->tv_usec = (micro + msecs)) >= 1e6) {
-			
-			thisTime->tv_sec++;
-			
-			thisTime->tv_usec = (long int)(((double) (thisTime->tv_usec * 1e-6) - 1) * 1e6);
-		}
-	}
-	return 0;
+
+    double secAndUsec = 0;
+
+    long micro = 0;
+
+    BOOL ret;
+
+    ret = QueryPerformanceCounter(&_tend);
+    if (ret == 0)
+        return -1;
+
+    secAndUsec = ((((double) _tend.QuadPart - (double) _tstart.QuadPart)) / (double) freq.QuadPart);
+        PRINTD(3,"gettimeofday: QueryPerformanceCounter:secAndUsec %lf \n", secAndUsec);
+
+    thisTime->tv_sec = ((unsigned long) secAndUsec) + secs;
+
+    if ((meter == METER_OWDM) || (flag == RECEIVER)) {
+
+        micro = (long) ceil(((secAndUsec - floor(secAndUsec)) * 1e6) / 1000);
+
+        if ((thisTime->tv_usec = (micro + msecs)) >= 1e3) {
+
+            thisTime->tv_sec++;
+
+            thisTime->tv_usec = (long int)(((double) (thisTime->tv_usec * 1e-3) - 1) * 1e3);
+        }
+
+        thisTime->tv_usec = (long int)(thisTime->tv_usec * 1e3);
+    } else {
+
+        micro = (long) ((secAndUsec - floor(secAndUsec)) * 1e6);
+
+        if ((thisTime->tv_usec = (micro + msecs)) >= 1e6) {
+
+            thisTime->tv_sec++;
+
+            thisTime->tv_usec = (long int)(((double) (thisTime->tv_usec * 1e-6) - 1) * 1e6);
+        }
+    }
+    return 0;
 }
 #endif
 
 #ifdef UNIX
-void updateTicker(struct TTicker *Ticker)
-{
-	struct timeval thisTime, *lastTime = &Ticker->lastTime;
 
-	gettimeofday(&thisTime, NULL);
-	Ticker->count += ((double) (thisTime.tv_sec - lastTime->tv_sec)) * 1000.0 +
-	    ((double) (thisTime.tv_usec - lastTime->tv_usec)) / 1000.0;
-	*lastTime = thisTime;
+void updateTicker(struct TTicker *Ticker) {
+    struct timeval thisTime, *lastTime = &Ticker->lastTime;
+
+    gettimeofday(&thisTime, NULL);
+    Ticker->count += ((double) (thisTime.tv_sec - lastTime->tv_sec)) * 1000.0 +
+                     ((double) (thisTime.tv_usec - lastTime->tv_usec)) / 1000.0;
+    *lastTime = thisTime;
 
 }
+
 #endif

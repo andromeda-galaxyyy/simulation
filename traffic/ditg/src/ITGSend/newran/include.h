@@ -21,10 +21,10 @@
 
 
 //#define TEMPS_DESTROYED_QUICKLY         // for compilers that delete
-					// temporaries too quickly
+// temporaries too quickly
 
 //#define TEMPS_DESTROYED_QUICKLY_R       // the same thing but applied
-					// to return from functions only
+// to return from functions only
 
 //#define DO_FREE_CHECK                   // check news and deletes balance
 
@@ -42,7 +42,7 @@
 
 
 //#define HAS_INT64                     // if unsigned _int64 is recognised
-                                        // used by newran03
+// used by newran03
 
 //#define set_unix_options              // set if running UNIX or LINUX
 
@@ -54,63 +54,67 @@
 
 // for Gnu C++ version 3
 #if defined __GNUG__ && __GNUG__ >= 3
-   #define _STANDARD_                   // use standard library
-   #define ios_format_flags ios::fmtflags
+#define _STANDARD_                   // use standard library
+#define ios_format_flags ios::fmtflags
 #endif
 
 // for Intel C++ for Linux
 #if defined __ICC
-   #define _STANDARD_                   // use standard library
-   #define ios_format_flags ios::fmtflags
+#define _STANDARD_                   // use standard library
+#define ios_format_flags ios::fmtflags
 #endif
 
 // for Intel C++ for Windows
 #if defined __ICL
-   #define _STANDARD_                   // use standard library
-   #define ios_format_flags ios::fmtflags
+#define _STANDARD_                   // use standard library
+#define ios_format_flags ios::fmtflags
 #endif
 
 // for Microsoft Visual C++ 7 and above (and Intel simulating these)
 #if defined _MSC_VER && _MSC_VER >= 1300
-   #define _STANDARD_                   // use standard library
+#define _STANDARD_                   // use standard library
 #endif
 
 // for Borland Builder C++ 2006 and above
 #if defined __BCPLUSPLUS__ && __BCPLUSPLUS__ >= 0x0570
-   #define _STANDARD_                   // use standard library
-   #define ios_format_flags ios::fmtflags
+#define _STANDARD_                   // use standard library
+#define ios_format_flags ios::fmtflags
 #endif
 
 
 #ifdef _STANDARD_                       // using standard library
-   #include <cstdlib>
-   #if defined _MSC_VER && _MSC_VER == 1200
-      #include <limits>              // for VC++6
-   #endif
-   #ifdef WANT_STREAM
-      #include <iostream>
-      #include <iomanip>
-   #endif
-   #ifdef WANT_MATH
-      #include <cmath>
-   #endif
-   #ifdef WANT_STRING
-      #include <cstring>
-   #endif
-   #ifdef WANT_TIME
-      #include <ctime>
-   #endif
-   #ifdef WANT_FSTREAM
-      #include <fstream>
-   #endif
-   using namespace std;
+
+#include <cstdlib>
+
+#if defined _MSC_VER && _MSC_VER == 1200
+#include <limits>              // for VC++6
+#endif
+#ifdef WANT_STREAM
+#include <iostream>
+#include <iomanip>
+#endif
+#ifdef WANT_MATH
+#include <cmath>
+#endif
+#ifdef WANT_STRING
+#include <cstring>
+#endif
+#ifdef WANT_TIME
+#include <ctime>
+#endif
+#ifdef WANT_FSTREAM
+
+#include <fstream>
+
+#endif
+using namespace std;
 #else
 
 #define DEFAULT_HEADER                  // use AT&T style header
-                                        // if no other compiler is recognised
+// if no other compiler is recognised
 
 #ifdef _MSC_VER                         // Microsoft
-   #include <stdlib.h>
+#include <stdlib.h>
 
 //   reactivate these statements to run under MSC version 7.0
 //   typedef int jmp_buf[9];
@@ -120,115 +124,115 @@
 //      void __cdecl longjmp(jmp_buf, int);
 //   }
 
-   #ifdef WANT_STREAM
-      #include <iostream.h>
-      #include <iomanip.h>
-   #endif
-   #ifdef WANT_MATH
-      #include <math.h>
-      #include <float.h>
-   #endif
-   #ifdef WANT_STRING
-      #include <string.h>
-   #endif
-   #ifdef WANT_TIME
-      #include <time.h>
-   #endif
-   #ifdef WANT_FSTREAM
-      #include <fstream.h>
-   #endif
-   #undef DEFAULT_HEADER
+#ifdef WANT_STREAM
+#include <iostream.h>
+#include <iomanip.h>
+#endif
+#ifdef WANT_MATH
+#include <math.h>
+#include <float.h>
+#endif
+#ifdef WANT_STRING
+#include <string.h>
+#endif
+#ifdef WANT_TIME
+#include <time.h>
+#endif
+#ifdef WANT_FSTREAM
+#include <fstream.h>
+#endif
+#undef DEFAULT_HEADER
 #endif
 
 #ifdef __ZTC__                          // Zortech
-   #include <stdlib.h>
-   #ifdef WANT_STREAM
-      #include <iostream.hpp>
-      #include <iomanip.hpp>
-      #define flush ""                  // not defined in iomanip?
-   #endif
-   #ifdef WANT_MATH
-      #include <math.h>
-      #include <float.h>
-   #endif
-   #ifdef WANT_STRING
-      #include <string.h>
-   #endif
-   #ifdef WANT_TIME
-      #include <time.h>
-   #endif
-   #ifdef WANT_FSTREAM
-      #include <fstream.h>
-   #endif
-   #undef DEFAULT_HEADER
+#include <stdlib.h>
+#ifdef WANT_STREAM
+#include <iostream.hpp>
+#include <iomanip.hpp>
+#define flush ""                  // not defined in iomanip?
+#endif
+#ifdef WANT_MATH
+#include <math.h>
+#include <float.h>
+#endif
+#ifdef WANT_STRING
+#include <string.h>
+#endif
+#ifdef WANT_TIME
+#include <time.h>
+#endif
+#ifdef WANT_FSTREAM
+#include <fstream.h>
+#endif
+#undef DEFAULT_HEADER
 #endif
 
 #if defined __BCPLUSPLUS__ || defined __TURBOC__  // Borland or Turbo
-   #include <stdlib.h>
-   #ifdef WANT_STREAM
-      #include <iostream.h>
-      #include <iomanip.h>
-   #endif
-   #ifdef WANT_MATH
-      #include <math.h>
-      #include <float.h>            // Borland has both float and values
-                                    // but values.h returns +INF for
-                                    // MAXDOUBLE in BC5
-   #endif
-   #ifdef WANT_STRING
-      #include <string.h>
-   #endif
-   #ifdef WANT_TIME
-      #include <time.h>
-   #endif
-   #ifdef WANT_FSTREAM
-      #include <fstream.h>
-   #endif
-   #undef DEFAULT_HEADER
+#include <stdlib.h>
+#ifdef WANT_STREAM
+#include <iostream.h>
+#include <iomanip.h>
+#endif
+#ifdef WANT_MATH
+#include <math.h>
+#include <float.h>            // Borland has both float and values
+// but values.h returns +INF for
+// MAXDOUBLE in BC5
+#endif
+#ifdef WANT_STRING
+#include <string.h>
+#endif
+#ifdef WANT_TIME
+#include <time.h>
+#endif
+#ifdef WANT_FSTREAM
+#include <fstream.h>
+#endif
+#undef DEFAULT_HEADER
 #endif
 
 #ifdef __GNUG__                         // Gnu C++
-   #include <stdlib.h>
-   #ifdef WANT_STREAM
-      #include <iostream.h>
-      #include <iomanip.h>
-   #endif
-   #ifdef WANT_MATH
-      #include <math.h>
-      #include <float.h>
-   #endif
-   #ifdef WANT_STRING
-      #include <string.h>
-   #endif
-   #ifdef WANT_TIME
-      #include <time.h>
-   #endif
-   #ifdef WANT_FSTREAM
-      #include <fstream.h>
-   #endif
-   #undef DEFAULT_HEADER
+#include <stdlib.h>
+#ifdef WANT_STREAM
+#include <iostream.h>
+#include <iomanip.h>
+#endif
+#ifdef WANT_MATH
+#include <math.h>
+#include <float.h>
+#endif
+#ifdef WANT_STRING
+#include <string.h>
+#endif
+#ifdef WANT_TIME
+#include <time.h>
+#endif
+#ifdef WANT_FSTREAM
+#include <fstream.h>
+#endif
+#undef DEFAULT_HEADER
 #endif
 
 #ifdef __WATCOMC__                      // Watcom C/C++
-   #include <stdlib.h>
-   #ifdef WANT_STREAM
-      #include <iostream.h>
-      #include <iomanip.h>
-   #endif
-   #ifdef WANT_MATH
-      #include <math.h>
-      #include <float.h>
-   #endif
-   #ifdef WANT_STRING
-      #include <string.h>
-   #endif
-   #ifdef WANT_TIME
-      #include <time.h>
-   #endif
-   #ifdef WANT_FSTREAM
-      #include <fstream.h>
-   #endif
-   #undef DEFAULT_HEADER
+#include <stdlib.h>
+#ifdef WANT_STREAM
+#include <iostream.h>
+#include <iomanip.h>
+#endif
+#ifdef WANT_MATH
+#include <math.h>
+#include <float.h>
+#endif
+#ifdef WANT_STRING
+#include <string.h>
+#endif
+#ifdef WANT_TIME
+#include <time.h>
+#endif
+#ifdef WANT_FSTREAM
+#include <fstream.h>
+#endif
+#undef DEFAULT_HEADER
 #endif
 
 
@@ -325,13 +329,13 @@ typedef long double long_Real;
 
 class bool
 {
-	int value;
+    int value;
 public:
-	bool(const int b) { value = b ? 1 : 0; }
-	bool(const void* b) { value = b ? 1 : 0; }
-	bool() {}
-	operator int() const { return value; }
-	int operator!() const { return !value; }
+    bool(const int b) { value = b ? 1 : 0; }
+    bool(const void* b) { value = b ? 1 : 0; }
+    bool() {}
+    operator int() const { return value; }
+    int operator!() const { return !value; }
 };
 
 

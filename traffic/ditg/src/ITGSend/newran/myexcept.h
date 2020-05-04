@@ -65,45 +65,50 @@ class BaseException;
 
 class Tracer                             // linked list showing how
 {                                        // we got here
-   const char* entry;
-   Tracer* previous;
+    const char *entry;
+    Tracer *previous;
 public:
-   Tracer(const char*);
-   ~Tracer();
-   void ReName(const char*);
-   static void PrintTrace();             // for printing trace
-   static void AddTrace();               // insert trace in exception record
-   static Tracer* last;                  // points to Tracer list
-   friend class BaseException;
+    Tracer(const char *);
+
+    ~Tracer();
+
+    void ReName(const char *);
+
+    static void PrintTrace();             // for printing trace
+    static void AddTrace();               // insert trace in exception record
+    static Tracer *last;                  // points to Tracer list
+    friend class BaseException;
 };
 
 
 class BaseException                          // The base exception class
 {
 protected:
-   static char* what_error;              // error message
-   static int SoFar;                     // no. characters already entered
-   static int LastOne;                   // last location in error buffer
+    static char *what_error;              // error message
+    static int SoFar;                     // no. characters already entered
+    static int LastOne;                   // last location in error buffer
 public:
-   static void AddMessage(const char* a_what);
-                                         // messages about exception
-   static void AddInt(int value);        // integer to error message
-   static unsigned long Select;          // for identifying exception
-   BaseException(const char* a_what = 0);
-   static const char* what() { return what_error; }
-                                         // for getting error message
+    static void AddMessage(const char *a_what);
+
+    // messages about exception
+    static void AddInt(int value);        // integer to error message
+    static unsigned long Select;          // for identifying exception
+    BaseException(const char *a_what = 0);
+
+    static const char *what() { return what_error; }
+    // for getting error message
 };
 
 #ifdef TypeDefException
 typedef BaseException Exception;        // for compatibility with my older libraries
 #endif
 
-inline Tracer::Tracer(const char* e)
-   : entry(e), previous(last) { last = this; }
+inline Tracer::Tracer(const char *e)
+        : entry(e), previous(last) { last = this; }
 
 inline Tracer::~Tracer() { last = previous; }
 
-inline void Tracer::ReName(const char* e) { entry=e; }
+inline void Tracer::ReName(const char *e) { entry = e; }
 
 #ifdef SimulateExceptions                // SimulateExceptions
 
@@ -216,9 +221,11 @@ inline void Throw(const BaseException&) { Terminate(); }
 class Janitor                         // a dummy version
 {
 public:
-   virtual void CleanUp() {}
-   Janitor() {}
-   virtual ~Janitor() {}
+    virtual void CleanUp() {}
+
+    Janitor() {}
+
+    virtual ~Janitor() {}
 };
 
 #endif                                // end of ! SimulateExceptions
@@ -315,13 +322,13 @@ public:                                                                    \
 
 
 #define MONITOR_REAL_NEW(Operation, Size, Pointer)                         \
-	FreeCheck::RegisterR(Pointer, Operation, Size);
+    FreeCheck::RegisterR(Pointer, Operation, Size);
 #define MONITOR_INT_NEW(Operation, Size, Pointer)                          \
-	FreeCheck::RegisterI(Pointer, Operation, Size);
+    FreeCheck::RegisterI(Pointer, Operation, Size);
 #define MONITOR_REAL_DELETE(Operation, Size, Pointer)                      \
-	FreeCheck::DeRegisterR(Pointer, Operation, Size);
+    FreeCheck::DeRegisterR(Pointer, Operation, Size);
 #define MONITOR_INT_DELETE(Operation, Size, Pointer)                       \
-	FreeCheck::DeRegisterI(Pointer, Operation, Size);
+    FreeCheck::DeRegisterI(Pointer, Operation, Size);
 
 #else                            // DO_FREE_CHECK not defined
 
@@ -337,9 +344,9 @@ public:                                                                    \
 
 #define NEW_DELETE(Class)                                                  \
 public:                                                                    \
-	void* operator new(size_t size)                                    \
-	{ do_not_link=true; void* t = ::operator new(size); return t; }    \
-	void operator delete(void* t) { ::operator delete(t); }
+    void* operator new(size_t size)                                    \
+    { do_not_link=true; void* t = ::operator new(size); return t; }    \
+    void operator delete(void* t) { ::operator delete(t); }
 
 #endif                            // end of SimulateExceptions
 
@@ -354,46 +361,46 @@ public:                                                                    \
 
 //********************* derived exceptions ******************************//
 
-class Logic_error : public BaseException
-{
+class Logic_error : public BaseException {
 public:
-   static unsigned long Select;
-   Logic_error(const char* a_what = 0);
+    static unsigned long Select;
+
+    Logic_error(const char *a_what = 0);
 };
 
-class Runtime_error : public BaseException
-{
+class Runtime_error : public BaseException {
 public:
-   static unsigned long Select;
-   Runtime_error(const char* a_what = 0);
+    static unsigned long Select;
+
+    Runtime_error(const char *a_what = 0);
 };
 
-class Domain_error : public Logic_error
-{
+class Domain_error : public Logic_error {
 public:
-   static unsigned long Select;
-   Domain_error(const char* a_what = 0);
+    static unsigned long Select;
+
+    Domain_error(const char *a_what = 0);
 };
 
-class Invalid_argument : public Logic_error
-{
+class Invalid_argument : public Logic_error {
 public:
-   static unsigned long Select;
-   Invalid_argument(const char* a_what = 0);
+    static unsigned long Select;
+
+    Invalid_argument(const char *a_what = 0);
 };
 
-class Length_error : public Logic_error
-{
+class Length_error : public Logic_error {
 public:
-   static unsigned long Select;
-   Length_error(const char* a_what = 0);
+    static unsigned long Select;
+
+    Length_error(const char *a_what = 0);
 };
 
-class Out_of_range : public Logic_error
-{
+class Out_of_range : public Logic_error {
 public:
-   static unsigned long Select;
-   Out_of_range(const char* a_what = 0);
+    static unsigned long Select;
+
+    Out_of_range(const char *a_what = 0);
 };
 
 //class Bad_cast : public Logic_error
@@ -410,25 +417,25 @@ public:
 //   Bad_typeid(const char* a_what = 0);
 //};
 
-class Range_error : public Runtime_error
-{
+class Range_error : public Runtime_error {
 public:
-   static unsigned long Select;
-   Range_error(const char* a_what = 0);
+    static unsigned long Select;
+
+    Range_error(const char *a_what = 0);
 };
 
-class Overflow_error : public Runtime_error
-{
+class Overflow_error : public Runtime_error {
 public:
-   static unsigned long Select;
-   Overflow_error(const char* a_what = 0);
+    static unsigned long Select;
+
+    Overflow_error(const char *a_what = 0);
 };
 
-class Bad_alloc : public BaseException
-{
+class Bad_alloc : public BaseException {
 public:
-   static unsigned long Select;
-   Bad_alloc(const char* a_what = 0);
+    static unsigned long Select;
+
+    Bad_alloc(const char *a_what = 0);
 };
 
 #ifdef use_namespace

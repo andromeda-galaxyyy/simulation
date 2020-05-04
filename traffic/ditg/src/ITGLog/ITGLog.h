@@ -37,12 +37,8 @@
 
 
 struct paramLogThread {
-	int socket;					
+    int socket;
 };
-
-
-
-
 
 
 extern ofstream out;
@@ -74,29 +70,25 @@ extern HANDLE mutexLog;
 #endif
 
 
-
-
 void printHelpAndExit();
 
 
 void closeFileLog(ofstream *out);
 
 
-void recvInfo(int signalingChannel,BYTE &protocol,char logFile[DIM_LOG_FILE]);
+void recvInfo(int signalingChannel, BYTE &protocol, char logFile[DIM_LOG_FILE]);
 
 
 int findPortFree(int logSock);
 
 
-char* allowedLogFile(char logFile[DIM_LOG_FILE]);
+char *allowedLogFile(char logFile[DIM_LOG_FILE]);
 
 
 void *channelManager(void *param);
 
 
-
 void terminate(int sign);
-
 
 
 void reportErrorAndExit(const char *function, const char *program, const char *msg);
@@ -105,10 +97,8 @@ void reportErrorAndExit(const char *function, const char *program, const char *m
 void createSignalingChannel();
 
 
-
 void logInit();
 
 
-
-void parserLog(int argc , char *argv[]);
+void parserLog(int argc, char *argv[]);
 

@@ -25,7 +25,7 @@
  *   For commercial use please refer to D-ITG Professional.
  */
 
- 
+
 
 
 
@@ -38,7 +38,9 @@
 #include <string.h>
 
 #ifdef UNIX
+
 #include <pthread.h>
+
 #endif
 
 #include "../common/thread.h"
@@ -48,17 +50,15 @@ extern HANDLE mutexLog;
 #endif
 
 
-
-
-
-void* waitStopKey(void* s);
+void *waitStopKey(void *s);
 
 void terminate(int sig);
 
-void read_ip_files(std::string& fn);
-void append_params(std::string& command,std::string key,std::string value);
+void read_ip_files(std::string &fn);
+
+void append_params(std::string &command, std::string key, std::string value);
 
 //void append_params(std::string& command,std::string& key);
 
-void send_socket(char* ip,int port,char* msg);
+void send_socket(char *ip, int port, char *msg);
 

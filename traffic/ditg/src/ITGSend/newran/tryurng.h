@@ -13,10 +13,9 @@ using namespace RBD_COMMON;
 #endif
 
 
-
 void test1(double);
 
-OstreamWithFormat operator<<( OstreamWithFormat, const ExtReal& );
+OstreamWithFormat operator<<(OstreamWithFormat, const ExtReal &);
 
 #ifdef NAMESPACE
 }

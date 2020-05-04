@@ -28,7 +28,7 @@ namespace RBD_COMMON {
 
 //#define REG_DEREG                    // for print out uses of new/delete
 //#define CLEAN_LIST                   // to print entries being added to
-                                       // or deleted from cleanup list
+// or deleted from cleanup list
 
 #ifdef SimulateExceptions
 
@@ -48,84 +48,96 @@ void Throw()
 
 
 unsigned long BaseException::Select;
-char* BaseException::what_error;
+char *BaseException::what_error;
 int BaseException::SoFar;
 int BaseException::LastOne;
 
-BaseException::BaseException(const char* a_what)
-{
-   Select++; SoFar = 0;
-   if (!what_error)                   // make space for exception message
-   {
-      LastOne = 511;
-      what_error = new char[512];
-      if (!what_error)                // fail to make space
-      {
-         LastOne = 0;
-         what_error = (char *)"No heap space for exception message\n";
-      }
-   }
-   AddMessage("\n\nAn exception has been thrown\n");
-   AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+BaseException::BaseException(const char *a_what) {
+    Select++;
+    SoFar = 0;
+    if (!what_error)                   // make space for exception message
+    {
+        LastOne = 511;
+        what_error = new char[512];
+        if (!what_error)                // fail to make space
+        {
+            LastOne = 0;
+            what_error = (char *) "No heap space for exception message\n";
+        }
+    }
+    AddMessage("\n\nAn exception has been thrown\n");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
 
-void BaseException::AddMessage(const char* a_what)
-{
-   if (a_what)
-   {
-      int l = strlen(a_what); int r = LastOne - SoFar;
-      if (l < r) { strcpy(what_error+SoFar, a_what); SoFar += l; }
-      else if (r > 0)
-      {
-         strncpy(what_error+SoFar, a_what, r);
-         what_error[LastOne] = 0;
-         SoFar = LastOne;
-      }
-   }
+void BaseException::AddMessage(const char *a_what) {
+    if (a_what) {
+        int l = strlen(a_what);
+        int r = LastOne - SoFar;
+        if (l < r) {
+            strcpy(what_error + SoFar, a_what);
+            SoFar += l;
+        }
+        else if (r > 0) {
+            strncpy(what_error + SoFar, a_what, r);
+            what_error[LastOne] = 0;
+            SoFar = LastOne;
+        }
+    }
 }
 
-void BaseException::AddInt(int value)
-{
-   bool negative;
-   if (value == 0) { AddMessage("0"); return; }
-   else if (value < 0) { value = -value; negative = true; }
-   else negative = false;
-   int n = 0; int v = value;        // how many digits will we need?
-   while (v > 0) { v /= 10; n++; }
-   if (negative) n++;
-   if (LastOne-SoFar < n) { AddMessage("***"); return; }
+void BaseException::AddInt(int value) {
+    bool negative;
+    if (value == 0) {
+        AddMessage("0");
+        return;
+    }
+    else if (value < 0) {
+        value = -value;
+        negative = true;
+    }
+    else negative = false;
+    int n = 0;
+    int v = value;        // how many digits will we need?
+    while (v > 0) {
+        v /= 10;
+        n++;
+    }
+    if (negative) n++;
+    if (LastOne - SoFar < n) {
+        AddMessage("***");
+        return;
+    }
 
-   SoFar += n; n = SoFar; what_error[n] = 0;
-   while (value > 0)
-   {
-      int nv = value / 10; int rm = value - nv * 10;  value = nv;
-      what_error[--n] = (char)(rm + '0');
-   }
-   if (negative) what_error[--n] = '-';
-   return;
+    SoFar += n;
+    n = SoFar;
+    what_error[n] = 0;
+    while (value > 0) {
+        int nv = value / 10;
+        int rm = value - nv * 10;
+        value = nv;
+        what_error[--n] = (char) (rm + '0');
+    }
+    if (negative) what_error[--n] = '-';
+    return;
 }
 
-void Tracer::PrintTrace()
-{
-   cout << "\n";
-   for (Tracer* et = last; et; et=et->previous)
-      cout << "  * " << et->entry << "\n";
+void Tracer::PrintTrace() {
+    cout << "\n";
+    for (Tracer *et = last; et; et = et->previous)
+        cout << "  * " << et->entry << "\n";
 }
 
-void Tracer::AddTrace()
-{
-   if (last)
-   {
-      BaseException::AddMessage("Trace: ");
-      BaseException::AddMessage(last->entry);
-      for (Tracer* et = last->previous; et; et=et->previous)
-      {
-         BaseException::AddMessage("; ");
-         BaseException::AddMessage(et->entry);
-      }
-      BaseException::AddMessage(".\n");
-   }
+void Tracer::AddTrace() {
+    if (last) {
+        BaseException::AddMessage("Trace: ");
+        BaseException::AddMessage(last->entry);
+        for (Tracer *et = last->previous; et; et = et->previous) {
+            BaseException::AddMessage("; ");
+            BaseException::AddMessage(et->entry);
+        }
+        BaseException::AddMessage(".\n");
+    }
 }
 
 #ifdef SimulateExceptions
@@ -163,15 +175,15 @@ Janitor::~Janitor()
       if (this == lastjan) JumpBase::jl->janitor = NextJanitor;
       else
       {
-	 for (Janitor* jan = lastjan->NextJanitor; jan;
-	    jan = lastjan->NextJanitor)
-	 {
-	    if (jan==this)
-	       { lastjan->NextJanitor = jan->NextJanitor; return; }
-	    lastjan=jan;
-	 }
+     for (Janitor* jan = lastjan->NextJanitor; jan;
+        jan = lastjan->NextJanitor)
+     {
+        if (jan==this)
+           { lastjan->NextJanitor = jan->NextJanitor; return; }
+        lastjan=jan;
+     }
 
-	 Throw(BaseException(
+     Throw(BaseException(
 "Cannot resolve memory linked list\nSee notes in myexcept.cpp for details\n"
          ));
 
@@ -220,17 +232,15 @@ JanitorInitializer::JanitorInitializer()
 
 #endif                              // end of SimulateExceptions
 
-Tracer* Tracer::last;               // will be set to zero
+Tracer *Tracer::last;               // will be set to zero
 
 
-void Terminate()
-{
-   cout << "\n\nThere has been an exception with no handler - exiting";
-   const char* what = BaseException::what();
-   if (what) cout << what << "\n";
-   exit(1);
+void Terminate() {
+    cout << "\n\nThere has been an exception with no handler - exiting";
+    const char *what = BaseException::what();
+    if (what) cout << what << "\n";
+    exit(1);
 }
-
 
 
 #ifdef DO_FREE_CHECK
@@ -302,8 +312,8 @@ void FreeCheck::DeRegister(void* t, char* name)
    {
       if (fcl->ClassStore==t)
       {
-	 if (last) last->next = fcl->next; else next = fcl->next;
-	 delete fcl; return;
+     if (last) last->next = fcl->next; else next = fcl->next;
+     delete fcl; return;
       }
       last = fcl;
    }
@@ -324,16 +334,16 @@ void FreeCheck::DeRegisterR(void* t, char* o, int s)
    {
       if (fcl->ClassStore==t)
       {
-	 if (last) last->next = fcl->next; else next = fcl->next;
-	 if (s >= 0 && ((FCLRealArray*)fcl)->size != s)
-	 {
-	    cout << "\nArray sizes do not agree:\n";
-	    cout << "   " << o << "   " << (unsigned long)t
-	       << "   " << ((FCLRealArray*)fcl)->size << "   " << s << "\n";
-	    Tracer::PrintTrace();
-	    cout << "\n";
-	 }
-	 delete fcl; return;
+     if (last) last->next = fcl->next; else next = fcl->next;
+     if (s >= 0 && ((FCLRealArray*)fcl)->size != s)
+     {
+        cout << "\nArray sizes do not agree:\n";
+        cout << "   " << o << "   " << (unsigned long)t
+           << "   " << ((FCLRealArray*)fcl)->size << "   " << s << "\n";
+        Tracer::PrintTrace();
+        cout << "\n";
+     }
+     delete fcl; return;
       }
       last = fcl;
    }
@@ -354,16 +364,16 @@ void FreeCheck::DeRegisterI(void* t, char* o, int s)
    {
       if (fcl->ClassStore==t)
       {
-	 if (last) last->next = fcl->next; else next = fcl->next;
-	 if (s >= 0 && ((FCLIntArray*)fcl)->size != s)
-	 {
-	    cout << "\nArray sizes do not agree:\n";
-	    cout << "   " << o << "   " << (unsigned long)t
-	       << "   " << ((FCLIntArray*)fcl)->size << "   " << s << "\n";
-	    Tracer::PrintTrace();
-	    cout << "\n";
-	 }
-	 delete fcl; return;
+     if (last) last->next = fcl->next; else next = fcl->next;
+     if (s >= 0 && ((FCLIntArray*)fcl)->size != s)
+     {
+        cout << "\nArray sizes do not agree:\n";
+        cout << "   " << o << "   " << (unsigned long)t
+           << "   " << ((FCLIntArray*)fcl)->size << "   " << s << "\n";
+        Tracer::PrintTrace();
+        cout << "\n";
+     }
+     delete fcl; return;
       }
       last = fcl;
    }
@@ -394,47 +404,47 @@ void FreeCheck::Status()
 
 // derived exception bodies
 
-Logic_error::Logic_error(const char* a_what) : BaseException()
-{
-   Select = BaseException::Select;
-   AddMessage("Logic error:- "); AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+Logic_error::Logic_error(const char *a_what) : BaseException() {
+    Select = BaseException::Select;
+    AddMessage("Logic error:- ");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
 
-Runtime_error::Runtime_error(const char* a_what)
-   : BaseException()
-{
-   Select = BaseException::Select;
-   AddMessage("Runtime error:- "); AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+Runtime_error::Runtime_error(const char *a_what)
+        : BaseException() {
+    Select = BaseException::Select;
+    AddMessage("Runtime error:- ");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
 
-Domain_error::Domain_error(const char* a_what) : Logic_error()
-{
-   Select = BaseException::Select;
-   AddMessage("domain error\n"); AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+Domain_error::Domain_error(const char *a_what) : Logic_error() {
+    Select = BaseException::Select;
+    AddMessage("domain error\n");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
 
-Invalid_argument::Invalid_argument(const char* a_what) : Logic_error()
-{
-   Select = BaseException::Select;
-   AddMessage("invalid argument\n"); AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+Invalid_argument::Invalid_argument(const char *a_what) : Logic_error() {
+    Select = BaseException::Select;
+    AddMessage("invalid argument\n");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
 
-Length_error::Length_error(const char* a_what) : Logic_error()
-{
-   Select = BaseException::Select;
-   AddMessage("length error\n"); AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+Length_error::Length_error(const char *a_what) : Logic_error() {
+    Select = BaseException::Select;
+    AddMessage("length error\n");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
 
-Out_of_range::Out_of_range(const char* a_what) : Logic_error()
-{
-   Select = BaseException::Select;
-   AddMessage("out of range\n"); AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+Out_of_range::Out_of_range(const char *a_what) : Logic_error() {
+    Select = BaseException::Select;
+    AddMessage("out of range\n");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
 
 //Bad_cast::Bad_cast(const char* a_what) : Logic_error()
@@ -451,28 +461,26 @@ Out_of_range::Out_of_range(const char* a_what) : Logic_error()
 //   if (a_what) Tracer::AddTrace();
 //}
 
-Range_error::Range_error(const char* a_what) : Runtime_error()
-{
-   Select = BaseException::Select;
-   AddMessage("range error\n"); AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+Range_error::Range_error(const char *a_what) : Runtime_error() {
+    Select = BaseException::Select;
+    AddMessage("range error\n");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
 
-Overflow_error::Overflow_error(const char* a_what) : Runtime_error()
-{
-   Select = BaseException::Select;
-   AddMessage("overflow error\n"); AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+Overflow_error::Overflow_error(const char *a_what) : Runtime_error() {
+    Select = BaseException::Select;
+    AddMessage("overflow error\n");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
 
-Bad_alloc::Bad_alloc(const char* a_what) : BaseException()
-{
-   Select = BaseException::Select;
-   AddMessage("bad allocation\n"); AddMessage(a_what);
-   if (a_what) Tracer::AddTrace();
+Bad_alloc::Bad_alloc(const char *a_what) : BaseException() {
+    Select = BaseException::Select;
+    AddMessage("bad allocation\n");
+    AddMessage(a_what);
+    if (a_what) Tracer::AddTrace();
 }
-
-
 
 
 unsigned long Logic_error::Select;

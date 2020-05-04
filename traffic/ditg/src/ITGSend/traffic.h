@@ -28,8 +28,25 @@
 
 
 
-typedef enum { pdConstant, pdUniform, pdExponential, pdPareto, pdCauchy, pdNormal, pdPoisson, pdGamma, pdWeibull,
-		pdTelnet, pdAoM, pdDiscrete, pdExtreme_Largest, pdQuake, pdStudent, pdCSa,pdCSi } TDistro;
+typedef enum {
+    pdConstant,
+    pdUniform,
+    pdExponential,
+    pdPareto,
+    pdCauchy,
+    pdNormal,
+    pdPoisson,
+    pdGamma,
+    pdWeibull,
+    pdTelnet,
+    pdAoM,
+    pdDiscrete,
+    pdExtreme_Largest,
+    pdQuake,
+    pdStudent,
+    pdCSa,
+    pdCSi
+} TDistro;
 
 extern const char *DistroStrings[];
 extern const unsigned int DefaultPktPerSec;
@@ -52,22 +69,26 @@ extern Extreme_Largest *Extreme_LargestRV;
 extern Student *StudentRV;
 
 
+void telnetParser(SumRandom **pIntArriv, SumRandom **pPktSize, TDistro &IntArrivDistro,
+                  TDistro &PktSizeDistro);
 
-void telnetParser(SumRandom ** pIntArriv, SumRandom ** pPktSize, TDistro & IntArrivDistro,
-    TDistro & PktSizeDistro);
-void voIPParser(int h, char *argv[], int &argc, unsigned int flowId, SumRandom ** pIntArriv,
-    SumRandom ** pPktSize, TDistro & IntArrivDistro, TDistro & PktSizeDistro);
-void dnsParser(SumRandom ** pIntArriv, SumRandom ** pPktSize, TDistro & IntArrivDistro,
-    TDistro & PktSizeDistro);
+void voIPParser(int h, char *argv[], int &argc, unsigned int flowId, SumRandom **pIntArriv,
+                SumRandom **pPktSize, TDistro &IntArrivDistro, TDistro &PktSizeDistro);
 
-void CSParsera(SumRandom ** pIntArriv, SumRandom ** pPktSize, TDistro & IntArrivDistro,
-    TDistro & PktSizeDistro);
-void QuakeParser(SumRandom ** pIntArriv, SumRandom ** pPktSize, TDistro & IntArrivDistro, TDistro & PktSizeDistro);
-void CSParseri(SumRandom ** pIntArriv, SumRandom ** pPktSize, TDistro & IntArrivDistro,
-    TDistro & PktSizeDistro);
+void dnsParser(SumRandom **pIntArriv, SumRandom **pPktSize, TDistro &IntArrivDistro,
+               TDistro &PktSizeDistro);
+
+void CSParsera(SumRandom **pIntArriv, SumRandom **pPktSize, TDistro &IntArrivDistro,
+               TDistro &PktSizeDistro);
+
+void QuakeParser(SumRandom **pIntArriv, SumRandom **pPktSize, TDistro &IntArrivDistro,
+                 TDistro &PktSizeDistro);
+
+void CSParseri(SumRandom **pIntArriv, SumRandom **pPktSize, TDistro &IntArrivDistro,
+               TDistro &PktSizeDistro);
 
 #ifdef BURSTY
 void burstyParser(int &h, char *argv[], int &argc, unsigned int flowId, SumRandom ** OnPeriod,
-	SumRandom ** OffPeriod, TDistro & OnPeriodDistro, TDistro & OffPeriodDistro);
+    SumRandom ** OffPeriod, TDistro & OnPeriodDistro, TDistro & OffPeriodDistro);
 #endif
 

@@ -29,67 +29,64 @@
 
 
 
-#define MSG_FT_OK 		1
-#define MSG_FT_ERR1 	2
-#define MSG_FT_ERR2 	3
+#define MSG_FT_OK        1
+#define MSG_FT_ERR1    2
+#define MSG_FT_ERR2    3
 #define MSG_FT_ERR_SOCK 4
 
 
-
-
-
 struct paramThread {
-	BYTE l7Proto;				
-	struct addrinfo destHost;		
-	int flowId;				
-	char *iface;				
-	info *addressInfos;			
-	int count;				
-	int socket;				
-	int socketClose;		    	
-	BYTE meter;				
-	BYTE dsByte;				
-	char *fileLog;
-	int logSock;				
+    BYTE l7Proto;
+    struct addrinfo destHost;
+    int flowId;
+    char *iface;
+    info *addressInfos;
+    int count;
+    int socket;
+    int socketClose;
+    BYTE meter;
+    BYTE dsByte;
+    char *fileLog;
+    int logSock;
     struct addrinfo *logHost;
     char serial[DIM_NAME_SERIAL_INTERFACE];
 #ifdef UNIX
-	int rPipe[2];
+    int rPipe[2];
 #endif
 #ifdef WIN32
-	HANDLE rPipe[3];
+    HANDLE rPipe[3];
 #endif
-	int preambleSize; 			
-	int payloadLogType; 			
+    int preambleSize;
+    int payloadLogType;
 
-	uint16_t portForPssv;		
+    uint16_t portForPssv;
 #ifdef MULTIPORT
-	uint16_t indexPort;
+    uint16_t indexPort;
 #endif
 };
 
 
 struct memChannel {
-	int flowId;				
-	BYTE l4Proto;			
+    int flowId;
+    BYTE l4Proto;
 };
 
 
-struct manageLogFile{
-	ofstream out;				 
-	int num;
-	char logFile[DIM_LOG_FILE]; 
+struct manageLogFile {
+    ofstream out;
+    int num;
+    char logFile[DIM_LOG_FILE];
 };
 
 #ifdef MULTIPORT
 typedef struct {
-	int socket;
-	short inUse;
+    int socket;
+    short inUse;
 # ifdef WIN32
-	HANDLE mutexSharedSockets;
+    HANDLE mutexSharedSockets;
 # endif
 # ifdef UNIX
-	pthread_mutex_t mutexSharedSockets;
+    pthread_mutex_t mutexSharedSockets;
 # endif
 } sharedSocketType;
 
@@ -145,13 +142,10 @@ extern uid_t userId;
 #endif
 
 
-
-
 void *signalManager(void *param);
 
 
 void printHelpAndExit();
-
 
 
 void terminate(int sign);
@@ -163,76 +157,74 @@ void reportErrorAndExit(const char *function, const char *program, const char *m
 int sendAck(int signaling, BYTE typeMessage);
 
 
-int sendAckFlow(int signaling,BYTE typeMessage,int flowId, uint16_t openedPort = 0);
-
+int sendAckFlow(int signaling, BYTE typeMessage, int flowId, uint16_t openedPort = 0);
 
 
 void recvInit();
 
 
-
-void parserRecv(int argc , char *argv[]);
-
-
-
-
+void parserRecv(int argc, char *argv[]);
 
 
 #ifdef WIN32
 int typeParser(BYTE type, int &numFlow, int newSockSignaling , memChannel flowIdNum[],
-		  paramThread paraThread[], pthread_t hThr[], HANDLE rPipe[], char *fileLog, int logSock, int logSockSignaling,
+          paramThread paraThread[], pthread_t hThr[], HANDLE rPipe[], char *fileLog, int logSock, int logSockSignaling,
           struct addrinfo *logHost);
 #endif
 
 #ifdef UNIX
-int typeParser(BYTE type, int &numFlow, int newSockSignaling , memChannel flowIdNum[],
-		  paramThread paraThread[], pthread_t hThr[], int rPipe[], char *fileLog, int logSock, int logSockSignaling,
-          struct addrinfo *logHost);
+
+int typeParser(BYTE type, int &numFlow, int newSockSignaling, memChannel flowIdNum[],
+               paramThread paraThread[], pthread_t hThr[], int rPipe[], char *fileLog, int logSock,
+               int logSockSignaling,
+               struct addrinfo *logHost);
+
 #endif
 
 
 #ifdef WIN32
 void pipeParser(int newSockSignaling,int &numFlow, HANDLE rPipe[], memChannel flowIdNum[],
-		   paramThread paraThread[], pthread_t hThr[]);
+           paramThread paraThread[], pthread_t hThr[]);
 #endif
 
 #ifdef UNIX
-void pipeParser(int newSockSignaling,int &numFlow, int rPipe[], memChannel flowIdNum[],
-		   paramThread paraThread[], pthread_t hThr[]);
+
+void pipeParser(int newSockSignaling, int &numFlow, int rPipe[], memChannel flowIdNum[],
+                paramThread paraThread[], pthread_t hThr[]);
+
 #endif
 
 
-
-void createRemoteLogFile(struct addrinfo &logHost, char logFile[DIM_LOG_FILE], BYTE protocolLog, int & logSockSignaling, int & logSock);
-
-
-
-void createSignalingLogChannel(struct addrinfo logHost, char logFile[DIM_LOG_FILE], BYTE protocolLog, int & logSockSignaling);
+void createRemoteLogFile(struct addrinfo &logHost, char logFile[DIM_LOG_FILE], BYTE protocolLog,
+                         int &logSockSignaling, int &logSock);
 
 
-void recvFlowLog(int newSockSignaling, struct addrinfo & logHost, BYTE &protocolLog, char logFile[]);
+void
+createSignalingLogChannel(struct addrinfo logHost, char logFile[DIM_LOG_FILE], BYTE protocolLog,
+                          int &logSockSignaling);
 
 
+void recvFlowLog(int newSockSignaling, struct addrinfo &logHost, BYTE &protocolLog, char logFile[]);
 
 
+inline void flushBuffer(ofstream *pointerLog, struct info *infos, int &count) {
 
-inline void flushBuffer(ofstream * pointerLog, struct info *infos, int &count)
-{
-	
-	if (MUTEX_THREAD_LOCK(mutexLog) < 0)
-		reportErrorAndExit("flushBuffer", "MUTEX_THREAD_LOCK", "Cannot lock mutex");
+    if (MUTEX_THREAD_LOCK(mutexLog) < 0)
+        reportErrorAndExit("flushBuffer", "MUTEX_THREAD_LOCK", "Cannot lock mutex");
 
-	if ((*pointerLog).is_open()){ 
-		
-		(*pointerLog).write((const char *) infos, count * sizeof(struct info));
-		(*pointerLog).flush();	
-		count = 0;
-	}
+    if ((*pointerLog).is_open()) {
 
-	
-	if (MUTEX_THREAD_UNLOCK(mutexLog) < 0)
-		reportErrorAndExit("flusBuffer", "MUTEX_THREAD_UNLOCK", "Cannot unlock mutex");
+        (*pointerLog).write((const char *) infos, count * sizeof(struct info));
+        (*pointerLog).flush();
+        count = 0;
+    }
+
+
+    if (MUTEX_THREAD_UNLOCK(mutexLog) < 0)
+        reportErrorAndExit("flusBuffer", "MUTEX_THREAD_UNLOCK", "Cannot unlock mutex");
 }
-void recvNameLog(char nameFile[DIM_LOG_FILE],int newSockSignaling);
-void copia(const struct addrinfo* src, struct addrinfo & dst);
+
+void recvNameLog(char nameFile[DIM_LOG_FILE], int newSockSignaling);
+
+void copia(const struct addrinfo *src, struct addrinfo &dst);
 

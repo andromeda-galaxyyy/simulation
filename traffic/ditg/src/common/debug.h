@@ -32,20 +32,20 @@
 #include <stdio.h>
 
 #ifdef DEBUG
-	#define PRINTD(level, ...)		if (DEBUG >= level) { printf(__VA_ARGS__); fflush(stdout); }
+#define PRINTD(level, ...)		if (DEBUG >= level) { printf(__VA_ARGS__); fflush(stdout); }
 #else
-	#define PRINTD(level, ...)
+#define PRINTD(level, ...)
 #endif
 
 #ifdef DEBUG
-	#ifdef UNIX
-		#define PRINTDS(level, ...)	    if (DEBUG >= level) { usleep(1000); printf(__VA_ARGS__); fflush(stdout); }
-	#endif
-	#ifdef WIN32
-		#define PRINTDS(level, ...)	    if (DEBUG >= level) { Sleep(1000); printf(__VA_ARGS__); fflush(stdout); }
-	#endif
+#ifdef UNIX
+#define PRINTDS(level, ...)	    if (DEBUG >= level) { usleep(1000); printf(__VA_ARGS__); fflush(stdout); }
+#endif
+#ifdef WIN32
+#define PRINTDS(level, ...)	    if (DEBUG >= level) { Sleep(1000); printf(__VA_ARGS__); fflush(stdout); }
+#endif
 #else
-	#define PRINTDS(level, ...)
+#define PRINTDS(level, ...)
 #endif
 
 #endif

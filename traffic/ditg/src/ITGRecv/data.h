@@ -41,5 +41,5 @@ void *sctpSock(void *param);
 
 void *dccpSock(void *param);
 
-extern bool passiveMode;				
+extern bool passiveMode;
 extern unsigned short numHolePkt;       

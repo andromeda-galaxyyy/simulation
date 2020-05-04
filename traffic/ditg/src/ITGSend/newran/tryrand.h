@@ -11,17 +11,21 @@ using namespace RBD_COMMON;
 #endif
 
 
-
-
 void test1(int);
-void test2(int);
-void test3(int);
-void test4(int);
-void test5(int);
-void test6(int);
-void Histogram(Random*, int);          // draw histogram with n obsv
 
-OstreamWithFormat operator<<( OstreamWithFormat, const ExtReal& );
+void test2(int);
+
+void test3(int);
+
+void test4(int);
+
+void test5(int);
+
+void test6(int);
+
+void Histogram(Random *, int);          // draw histogram with n obsv
+
+OstreamWithFormat operator<<(OstreamWithFormat, const ExtReal &);
 
 
 

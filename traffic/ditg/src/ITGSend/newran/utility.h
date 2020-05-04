@@ -24,12 +24,12 @@ using namespace RBD_COMMON;
 #endif
 
 
-inline double square(double x) { return x*x; }  ///< return x squared.
+inline double square(double x) { return x * x; }  ///< return x squared.
 
-inline double cube(double x) { return x*x*x; }  ///< return x cubed.
+inline double cube(double x) { return x * x * x; }  ///< return x cubed.
 
-inline long iround(double x) { return (long)floor(x + 0.5); }
-                                                ///< rounded version of x.
+inline long iround(double x) { return (long) floor(x + 0.5); }
+///< rounded version of x.
 
 
 /// Calculate 95% point of chi-squared distribution.
@@ -56,25 +56,21 @@ double invcdfnml(double p);
 
 
 /// Chi-squared distribution function.
-double cdf_chisq(double x, int df, bool upper=false);
+double cdf_chisq(double x, int df, bool upper = false);
 
 
 /// Upper tail probabilities for 2 sided Kolmogorov-Smirnov test.
 double KS_probabilities(double z);
 
 
-
 /// Print time between construction and destruction.
-class time_lapse
-{
-   double start_time;
+class time_lapse {
+    double start_time;
 public:
-   time_lapse();
-   ~time_lapse();
+    time_lapse();
+
+    ~time_lapse();
 };
-
-
-
 
 
 #endif

@@ -13,40 +13,36 @@ using namespace NEWRAN;
 #endif
 
 
-int main()
-{
+int main() {
 
-   Try
-   {
-      bool copy_seed_from_disk = false;    // set to true to get seed from disk file
+    Try {
+        bool copy_seed_from_disk = false;    // set to true to get seed from disk file
 
 
-      Random::SetDirectory("c:\\seed\\");  // set directory for seed control
- 
-      MotherOfAll urng;                    // declare uniform random number generator
+        Random::SetDirectory("c:\\seed\\");  // set directory for seed control
 
-      Random::Set(urng);                   // set urng as generator to be used
+        MotherOfAll urng;                    // declare uniform random number generator
 
-      if (copy_seed_from_disk)
-         Random::CopySeedFromDisk(true);   // get seed information from disk
+        Random::Set(urng);                   // set urng as generator to be used
 
-      Normal normal;                       // declare normal generator
-     
-      for (int i = 1; i <= 10; ++i)        // print 10 normal random numbers
-         cout << setprecision(5) << setw(10) << normal.Next() << endl;
+        if (copy_seed_from_disk)
+            Random::CopySeedFromDisk(true);   // get seed information from disk
 
-   }
-   Catch(BaseException)
-   {
-      cout << "\nTest program fails - exception generated\n\n";
-      cout << BaseException::what() << "\n";
-   }
-   CatchAll
-   {
-      cout << "\nTest program fails - exception generated\n\n"; 
-   }
+        Normal normal;                       // declare normal generator
 
-   return 0;
+        for (int i = 1; i <= 10; ++i)        // print 10 normal random numbers
+            cout << setprecision(5) << setw(10) << normal.Next() << endl;
+
+    }
+    Catch (BaseException) {
+        cout << "\nTest program fails - exception generated\n\n";
+        cout << BaseException::what() << "\n";
+    }
+    CatchAll {
+        cout << "\nTest program fails - exception generated\n\n";
+    }
+
+    return 0;
 }
 
 ///@}

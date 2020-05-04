@@ -34,71 +34,65 @@ struct sched_param p;
 #endif
 
 
-const char *meters[] = { "", "OWDM", "RTTM", " " };
-const char *l4Protocols[] = { "", "TCP", "UDP", "ICMP", "SCTP", "DCCP", " " };
-const char *l7Protocols[] = { "", "Telnet", "VoIP", "DNS", "AoM", "CSa", "CSi", "Quake3", " " };
-char programName[100];		
-char DEFAULT_LOG_IP[10] = "127.0.0.1";	
+const char *meters[] = {"", "OWDM", "RTTM", " "};
+const char *l4Protocols[] = {"", "TCP", "UDP", "ICMP", "SCTP", "DCCP", " "};
+const char *l7Protocols[] = {"", "Telnet", "VoIP", "DNS", "AoM", "CSa", "CSi", "Quake3", " "};
+char programName[100];
+char DEFAULT_LOG_IP[10] = "127.0.0.1";
 
 
+extern const int StandardMinPayloadSize = 4 * sizeof(uint32_t);
+extern const int ShortMinPayloadSize = 2 * sizeof(uint32_t);
+extern const int NoneMinPayloadSize = sizeof(uint32_t);
 
 
+USHORT checksum(USHORT *buffer, int size) {
+    unsigned long cksum = 0;
 
+    while (size > 1) {
+        cksum += *buffer++;
+        size -= sizeof(USHORT);
+    }
 
-extern const int StandardMinPayloadSize = 4 * sizeof(uint32_t); 
-extern const int ShortMinPayloadSize = 2 * sizeof(uint32_t); 
-extern const int NoneMinPayloadSize = sizeof(uint32_t);	
+    if (size) {
+        cksum += *(UCHAR *) buffer;
+    }
 
-
-
-USHORT checksum(USHORT * buffer, int size)
-{
-	unsigned long cksum = 0;
-
-	while (size > 1) {
-		cksum += *buffer++;
-		size -= sizeof(USHORT);
-	}
-
-	if (size) {
-		cksum += *(UCHAR *) buffer;
-	}
-
-	cksum = (cksum >> 16) + (cksum & 0xffff);
-	cksum += (cksum >> 16);
-	return (USHORT) (~cksum);
+    cksum = (cksum >> 16) + (cksum & 0xffff);
+    cksum += (cksum >> 16);
+    return (USHORT) (~cksum);
 }
 
 #ifdef WIN32
 int InitializeWinsock(WORD wVersionRequested)
 {
-	WSADATA wsaData;
-	int err;
+    WSADATA wsaData;
+    int err;
 
-	err = WSAStartup(wVersionRequested, &wsaData);
+    err = WSAStartup(wVersionRequested, &wsaData);
 
-	
-	
-	if (err != 0)
-		return 0;	
 
-	
-	
-	
-	
 
-	
-	
-	
-	
-	
+    if (err != 0)
+        return 0;
 
-	
-	if (LOBYTE(wsaData.wVersion) != 1 || HIBYTE(wsaData.wVersion) != 1)
-		return 0;
 
-	
-	return 1;
+
+
+
+
+
+
+
+
+
+
+
+    if (LOBYTE(wsaData.wVersion) != 1 || HIBYTE(wsaData.wVersion) != 1)
+        return 0;
+
+
+    return 1;
 }
 
 
@@ -106,72 +100,62 @@ int InitializeWinsock(WORD wVersionRequested)
 
 void sleep(int tempo)
 {
-	Sleep(tempo * 1000);
+    Sleep(tempo * 1000);
 }
 #endif
 
 
+char *putValue(void *startPos, void *data, int size) {
 
+    char *endPos;
 
+    memcpy(startPos, data, size);
 
-char *putValue(void *startPos, void *data, int size)
-{
-	
-	char *endPos;
-	
-	memcpy(startPos, data, size);
-	
-	endPos = (char *) startPos + size;
-	return endPos;
+    endPos = (char *) startPos + size;
+    return endPos;
 }
 
-BYTE findMeter(char *s)
-{
-	int i = 1;
+BYTE findMeter(char *s) {
+    int i = 1;
 
-	while (strcmp(meters[i], " "))
-		if (!strcasecmp(s, (char *) meters[i]))
-			return(i);
-		else
-			i++;
-	return LX_ERROR_BYTE;
+    while (strcmp(meters[i], " "))
+        if (!strcasecmp(s, (char *) meters[i]))
+            return (i);
+        else
+            i++;
+    return LX_ERROR_BYTE;
 }
 
-BYTE findL4Proto(char *s)
-{
-	int i = 1;
-	while (strcmp(l4Protocols[i], " "))
-		if (!strcasecmp(s, (char *) l4Protocols[i]))
-			return(i);
-		else
-			i++;
-	return LX_ERROR_BYTE;
+BYTE findL4Proto(char *s) {
+    int i = 1;
+    while (strcmp(l4Protocols[i], " "))
+        if (!strcasecmp(s, (char *) l4Protocols[i]))
+            return (i);
+        else
+            i++;
+    return LX_ERROR_BYTE;
 }
 
-BYTE findL7Proto(char *s)
-{
-	int i = 1;
-	while (strcmp(l7Protocols[i], " "))
-		if (!strcasecmp(s, (char *) l7Protocols[i]))
-			return(i);
-		else
-			i++;
-	return LX_ERROR_BYTE;
+BYTE findL7Proto(char *s) {
+    int i = 1;
+    while (strcmp(l7Protocols[i], " "))
+        if (!strcasecmp(s, (char *) l7Protocols[i]))
+            return (i);
+        else
+            i++;
+    return LX_ERROR_BYTE;
 }
 
-const char* invFindMeter(BYTE meter)
-{
-	return meters[meter];
+const char *invFindMeter(BYTE meter) {
+    return meters[meter];
 }
 
-const char* invFindL4Proto(BYTE proto)
-{
-	return l4Protocols[proto];
+const char *invFindL4Proto(BYTE proto) {
+    return l4Protocols[proto];
 }
 
-const char* invFindL7Proto(BYTE proto)
-{
-	return l7Protocols[proto];
+const char *invFindL7Proto(BYTE proto) {
+    return l7Protocols[proto];
 }
 
 
@@ -299,44 +283,43 @@ char
 
 #endif
 
-void printVersion(const char* ProgramName)
-{
-	
-	printf("%s", ProgramName);
+void printVersion(const char *ProgramName) {
+
+    printf("%s", ProgramName);
 
 #ifdef VERSION
-	
-	printf(" version %s", VERSION);
+
+    printf(" version %s", VERSION);
 #endif
 
 #ifdef REVISION
-	
-	printf(" (r%s)", REVISION);
-#endif
-	printf("\n");
 
-	
-	printf("Compile-time options:");
+    printf(" (r%s)", REVISION);
+#endif
+    printf("\n");
+
+
+    printf("Compile-time options:");
 
 #ifdef SCTP
-	printf(" sctp");
+    printf(" sctp");
 #endif
 #ifdef DCCP
-	printf(" dccp");
+    printf(" dccp");
 #endif
 #ifdef BURSTY
-	printf(" bursty");
+    printf(" bursty");
 #endif
 #ifdef MULTIPORT
-	printf(" multiport");
+    printf(" multiport");
 #endif
 #if defined WIN32 && not defined IPv6RECV
-	printf(" ipv4only");
+    printf(" ipv4only");
 #endif
 #ifdef DEBUG
-	printf(" debug");
+    printf(" debug");
 #endif
-	printf("\n");
+    printf("\n");
 
 }
 

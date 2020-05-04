@@ -32,73 +32,72 @@
 #	include <winsock2.h>
 #	include <ws2tcpip.h>
 #	include <iostream>
-	
-	typedef HANDLE pthread_t;
-	extern char nameProgram[];
+
+typedef HANDLE pthread_t;
+extern char nameProgram[];
 
 #endif
 
 #ifdef UNIX
+
 #	include <pthread.h>
 #	include <iostream>
 #	include <unistd.h>
+
 #endif
 
 
-
 #ifdef WIN32
-	
+
 #	define MUTEX_THREAD_LOCK(a) \
-		mutexThreadLock(a)
+        mutexThreadLock(a)
 
-	
+
 #	define MUTEX_THREAD_UNLOCK(a) \
-		mutexThreadUnlock(a)
+        mutexThreadUnlock(a)
 
-	
+
 #	define MUTEX_THREAD_RELEASE(a) \
-		mutexThreadRelease(a)
+        mutexThreadRelease(a)
 
-	
+
 #	define CREATE_THREAD(a,b,c,d,e) \
-		createThread(a,b,c,d,e)
-		
-	
-#	define MUTEX_THREAD_INIT(a) \
-		mutexThreadInit(a)
+        createThread(a,b,c,d,e)
 
-	
+
+#	define MUTEX_THREAD_INIT(a) \
+        mutexThreadInit(a)
+
+
 #	define pthread_cleanup_push(a,b) 
 #	define pthread_cleanup_pop(a)
 #endif
 
 #ifdef UNIX
-	
+
 #	define MUTEX_THREAD_LOCK(a) \
-		mutexThreadLock(&a)
+        mutexThreadLock(&a)
 
-	
+
 #	define MUTEX_THREAD_UNLOCK(a) \
-		mutexThreadUnlock(&a)
+        mutexThreadUnlock(&a)
 
-	
+
 #	define MUTEX_THREAD_RELEASE(a) \
-		mutexThreadRelease(&a)
+        mutexThreadRelease(&a)
 
-	
-#	define CREATE_THREAD(a,b,c,d,e) \
-		createThread(a,b,c,d,e)
-		
-	
+
+#	define CREATE_THREAD(a, b, c, d, e) \
+        createThread(a,b,c,d,e)
+
+
 #	define MUTEX_THREAD_INIT(a) \
-		mutexThreadInit(&a)
+        mutexThreadInit(&a)
 #endif
 
 
-
-
-
-int createThread(void *argument, void *(nameFunction) (void *), void *attrib, pthread_t& idThread, bool detach);
+int createThread(void *argument, void *(nameFunction)(void *), void *attrib, pthread_t &idThread,
+                 bool detach);
 
 
 int joinThread(int numFlow, pthread_t hThr[]);
@@ -110,7 +109,6 @@ int terminateThread(pthread_t idThread);
 void exitThread();
 
 
-
 #ifdef WIN32
 
 int mutexThreadInit(HANDLE &mutex);
@@ -118,19 +116,18 @@ int mutexThreadInit(HANDLE &mutex);
 
 #ifdef UNIX
 
-int mutexThreadInit(void* mutex);
+int mutexThreadInit(void *mutex);
+
 #endif
 
 
-int mutexThreadRelease(void* mutex);
+int mutexThreadRelease(void *mutex);
 
 
-int mutexThreadLock(void* mutex);
+int mutexThreadLock(void *mutex);
 
 
-int mutexThreadUnlock(void* mutex);
-
-
+int mutexThreadUnlock(void *mutex);
 
 
 int closeSock(int socket);

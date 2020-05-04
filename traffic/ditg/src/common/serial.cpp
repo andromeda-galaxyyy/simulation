@@ -31,7 +31,7 @@
 #ifdef WIN32
 HANDLE serialUp(char *nameSerial)
 {
-	HANDLE ret = CreateFile(nameSerial,
+    HANDLE ret = CreateFile(nameSerial,
                     GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING,
                     FILE_FLAG_OVERLAPPED, 0);
 
@@ -42,39 +42,39 @@ HANDLE serialUp(char *nameSerial)
 
 void DTR_Enable(HANDLE hComm)
 {
-	DCB dcb_app;
+    DCB dcb_app;
 
-	GetCommState(hComm,&dcb_app);
-	dcb_app.fDtrControl = DTR_CONTROL_ENABLE;
-	SetCommState(hComm,&dcb_app);
+    GetCommState(hComm,&dcb_app);
+    dcb_app.fDtrControl = DTR_CONTROL_ENABLE;
+    SetCommState(hComm,&dcb_app);
 }
 
 
 void DTR_Disable(HANDLE hComm)
 {
-	DCB dcb_app;
+    DCB dcb_app;
 
-	GetCommState(hComm,&dcb_app);
-	dcb_app.fDtrControl = DTR_CONTROL_DISABLE;
-	SetCommState(hComm,&dcb_app);
+    GetCommState(hComm,&dcb_app);
+    dcb_app.fDtrControl = DTR_CONTROL_DISABLE;
+    SetCommState(hComm,&dcb_app);
 }
 
 void RTS_Enable(HANDLE hComm)
 {
-	DCB dcb_app;
+    DCB dcb_app;
 
-	GetCommState(hComm,&dcb_app);
-	dcb_app.fRtsControl  = RTS_CONTROL_ENABLE;
-	SetCommState(hComm,&dcb_app);
+    GetCommState(hComm,&dcb_app);
+    dcb_app.fRtsControl  = RTS_CONTROL_ENABLE;
+    SetCommState(hComm,&dcb_app);
 }
 
 void RTS_Disable(HANDLE hComm)
 {
-	DCB dcb_app;
+    DCB dcb_app;
 
-	GetCommState(hComm,&dcb_app);
-	dcb_app.fRtsControl = RTS_CONTROL_DISABLE;
-	SetCommState(hComm,&dcb_app);
+    GetCommState(hComm,&dcb_app);
+    dcb_app.fRtsControl = RTS_CONTROL_DISABLE;
+    SetCommState(hComm,&dcb_app);
 }
 #endif
 
@@ -87,48 +87,43 @@ void RTS_Disable(HANDLE hComm)
 #include <stdio.h>
 #include <sys/ioctl.h>
 
-HANDLE serialUp(char *nameSerial)
-{
-	int  fd;
-	char stringa[]="/dev/";
-	strcat(stringa, nameSerial);
-	
-	fd = open(stringa, O_RDWR | O_NOCTTY);
-	
-	return fd;
+HANDLE serialUp(char *nameSerial) {
+    int fd;
+    char stringa[] = "/dev/";
+    strcat(stringa, nameSerial);
+
+    fd = open(stringa, O_RDWR | O_NOCTTY);
+
+    return fd;
 }
 
-void DTR_Disable(HANDLE hComm)
-{
-	int status;
-	ioctl(hComm, TIOCMGET, &status);
-	status &= ~ TIOCM_DTR; 
-	ioctl(hComm, TIOCMSET, &status);
+void DTR_Disable(HANDLE hComm) {
+    int status;
+    ioctl(hComm, TIOCMGET, &status);
+    status &= ~TIOCM_DTR;
+    ioctl(hComm, TIOCMSET, &status);
 }
 
 
-void DTR_Enable(HANDLE hComm)
-{
-	int status;
-	ioctl(hComm, TIOCMGET, &status);
-	status |= TIOCM_DTR;  
-	ioctl(hComm, TIOCMSET, &status);
+void DTR_Enable(HANDLE hComm) {
+    int status;
+    ioctl(hComm, TIOCMGET, &status);
+    status |= TIOCM_DTR;
+    ioctl(hComm, TIOCMSET, &status);
 }
 
-void RTS_Disable(HANDLE hComm)
-{
-	int status;
-	ioctl(hComm, TIOCMGET, &status);
-	status &= ~ TIOCM_RTS; 
-	ioctl(hComm, TIOCMSET, &status);
+void RTS_Disable(HANDLE hComm) {
+    int status;
+    ioctl(hComm, TIOCMGET, &status);
+    status &= ~TIOCM_RTS;
+    ioctl(hComm, TIOCMSET, &status);
 }
 
-void RTS_Enable(HANDLE hComm)
-{
-	int status;
-	ioctl(hComm, TIOCMGET, &status);
-	status |= TIOCM_RTS;  
-	ioctl(hComm, TIOCMSET, &status);
+void RTS_Enable(HANDLE hComm) {
+    int status;
+    ioctl(hComm, TIOCMGET, &status);
+    status |= TIOCM_RTS;
+    ioctl(hComm, TIOCMSET, &status);
 }
 
 #endif

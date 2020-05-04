@@ -27,11 +27,12 @@
 
 
 
-#include <vector>					
+#include <vector>
 #include <limits.h>
-using namespace std;				
-#define DIM_NOME_FILE 200			
-#define DIM_MAX_IP_PACKET 65536		
+
+using namespace std;
+#define DIM_NOME_FILE 200
+#define DIM_MAX_IP_PACKET 65536
 
 #define DefaultDSByte 0
 #define rttmDelay 15
@@ -41,7 +42,7 @@ using namespace std;
 #define MSG_SM_NEWFLOW 1
 #define MSG_SM_ENDFLOW 2
 #define MSG_SM_ERRFLOW 3
-#define MSG_SM_SNDACK  4	
+#define MSG_SM_SNDACK  4
 
 
 #define MSG_FP_END 1
@@ -53,7 +54,7 @@ using namespace std;
 
 #ifdef UNIX
 extern const char DefaultLogFile[];
-typedef int HANDLE; 
+typedef int HANDLE;
 #endif
 #ifdef WIN32
 extern char DefaultLogFile[];
@@ -61,128 +62,125 @@ extern char DefaultLogFile[];
 extern const char DefaultDestIP[];
 
 
-
-
 struct flowDescriptor {
-	int id;
-	struct addrinfo *SrcHost;
-	struct addrinfo *DestHost;
-	bool srcPortSpecify;
-	char *iface;
-	BYTE meter;
-	BYTE l4Proto;
-	BYTE l7Proto;
-	int icmptype;
-	unsigned int DSByte;
-	unsigned long Duration;
-	int TTL;
-	SumRandom * IntArriv;
-	SumRandom * PktSize;
-	TDistro IntArrivDistro;
-	TDistro PktSizeDistro;
-	
-#ifdef BURSTY
-	bool bursty;
-	SumRandom * OnPeriod;
-	SumRandom * OffPeriod;
-	TDistro OnPeriodDistro;
-	TDistro OffPeriodDistro;
-#endif
-	
-	int sigChanId;
-	BYTE status;
-	bool Nagle;
-	pthread_t handle;
+    int id;
+    struct addrinfo *SrcHost;
+    struct addrinfo *DestHost;
+    bool srcPortSpecify;
+    char *iface;
+    BYTE meter;
+    BYTE l4Proto;
+    BYTE l7Proto;
+    int icmptype;
+    unsigned int DSByte;
+    unsigned long Duration;
+    int TTL;
+    SumRandom *IntArriv;
+    SumRandom *PktSize;
+    TDistro IntArrivDistro;
+    TDistro PktSizeDistro;
 
-	HANDLE serial;
-	char serialReceiver[DIM_NAME_SERIAL_INTERFACE];
+#ifdef BURSTY
+    bool bursty;
+    SumRandom * OnPeriod;
+    SumRandom * OffPeriod;
+    TDistro OnPeriodDistro;
+    TDistro OffPeriodDistro;
+#endif
+
+    int sigChanId;
+    BYTE status;
+    bool Nagle;
+    pthread_t handle;
+
+    HANDLE serial;
+    char serialReceiver[DIM_NAME_SERIAL_INTERFACE];
 
 #ifdef UNIX
-	int parserPipe[2]; 
+    int parserPipe[2];
 #endif
 #ifdef WIN32
-	HANDLE parserPipe[3]; 
+    HANDLE parserPipe[3];
 #endif
 #ifdef SCTP
-	int sctpId;
+    int sctpId;
 #endif
 
-	int minPayloadSize;
-	int payloadLogType;
+    int minPayloadSize;
+    int payloadLogType;
 
-	char payloadFile[DIM_PAYLOAD_FILE]; 		
-	void * ptrPayloadBuffer; 			
-	long int dimPayloadBuffer; 			
+    char payloadFile[DIM_PAYLOAD_FILE];
+    void *ptrPayloadBuffer;
+    long int dimPayloadBuffer;
 
-	int mean_adjustment;
-	bool srcAddrSpecify; 				
-	bool dstPortSpecify;				
-	
-	char pktSizeFile[DIM_NOME_FILE];		
-	vector<uint32_t> vectSize;			
-	char timeFile[DIM_NOME_FILE];			
-	vector<Real> vectTime;				
-	unsigned int numPacket;				
+    int mean_adjustment;
+    bool srcAddrSpecify;
+    bool dstPortSpecify;
 
-	unsigned long int KBToSend;			
+    char pktSizeFile[DIM_NOME_FILE];
+    vector<uint32_t> vectSize;
+    char timeFile[DIM_NOME_FILE];
+    vector<Real> vectTime;
+    unsigned int numPacket;
 
-	
-	bool dstAddrSpecify;                  
+    unsigned long int KBToSend;
 
-	
-	struct addrinfo *SigDestHost;   		
-	struct addrinfo *SigSrcHost;			
-	uint16_t SigSrcPort;		
-	char *SigInterface;					
 
-	bool pollingMode;						
+    bool dstAddrSpecify;
 
-	unsigned long int Delay;				
-	struct timeval FlowStartTime;			
+
+    struct addrinfo *SigDestHost;
+    struct addrinfo *SigSrcHost;
+    uint16_t SigSrcPort;
+    char *SigInterface;
+
+    bool pollingMode;
+
+    unsigned long int Delay;
+    struct timeval FlowStartTime;
 };
 
 extern flowDescriptor flows[MAX_NUM_THREAD];
 
 
 struct flowParserParams {
-	int flowId;
-	char line[MAX_FLOW_LINE_SIZE];
+    int flowId;
+    char line[MAX_FLOW_LINE_SIZE];
 };
 
 
 struct icmppkt {
-	struct icmp icmp_buf;
-	char packet[MAX_PAYLOAD_SIZE];
+    struct icmp icmp_buf;
+    char packet[MAX_PAYLOAD_SIZE];
 };
 
 
-
 struct icmppktv6 {
-	struct icmpv6 icmp_buf;
-	char packet[MAX_PAYLOAD_SIZE];
+    struct icmpv6 icmp_buf;
+    char packet[MAX_PAYLOAD_SIZE];
 };
 
 
 struct signalChannel {
-	int socket;
-	int flows;
+    int socket;
+    int flows;
 #ifdef UNIX
-	int pipe[2]; 
+    int pipe[2];
 #endif
 #ifdef WIN32
-	HANDLE pipe[3]; 
+    HANDLE pipe[3];
 #endif
-	pthread_t handle;
-	struct addrinfo *DestAddr;
-	bool errorLog;
+    pthread_t handle;
+    struct addrinfo *DestAddr;
+    bool errorLog;
 };
 
 extern signalChannel signalChannels[MAX_NUM_THREAD];
 
 extern int sock;
-extern char logFile[DIM_LOG_FILE];	
-extern ofstream out;			
-extern int logging;			
+extern char logFile[DIM_LOG_FILE];
+extern ofstream out;
+extern int logging;
 extern int logSock;
 extern int logremoto;
 extern struct addrinfo *logHost;
@@ -209,42 +207,72 @@ extern HANDLE mutex_log;
 
 
 int modeManager(int argc, char *argv[]);
+
 int modeScript(int argc, char *argv[]);
+
 int modeCommandLine(int argc, char *argv[]);
+
 void parserMultiFlows(char *argv[], int argc);
+
 void *flowParser(void *para);
+
 void *signalManager(void *id);
 
-int identifySignalManager(int flowId, int *chanId, struct addrinfo* &DestHost,bool &dstAddrSpecify); 	
+int
+identifySignalManager(int flowId, int *chanId, struct addrinfo *&DestHost, bool &dstAddrSpecify);
+
 void *flowSender(void *param);
+
 void Terminate(int sig);
+
 void printHelp();
+
 void ReportErrorAndExit(const char *function, const char *msg, char *pname, int fid);
+
 void sendType(int signalSock, BYTE typeMessag);
+
 #ifdef UNIX
+
 void createSignalChan(int signalSock);
 
-void createTransportChan(int &signalSock, struct addrinfo* &DestHost,bool &dstAddrSpecify,struct addrinfo* &SrcHost,uint16_t SrcPort,const char * Interface);   
+void createTransportChan(int &signalSock, struct addrinfo *&DestHost, bool &dstAddrSpecify,
+                         struct addrinfo *&SrcHost, uint16_t SrcPort, const char *Interface);
+
 void sendRelease(int signalSock);
+
 #else
 void createSignalChan(unsigned int signalSock);
 
 void createTransportChan(unsigned int &signalSock, struct addrinfo* &DestHost,bool &dstAddrSpecify,struct addrinfo* &SrcHost,uint16_t SrcPort);        
 void sendRelease(unsigned int signalSock);
 #endif
+
 int sendLog(int signalSock, struct addrinfo *loghost, BYTE logProtocol, char *FileName);
+
 void recvAck(int signalSock);
+
 void closedFlowErr(int flowId, int signalSock);
+
 int closedFlow(int flowId, int signalSock);
-int sendAckFlow(int flowId, int signalSock);	
+
+int sendAckFlow(int flowId, int signalSock);
+
 int requestToSend(int flowId, int signalSock);
-bool checkDestHostIP(int * chanId, struct addrinfo * DestHost);
+
+bool checkDestHostIP(int *chanId, struct addrinfo *DestHost);
+
 void argvToString(char *argv[], int argc, char line[200]);
+
 void flushBuffer(info *infos, int count);
+
 void createRemoteLogFile(struct addrinfo *LogHost, BYTE Prototx_Log);
+
 void memClean();
+
 int isChannelClosable(int id);
+
 void createSignalingLogChannel(BYTE protocolLog);
-int sendNameLog(int signalSock, char *FileName,int sizeFileName);
+
+int sendNameLog(int signalSock, char *FileName, int sizeFileName);
 
 

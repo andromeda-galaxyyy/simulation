@@ -35,8 +35,12 @@ typedef int HANDLE;
 #endif
 
 HANDLE serialUp(char *nameSerial);
+
 void DTR_Enable(HANDLE hComm);
+
 void DTR_Disable(HANDLE hComm);
+
 void RTS_Enable(HANDLE hComm);
+
 void RTS_Disable(HANDLE hComm);
 

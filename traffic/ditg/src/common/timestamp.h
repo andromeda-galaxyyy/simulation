@@ -49,22 +49,21 @@ typedef double Real;
 #endif
 
 #ifdef UNIX
-#define UPDATE_TICKER(a,b,c,d,e) updateTicker(a)
+#define UPDATE_TICKER(a, b, c, d, e) updateTicker(a)
 
-#define GET_TIME_OF_DAY(a,b,c,d,e,f,g)	gettimeofday(a,NULL)
-
-
-
-#define TSTART(a,b,c,d,e,f)
+#define GET_TIME_OF_DAY(a, b, c, d, e, f, g)    gettimeofday(a,NULL)
 
 
-#define RETRIEVE_SEC(a)		a%86400L
+#define TSTART(a, b, c, d, e, f)
+
+
+#define RETRIEVE_SEC(a)        a%86400L
 
 #endif
 
 struct TTicker {
-	Real count;
-	struct timeval lastTime;
+    Real count;
+    struct timeval lastTime;
 };
 
 #ifdef WIN32
@@ -92,34 +91,34 @@ void setSeedRandom();
 #ifdef UNIX
 
 void updateTicker(struct TTicker *Ticker);
+
 #endif
 
 
+inline int
+timeval_subtract(struct timeval *result, const struct timeval a, const struct timeval b) {
+    timeval x, y;
 
-inline int timeval_subtract (struct timeval *result,const struct timeval a,const struct timeval b)
-{
-	timeval x,y;
+    x = a;
+    y = b;
 
-	x=a;
-	y=b;
 
-	
-	if (x.tv_usec < y.tv_usec) {
-		int nsec = (y.tv_usec - x.tv_usec) / 1000000 + 1;
-		y.tv_usec -= 1000000 * nsec;
-		y.tv_sec += nsec;
-	}
-	if (x.tv_usec - y.tv_usec > 1000000) {
-		int nsec = (y.tv_usec - x.tv_usec) / 1000000;
-		y.tv_usec += 1000000 * nsec;
-		y.tv_sec -= nsec;
-	}
+    if (x.tv_usec < y.tv_usec) {
+        int nsec = (y.tv_usec - x.tv_usec) / 1000000 + 1;
+        y.tv_usec -= 1000000 * nsec;
+        y.tv_sec += nsec;
+    }
+    if (x.tv_usec - y.tv_usec > 1000000) {
+        int nsec = (y.tv_usec - x.tv_usec) / 1000000;
+        y.tv_usec += 1000000 * nsec;
+        y.tv_sec -= nsec;
+    }
 
-	
-	result->tv_sec = x.tv_sec - y.tv_sec;
-	result->tv_usec = x.tv_usec - y.tv_usec;
 
-	
-	return x.tv_sec < y.tv_sec;
+    result->tv_sec = x.tv_sec - y.tv_sec;
+    result->tv_usec = x.tv_usec - y.tv_usec;
+
+
+    return x.tv_sec < y.tv_sec;
 }
 

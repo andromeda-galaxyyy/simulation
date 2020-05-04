@@ -41,6 +41,7 @@
 
 #include "ITGManager.h"
 #include "../common/json.hpp"
+
 #ifdef UNIX
 
 
@@ -50,6 +51,7 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+
 #endif
 
 #define STATS_LEN 8
@@ -62,7 +64,7 @@ std::string specifier[5];
 
 
 std::vector<std::string> ips;
-std::string self_ip="";
+std::string self_ip = "";
 
 
 void Terminate(int sig) {
@@ -73,11 +75,13 @@ void Terminate(int sig) {
     ExitProcess(0);
 #endif
 }
+
 using json=nlohmann::json;
 
 
 static std::default_random_engine generator;
-void append_params(std::string& command,std::string key,std::string value){
+
+void append_params(std::string &command, std::string key, std::string value) {
     command.append(" ");
     command.append(key);
     command.append(" ");
@@ -85,22 +89,21 @@ void append_params(std::string& command,std::string key,std::string value){
 }
 
 
-void read_ip_files(std::string& fn){
+void read_ip_files(std::string &fn) {
     std::ifstream infile(fn);
     std::string line;
-    while(std::getline(infile,line)){
-        if(self_ip==""){
-            self_ip=line;
+    while (std::getline(infile, line)) {
+        if (self_ip == "") {
+            self_ip = line;
             continue;
         }
         ips.emplace_back(line);
     }
 }
-bool send_all(int socket, char *ptr, size_t length)
-{
-    while (length > 0)
-    {
-        int i = send(socket, ptr, length,0);
+
+bool send_all(int socket, char *ptr, size_t length) {
+    while (length > 0) {
+        int i = send(socket, ptr, length, 0);
         if (i < 1) return false;
         ptr += i;
         length -= i;
@@ -109,26 +112,26 @@ bool send_all(int socket, char *ptr, size_t length)
 }
 
 
-bool report_to_controller(char* dst_ip,int dst_port,json& obj){
+bool report_to_controller(char *dst_ip, int dst_port, json &obj) {
     int sockfd;
     struct sockaddr_in servaddr;
-    memset(&servaddr,0, sizeof(sockaddr_in));
-    servaddr.sin_family=AF_INET;
-    servaddr.sin_port=htons(dst_port);
-    inet_pton(AF_INET,dst_ip,&(servaddr.sin_addr));
+    memset(&servaddr, 0, sizeof(sockaddr_in));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(dst_port);
+    inet_pton(AF_INET, dst_ip, &(servaddr.sin_addr));
 
-    sockfd=socket(AF_INET,SOCK_STREAM,0);
-    if(sockfd<0){
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
         perror("Cannot create socket \n");
         return false;
     }
-    if(connect(sockfd,(struct sockaddr*)&servaddr, sizeof(servaddr))<0){
+    if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
         perror("Cannot connect to remote ip:");
-        printf("%s\n",dst_ip);
+        printf("%s\n", dst_ip);
         return false;
     }
-    string content=obj.dump();
-    return send(sockfd,content.c_str(),content.size(),MSG_CONFIRM);
+    string content = obj.dump();
+    return send(sockfd, content.c_str(), content.size(), MSG_CONFIRM);
 }
 
 
@@ -142,21 +145,21 @@ int main(int argc, char *argv[]) {
     json report;
     argc--;
 
-    std::string ip_fn=std::string(argv[1]);
-    std::cout<<"ip_fn "<<ip_fn<<std::endl;
+    std::string ip_fn = std::string(argv[1]);
+    std::cout << "ip_fn " << ip_fn << std::endl;
     read_ip_files(ip_fn);
 
-    int lambda=5;
-    int duration=190;
+    int lambda = 5;
+    int duration = 190;
 
     argc--;
-    if(argc==2){
-        char* p;
-        char* q;
+    if (argc == 2) {
+        char *p;
+        char *q;
         //lambda
-        lambda=strtol(argv[2],&p,10);
-        duration=strtol(argv[3],&q,10);
-        if(errno!=0||*p!='\0'||lambda>100||duration<=0){
+        lambda = strtol(argv[2], &p, 10);
+        duration = strtol(argv[3], &q, 10);
+        if (errno != 0 || *p != '\0' || lambda > 100 || duration <= 0) {
             perror("ITGManager: Invalid Argument");
             exit(1);
         }
@@ -164,53 +167,53 @@ int main(int argc, char *argv[]) {
 
     std::exponential_distribution<double> distribution(lambda);
     std::uniform_int_distribution<int> port_uniform_distribution(1500, 65534);
-    std::uniform_int_distribution<int> remote_ip_uniform_distribution(0,ips.size()-1);
-    std::uniform_real_distribution<double> float_uniform_distribution(10,20);
+    std::uniform_int_distribution<int> remote_ip_uniform_distribution(0, ips.size() - 1);
+    std::uniform_real_distribution<double> float_uniform_distribution(10, 20);
 
-    std::string params="";
+    std::string params = "";
     double sleep_time_in_milli;
     int rp;
     int lp;
-    std::string remote_ip="";
+    std::string remote_ip = "";
     while (1) {
         //generate random stats
-        for(int i=0;i<STATS_LEN;i++){
-            STATS[i]=float_uniform_distribution(generator);
+        for (int i = 0; i < STATS_LEN; i++) {
+            STATS[i] = float_uniform_distribution(generator);
         }
 
 
-        params="";
+        params = "";
 
 
         rp = port_uniform_distribution(generator);
         lp = port_uniform_distribution(generator);
 
-        remote_ip=ips[remote_ip_uniform_distribution(generator)];
-        specifier[0]=std::to_string(lp);
-        specifier[1]=std::to_string(rp);
-        specifier[2]=self_ip;
-        specifier[3]=remote_ip;
-        specifier[4]="TCP";
-        report["specifier"]=specifier;
-        report["stats"]=STATS;
-        std::cout<<report<<std::endl;
+        remote_ip = ips[remote_ip_uniform_distribution(generator)];
+        specifier[0] = std::to_string(lp);
+        specifier[1] = std::to_string(rp);
+        specifier[2] = self_ip;
+        specifier[3] = remote_ip;
+        specifier[4] = "TCP";
+        report["specifier"] = specifier;
+        report["stats"] = STATS;
+        std::cout << report << std::endl;
 
         append_params(params, "-a", remote_ip);
-        append_params(params,"-rp",std::to_string(rp));
-        append_params(params,"-sp",std::to_string(lp));
-        append_params(params,"-t",std::to_string(duration));
-        append_params(params,"-T","TCP");
+        append_params(params, "-rp", std::to_string(rp));
+        append_params(params, "-sp", std::to_string(lp));
+        append_params(params, "-t", std::to_string(duration));
+        append_params(params, "-T", "TCP");
 //        std::cout<<params<<std::endl;
 
 //        std::cout<<report.dump()<<std::endl;
 
-        char *controller_ip=argv[4];
+        char *controller_ip = argv[4];
 
-        char* p=nullptr;
-        int controller_port=strtol(argv[5], &p, 10);
+        char *p = nullptr;
+        int controller_port = strtol(argv[5], &p, 10);
 
-        int report_res=report_to_controller(controller_ip, controller_port, report);
-        if(report_res==-1){
+        int report_res = report_to_controller(controller_ip, controller_port, report);
+        if (report_res == -1) {
             printf("error report\n");
         }
 

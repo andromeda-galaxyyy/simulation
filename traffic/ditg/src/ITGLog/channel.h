@@ -34,10 +34,10 @@ void logPacketTCP(int newSockSignal, ofstream *out);
 void logPacketUDP(int newsocksignal, std::ofstream *out);
 
 
-void createDataChannel(sockaddr_in sockAddress,int newSockSignal,int &logSock,int &port,
-					   const char* protocolName);
+void createDataChannel(sockaddr_in sockAddress, int newSockSignal, int &logSock, int &port,
+                       const char *protocolName);
 
 
-void infosntoh(struct info *infos,unsigned int dim);
+void infosntoh(struct info *infos, unsigned int dim);
 
 
