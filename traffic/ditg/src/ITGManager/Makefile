@@ -28,7 +28,7 @@ ifeq ($(BUILD_ENV),WIN32_MINGW)
 	@- $(RM) *.o ITGManager$(SUFFIX) $(BIN)\ITGManager$(SUFFIX)
 else
 	@ $(RM) *.o DummyManager$(SUFFIX) $(BIN)/DummyManager$(SUFFIX)
-	@ $(RM) *.o ITGManager$(SUFFIX) $(BIN)/ITGManage$(SUFFIX)
+	@ $(RM) *.o ITGManager$(SUFFIX) $(BIN)/ITGManager$(SUFFIX)
 endif
 
 #---------------

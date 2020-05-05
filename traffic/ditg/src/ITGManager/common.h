@@ -31,7 +31,7 @@ using json=nlohmann::json;
 using string=std::string;
 using ip_addrs=std::vector<string>;
 
-bool report_to_controller(char* dst_ip,int dst_port,json& obj);
+bool report_to_controller(const char* dst_ip,int dst_port,json& obj);
 
 void read_ip_files(string& fn,string& self_ip,ip_addrs& others);
 
@@ -60,14 +60,14 @@ inline bool dir_exists(const string& dirn){
   return dir_exists(dirn.c_str());
 }
 
-template<class... Args>
-inline void print_error(const char* module,Args... msgs){
-    std::cout<<module<<" Error ";
-    for(auto& x:{msgs...}){
-       std::cout<<x<<" ";
-    }
-    std::cout<<std::endl;
-}
+//template<class... Args>
+//inline void print_error(const char* module,Args... msgs){
+//    std::cout<<module<<" Error ";
+//    for(auto& x:{msgs...}){
+//       std::cout<<x<<" ";
+//    }
+//    std::cout<<std::endl;
+//}
 
 inline void print_error(const char* module,const char* msg){
     std::cout<<"Error: "<<module<<": "<<std::endl;

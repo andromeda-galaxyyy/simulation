@@ -3,7 +3,9 @@
 //
 
 #include "common.h"
+#define MODULE "Common"
 
+// must make sure this is a valid file path
 void read_ip_files(string &fn,std::string& self_ip,ip_addrs & others) {
     std::ifstream infile(fn);
     std::string line;
@@ -17,7 +19,7 @@ void read_ip_files(string &fn,std::string& self_ip,ip_addrs & others) {
 }
 
 
-bool report_to_controller(char *dst_ip, int dst_port, json &obj) {
+bool report_to_controller(const char *dst_ip, int dst_port, json &obj) {
     int sockfd;
     struct sockaddr_in servaddr;
     memset(&servaddr, 0, sizeof(sockaddr_in));
@@ -27,12 +29,11 @@ bool report_to_controller(char *dst_ip, int dst_port, json &obj) {
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        perror("Cannot create socket \n");
+        print_error(MODULE,"Cannot create socket");
         return false;
     }
     if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
-        perror("Cannot connect to remote ip:");
-        printf("%s\n", dst_ip);
+        print_error(MODULE,"Cannot connect to remote ip:",dst_ip);
         return false;
     }
     string content = obj.dump();

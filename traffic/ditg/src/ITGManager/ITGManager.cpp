@@ -11,7 +11,7 @@ string params;
 string ditg_dir="/tmp/ditgs/";
 int lambda=5;
 string ips_fn;
-char *controller_ip;
+string controller_ip;
 int controller_socket_port;
 string specifier[5];
 
@@ -47,7 +47,7 @@ int main(int argc,char* argv[]){
     lambda=strtol(argv[3],nullptr,10);
     print_msg(MODULE_NAME,"lambada",std::to_string(lambda).c_str());
 
-    controller_ip=argv[4];
+    controller_ip=string(argv[4]);
     controller_socket_port=strtol(argv[5],nullptr,10);
 
 
@@ -81,11 +81,14 @@ int main(int argc,char* argv[]){
         int lp=port_uniform_distribution(engine);
         int rp=port_uniform_distribution(engine);
         string remote_ip=addrs[remote_ip_uniform_distribution(engine)];
+        // fill in specifier
+        //local_ip
         specifier[0]=std::to_string(lp);
         specifier[1]=std::to_string(rp);
         specifier[2]=self_ip;
         specifier[3]=remote_ip;
         specifier[4]=flow["proto"].get<string>();
+
         report["specifier"]=specifier;
 
         string idt_fn=ditg_dir+flow["idt"].get<string>();
@@ -109,7 +112,7 @@ int main(int argc,char* argv[]){
 
         print_msg(MODULE_NAME,params.c_str());
 
-        if(!report_to_controller(controller_ip,controller_socket_port,report)){
+        if(!report_to_controller(controller_ip.c_str(),controller_socket_port,report)){
             print_error(MODULE_NAME,"Cannot send msg to controller");
         }
         int res=DITGsend("localhost", const_cast<char* >(params.c_str()));
@@ -117,8 +120,8 @@ int main(int argc,char* argv[]){
             print_error(MODULE_NAME,"Cannot perform ITGSend\n");
         }
 
-        double sleep_second = inter_flow_distr(generator);
-        sleep_in_milli(int(sleep_second*1000));
+        long long in_milli =(long long)(inter_flow_distr(generator)*1000);
+        SLEEP_MILLI(in_milli);
     }
 
 }
