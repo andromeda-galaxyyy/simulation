@@ -22,7 +22,7 @@ controller_port=$3
 
 root_dir=`dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )`
 ditg_bin_dir="$root_dir/traffic/ditg/bin"
-exec_file="$ditg_bin_dir/ITGManager"
+exec_file="$ditg_bin_dir/DummyManager"
 
 if [[ ! -f ${exec_file} ]];
 then
