@@ -65,6 +65,7 @@ stats WindowStatsGenerator::operator()(string &idt_fn, string &ps_fn) {
     //read inter departure time
     while(k){
         k--;
+        line="";
         if(std::getline(infile,line)){
             if(line.empty()) break;
             idts.push_back(std::stod(line));
@@ -75,6 +76,7 @@ stats WindowStatsGenerator::operator()(string &idt_fn, string &ps_fn) {
     infile.close();
     std::ifstream ps_file(ps_fn);
     while(k){
+        line="";
         k--;
         if(std::getline(ps_file,line)){
             if(line.empty()) break;
@@ -118,7 +120,7 @@ double WindowStatsGenerator::stdvar(stats &nums, double m) {
 }
 
 std::pair<double, double> WindowStatsGenerator::min_and_max(stats &nums) {
-    std::pair<double,double> res;
+    std::pair<double,double> res={1e10,-1};
     for(auto d:nums){
         res.first=MIN(res.first,d);
         res.second=MAX(res.second,d);
@@ -133,6 +135,7 @@ string ips_fn;
 string controller_ip;
 int controller_socket_port;
 string specifier[5];
+
 //ips_fn 1
 //ditg_dir 2
 //lambda 3
@@ -166,7 +169,6 @@ int main(int argc,char* argv[]){
     std::ifstream json_stream(statistic_fn);
     json_stream>>statistics;
     int num_flows=statistics["count"].get<int>();
-    std::cout<<"num flows "<<num_flows<<std::endl;
 
     std::default_random_engine engine;
     std::exponential_distribution<double> inter_flow_distr(lambda);
@@ -195,8 +197,7 @@ int main(int argc,char* argv[]){
 
         string idt_fn=ditg_dir+flow["idt"].get<string>();
         string ps_fn=ditg_dir+flow["ps"].get<string>();
-        std::cout<<idt_fn<<std::endl;
-        //
+        
         stats stats_to_report=statsGenerator(idt_fn,ps_fn);
         report["stats"]=stats_to_report;
         std::cout<<report.dump()<<std::endl;
