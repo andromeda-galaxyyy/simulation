@@ -82,7 +82,7 @@ int main(int argc,char* argv[]){
         int rp=port_uniform_distribution(engine);
         string remote_ip=addrs[remote_ip_uniform_distribution(engine)];
         // fill in specifier
-        //local_ip
+        //local_ip remote ip self_ip remote_ip proto
         specifier[0]=std::to_string(lp);
         specifier[1]=std::to_string(rp);
         specifier[2]=self_ip;
@@ -93,6 +93,7 @@ int main(int argc,char* argv[]){
 
         string idt_fn=ditg_dir+flow["idt"].get<string>();
         string ps_fn=ditg_dir+flow["ps"].get<string>();
+
         if(!file_exists(idt_fn)){
             print_error(MODULE_NAME,"Cannot find idt file:",idt_fn.c_str());
             exit(-1);
