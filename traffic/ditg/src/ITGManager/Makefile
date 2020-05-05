@@ -1,8 +1,8 @@
 all: ITGManager$(SUFFIX) DummyManager$(SUFFIX)
 
 
-OBJS = ../common/thread.o DummyManager.o
-OBJS2=../common/thread.o ITGManager.o
+OBJS = ../common/thread.o common.o stats.o DummyManager.o
+OBJS2=../common/thread.o common.o stats.o ITGManager.o
 
 DummyManager$(SUFFIX): ../libITG/ITGapi.h $(OBJS)
 ifeq ($(BUILD_ENV),WIN32_MINGW)

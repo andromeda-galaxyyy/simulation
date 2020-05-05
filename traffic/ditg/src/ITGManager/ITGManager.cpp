@@ -2,139 +2,20 @@
 // Created by Stack on 5/4/20.
 //
 
-#include "socket_util.h"
-#define MAX(a,b) a>b?a:b
-#define MIN(a,b) a<b?a:b
-
-using json=nlohmann::json;
-using string=std::string;
-using stats=std::vector<double>;
-
-class StatsGenerator{
-public:
-    virtual stats operator()(string& idt_fn,string& ps_fn)=0;
-};
-
-class RandomStatsGen: public StatsGenerator{
-    double upper=0;
-    double lower=0;
-    int dim=8;
-    std::uniform_real_distribution<double> double_uni_dist;
-    static std::default_random_engine engine;
-public:
-    explicit RandomStatsGen(double u=10, double l=20,int d=8): upper(u), lower(l),dim(d){
-        double_uni_dist=std::uniform_real_distribution<double>(lower,upper);
-
-    }
-    stats operator()(string& idt_fn,string& ps_fn) override;
-};
-std:: default_random_engine RandomStatsGen::engine=std::default_random_engine();
-
-stats RandomStatsGen::operator()(string &idt_fn, string &ps_fn) {
-    stats res(8);
-    for(int i=0;i<dim;i++){
-        res[i]=double_uni_dist(engine);
-    }
-    return res;
-}
+#include "common.h"
+#include "stats.h"
 
 
-class WindowStatsGenerator: public StatsGenerator{
-    int win_size=50;
-    stats do_calculate(stats& idts,stats& pss,stats& res);
-    static double mean(stats& nums);
-    static double stdvar(stats& nums, double m);
-    static std::pair<double,double> min_and_max(stats& nums);
-public:
-    explicit WindowStatsGenerator(int size=50): win_size(size){
-
-    }
-    stats operator()(string& idt_fn,string& ps_fn) override;
-
-};
-
-stats WindowStatsGenerator::operator()(string &idt_fn, string &ps_fn) {
-    stats res;
-    //inter departure time
-    stats idts;
-    //inter packet size
-    stats pss;
-    std::ifstream infile(idt_fn);
-    string line;
-    int k=win_size;
-    //read inter departure time
-    while(k){
-        k--;
-        line="";
-        if(std::getline(infile,line)){
-            if(line.empty()) break;
-            idts.push_back(std::stod(line));
-        }
-    }
-    //read packet size
-    k=win_size;
-    infile.close();
-    std::ifstream ps_file(ps_fn);
-    while(k){
-        line="";
-        k--;
-        if(std::getline(ps_file,line)){
-            if(line.empty()) break;
-            pss.push_back(std::stod(line));
-        }
-    }
-    do_calculate(idts,pss,res);
-    return res;
-}
-
-stats WindowStatsGenerator::do_calculate(stats &idts, stats &pss,stats& res) {
-    std::pair<double,double> min_max=min_and_max(idts);
-    res.push_back(min_max.first);
-    res.push_back(min_max.second);
-    double m=mean(idts);
-    res.push_back(m);
-    res.push_back(stdvar(idts,m));
-
-    min_max=min_and_max(pss);
-    res.push_back(min_max.first);
-    res.push_back(min_max.second);
-    m=mean(pss);
-    res.push_back(m);
-    res.push_back(stdvar(pss,m));
-
-    return res;
-}
-
-double WindowStatsGenerator::mean(stats &nums) {
-    double sum=std::accumulate(nums.begin(),nums.end(),0.0);
-    return sum/nums.size();
-}
-
-double WindowStatsGenerator::stdvar(stats &nums, double m) {
-    std::vector<double> diff(nums.size());
-    std::transform(nums.begin(), nums.end(), diff.begin(),
-                   std::bind2nd(std::minus<double>(), m));
-    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-    double stdev = std::sqrt(sq_sum / nums.size());
-    return stdev;
-}
-
-std::pair<double, double> WindowStatsGenerator::min_and_max(stats &nums) {
-    std::pair<double,double> res={1e10,-1};
-    for(auto d:nums){
-        res.first=MIN(res.first,d);
-        res.second=MAX(res.second,d);
-    }
-    return res;
-}
 
 string params;
 string ditg_dir="/tmp/ditgs/";
 int lambda=5;
 string ips_fn;
-string controller_ip;
+char *controller_ip;
 int controller_socket_port;
 string specifier[5];
+
+
 
 //ips_fn 1
 //ditg_dir 2
@@ -152,6 +33,7 @@ int main(int argc,char* argv[]){
     ip_addrs addrs;
     string self_ip;
     read_ip_files(ips_fn,self_ip,addrs);
+
     ditg_dir=string(argv[2]);
     if(ditg_dir[ditg_dir.size()-1]!='/'){
         ditg_dir.append("/");
@@ -159,7 +41,8 @@ int main(int argc,char* argv[]){
 
     //read possion lamba
     lambda=strtol(argv[3],nullptr,10);
-    controller_ip=string(argv[4]);
+
+    controller_ip=argv[4];
     controller_socket_port=strtol(argv[5],nullptr,10);
 
 
@@ -179,6 +62,7 @@ int main(int argc,char* argv[]){
     double wait=0;
     json report;
     WindowStatsGenerator statsGenerator(25);
+    std::default_random_engine generator;
     while(1){
         //pick a flow
         params="";
@@ -202,7 +86,24 @@ int main(int argc,char* argv[]){
         report["stats"]=stats_to_report;
         std::cout<<report.dump()<<std::endl;
 
-        break;
+        append_params(params,"-a",specifier[3]);
+        append_params(params,"-rp",specifier[1]);
+        append_params(params,"-sp",specifier[0]);
+        append_params(params,"-T",specifier[4]);
+
+        append_params(params,"-Ft",idt_fn);
+        append_params(params,"-Fs",ps_fn);
+        if(!report_to_controller(controller_ip,controller_socket_port,report)){
+            printf("ITGManager: Error report stats\n");
+            continue;
+        }
+        int res=DITGsend("localhost", const_cast<char* >(params.c_str()));
+        if(res==-1){
+            printf("ITGManager: Error in DITGSend\n");
+        }
+
+        double sleep_time_in_milli = inter_flow_distr(generator);
+        std::this_thread::sleep_for(std::chrono::milliseconds(int(sleep_time_in_milli)));
 
     }
 

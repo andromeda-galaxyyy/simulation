@@ -57,19 +57,5 @@ void *waitStopKey(void *s);
 
 void terminate(int sig);
 
-void read_ip_files(std::string &fn);
 
-void append_params(std::string &command, std::string key, std::string value);
 
-using ip_addrs=std::vector<std::string>;
-void read_ip_files(std::string &fn,std::string& self_ip,ip_addrs & others) {
-    std::ifstream infile(fn);
-    std::string line;
-    while (std::getline(infile, line)) {
-        if (self_ip == "") {
-            self_ip = line;
-            continue;
-        }
-        others.emplace_back(line);
-    }
-}

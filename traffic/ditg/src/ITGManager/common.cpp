@@ -1,35 +1,22 @@
 //
-// Created by Stack on 5/4/20.
+// Created by Stack on 5/5/20.
 //
-#include "../common/thread.h"
-#include "../libITG/ITGapi.h"
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include <string>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
+
+#include "common.h"
 
 
-#include "DummyManager.h"
-#include "../common/json.hpp"
+void read_ip_files(string &fn,std::string& self_ip,ip_addrs & others) {
+    std::ifstream infile(fn);
+    std::string line;
+    while (std::getline(infile, line)) {
+        if (self_ip == "") {
+            self_ip = line;
+            continue;
+        }
+        others.emplace_back(line);
+    }
+}
 
-#ifdef UNIX
-
-
-#include <random>
-#include <thread>
-#include <chrono>
-#include <vector>
-#include <fstream>
-#include <iostream>
-
-#endif
-#ifndef SRC_SOCKET_UTIL_H
-using json=nlohmann::json;
-using string=std::string;
 
 bool report_to_controller(char *dst_ip, int dst_port, json &obj) {
     int sockfd;
@@ -52,6 +39,11 @@ bool report_to_controller(char *dst_ip, int dst_port, json &obj) {
     string content = obj.dump();
     return send(sockfd, content.c_str(), content.size(), MSG_CONFIRM);
 }
-#define SRC_SOCKET_UTIL_H
 
-#endif //SRC_SOCKET_UTIL_H
+
+void append_params(std::string &command, std::string key, std::string value) {
+    command.append(" ");
+    command.append(key);
+    command.append(" ");
+    command.append(value);
+}
