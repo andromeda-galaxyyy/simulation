@@ -1,230 +1,209 @@
-/*
- *   Component of the D-ITG 2.8.1 (r1023) platform (http://traffic.comics.unina.it/software/ITG)
- *
- *   Copyright     : (C) 2004-2013 by Alessio Botta, Walter de Donato, Alberto Dainotti,
- *                                      Stefano Avallone, Antonio Pescape' (PI)
- *                                      COMICS (COMputer for Interaction and CommunicationS) Group
- *                                      Department of Electrical Engineering and Information Technologies
- *                                      University of Napoli "Federico II".
- *   email         : a.botta@unina.it, walter.dedonato@unina.it, alberto@unina.it,
- *                   stavallo@unina.it, pescape@unina.it
- *
- *   This program is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
- * 
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
- * 		     
- *   You should have received a copy of the GNU General Public License
- *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *				     
- *   For commercial use please refer to D-ITG Professional.
- */
+//
+// Created by Stack on 5/4/20.
+//
 
-
-
-#include "../common/thread.h"
-#include "../libITG/ITGapi.h"
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include <string>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-
-
-#include "ITGManager.h"
-#include "../common/json.hpp"
-
-#ifdef UNIX
-
-
-#include <random>
-#include <thread>
-#include <chrono>
-#include <vector>
-#include <fstream>
-#include <iostream>
-
-#endif
-
-#define STATS_LEN 8
-
-
-using string=std::string;
-
-double STATS[STATS_LEN];
-std::string specifier[5];
-
-
-std::vector<std::string> ips;
-std::string self_ip = "";
-
-
-void Terminate(int sig) {
-#ifdef UNIX
-    exit(1);
-#endif
-#ifdef WIN32
-    ExitProcess(0);
-#endif
-}
+#include "socket_util.h"
+#define MAX(a,b) a>b?a:b
+#define MIN(a,b) a<b?a:b
 
 using json=nlohmann::json;
+using string=std::string;
+using stats=std::vector<double>;
 
+class StatsGenerator{
+public:
+    virtual stats operator()(string& idt_fn,string& ps_fn)=0;
+};
 
-static std::default_random_engine generator;
+class RandomStatsGen: public StatsGenerator{
+    double upper=0;
+    double lower=0;
+    int dim=8;
+    std::uniform_real_distribution<double> double_uni_dist;
+    static std::default_random_engine engine;
+public:
+    explicit RandomStatsGen(double u=10, double l=20,int d=8): upper(u), lower(l),dim(d){
+        double_uni_dist=std::uniform_real_distribution<double>(lower,upper);
 
-void append_params(std::string &command, std::string key, std::string value) {
-    command.append(" ");
-    command.append(key);
-    command.append(" ");
-    command.append(value);
+    }
+    stats operator()(string& idt_fn,string& ps_fn) override;
+};
+std:: default_random_engine RandomStatsGen::engine=std::default_random_engine();
+
+stats RandomStatsGen::operator()(string &idt_fn, string &ps_fn) {
+    stats res(8);
+    for(int i=0;i<dim;i++){
+        res[i]=double_uni_dist(engine);
+    }
+    return res;
 }
 
 
-void read_ip_files(std::string &fn) {
-    std::ifstream infile(fn);
-    std::string line;
-    while (std::getline(infile, line)) {
-        if (self_ip == "") {
-            self_ip = line;
-            continue;
-        }
-        ips.emplace_back(line);
+class WindowStatsGenerator: public StatsGenerator{
+    int win_size=50;
+    stats do_calculate(stats& idts,stats& pss,stats& res);
+    static double mean(stats& nums);
+    static double stdvar(stats& nums, double m);
+    static std::pair<double,double> min_and_max(stats& nums);
+public:
+    explicit WindowStatsGenerator(int size=50): win_size(size){
+
     }
-}
+    stats operator()(string& idt_fn,string& ps_fn) override;
 
-bool send_all(int socket, char *ptr, size_t length) {
-    while (length > 0) {
-        int i = send(socket, ptr, length, 0);
-        if (i < 1) return false;
-        ptr += i;
-        length -= i;
-    }
-    return true;
-}
+};
 
-
-bool report_to_controller(char *dst_ip, int dst_port, json &obj) {
-    int sockfd;
-    struct sockaddr_in servaddr;
-    memset(&servaddr, 0, sizeof(sockaddr_in));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(dst_port);
-    inet_pton(AF_INET, dst_ip, &(servaddr.sin_addr));
-
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        perror("Cannot create socket \n");
-        return false;
-    }
-    if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
-        perror("Cannot connect to remote ip:");
-        printf("%s\n", dst_ip);
-        return false;
-    }
-    string content = obj.dump();
-    return send(sockfd, content.c_str(), content.size(), MSG_CONFIRM);
-}
-
-
-//ips_fn
-//lambda
-//duration
-//controller ip
-//controller port
-
-int main(int argc, char *argv[]) {
-   nlohmann:: json report;
-    argc--;
-
-    std::string ip_fn = std::string(argv[1]);
-    std::cout << "ip_fn " << ip_fn << std::endl;
-    read_ip_files(ip_fn);
-
-    int lambda = 5;
-    int duration = 190;
-
-    argc--;
-    if (argc == 2) {
-        char *p;
-        char *q;
-        //lambda
-        lambda = strtol(argv[2], &p, 10);
-        duration = strtol(argv[3], &q, 10);
-        if (errno != 0 || *p != '\0' || lambda > 100 || duration <= 0) {
-            perror("ITGManager: Invalid Argument");
-            exit(1);
+stats WindowStatsGenerator::operator()(string &idt_fn, string &ps_fn) {
+    stats res;
+    //inter departure time
+    stats idts;
+    //inter packet size
+    stats pss;
+    std::ifstream infile(idt_fn);
+    string line;
+    int k=win_size;
+    //read inter departure time
+    while(k){
+        k--;
+        line="";
+        if(std::getline(infile,line)){
+            if(line.empty()) break;
+            idts.push_back(std::stod(line));
         }
     }
+    //read packet size
+    k=win_size;
+    infile.close();
+    std::ifstream ps_file(ps_fn);
+    while(k){
+        line="";
+        k--;
+        if(std::getline(ps_file,line)){
+            if(line.empty()) break;
+            pss.push_back(std::stod(line));
+        }
+    }
+    do_calculate(idts,pss,res);
+    return res;
+}
 
-    std::exponential_distribution<double> distribution(lambda);
+stats WindowStatsGenerator::do_calculate(stats &idts, stats &pss,stats& res) {
+    std::pair<double,double> min_max=min_and_max(idts);
+    res.push_back(min_max.first);
+    res.push_back(min_max.second);
+    double m=mean(idts);
+    res.push_back(m);
+    res.push_back(stdvar(idts,m));
+
+    min_max=min_and_max(pss);
+    res.push_back(min_max.first);
+    res.push_back(min_max.second);
+    m=mean(pss);
+    res.push_back(m);
+    res.push_back(stdvar(pss,m));
+
+    return res;
+}
+
+double WindowStatsGenerator::mean(stats &nums) {
+    double sum=std::accumulate(nums.begin(),nums.end(),0.0);
+    return sum/nums.size();
+}
+
+double WindowStatsGenerator::stdvar(stats &nums, double m) {
+    std::vector<double> diff(nums.size());
+    std::transform(nums.begin(), nums.end(), diff.begin(),
+                   std::bind2nd(std::minus<double>(), m));
+    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    double stdev = std::sqrt(sq_sum / nums.size());
+    return stdev;
+}
+
+std::pair<double, double> WindowStatsGenerator::min_and_max(stats &nums) {
+    std::pair<double,double> res={1e10,-1};
+    for(auto d:nums){
+        res.first=MIN(res.first,d);
+        res.second=MAX(res.second,d);
+    }
+    return res;
+}
+
+string params;
+string ditg_dir="/tmp/ditgs/";
+int lambda=5;
+string ips_fn;
+string controller_ip;
+int controller_socket_port;
+string specifier[5];
+
+//ips_fn 1
+//ditg_dir 2
+//lambda 3
+//controller ip 4
+//controller socket_port 5
+int main(int argc,char* argv[]){
+    argc--;
+    if(argc<5){
+        std::cout<<"ITGManager 2 Error:"<<std::endl;
+        std::cout<<"Usage: ITGManager lambda ditg_dir"<<std::endl;
+        exit(-1);
+    }
+    ips_fn=string(argv[1]);
+    ip_addrs addrs;
+    string self_ip;
+    read_ip_files(ips_fn,self_ip,addrs);
+    ditg_dir=string(argv[2]);
+    if(ditg_dir[ditg_dir.size()-1]!='/'){
+        ditg_dir.append("/");
+    }
+
+    //read possion lamba
+    lambda=strtol(argv[3],nullptr,10);
+    controller_ip=string(argv[4]);
+    controller_socket_port=strtol(argv[5],nullptr,10);
+
+
+
+    json statistics;
+    string statistic_fn=ditg_dir+"/statistics.json";
+    std::ifstream json_stream(statistic_fn);
+    json_stream>>statistics;
+    int num_flows=statistics["count"].get<int>();
+
+    std::default_random_engine engine;
+    std::exponential_distribution<double> inter_flow_distr(lambda);
     std::uniform_int_distribution<int> port_uniform_distribution(1500, 65534);
-    std::uniform_int_distribution<int> remote_ip_uniform_distribution(0, ips.size() - 1);
+    std::uniform_int_distribution<int> remote_ip_uniform_distribution(0, addrs.size() - 1);
     std::uniform_real_distribution<double> float_uniform_distribution(10, 20);
+    std::uniform_int_distribution<int> flow_uni_distribution(0,num_flows-1);
+    double wait=0;
+    json report;
+    WindowStatsGenerator statsGenerator(25);
+    while(1){
+        //pick a flow
+        params="";
+        auto flow=statistics["flows"].at(flow_uni_distribution(engine));
+        wait=inter_flow_distr(engine);
+        //TODO avoid existing port
+        int lp=port_uniform_distribution(engine);
+        int rp=port_uniform_distribution(engine);
+        string remote_ip=addrs[remote_ip_uniform_distribution(engine)];
+        specifier[0]=std::to_string(lp);
+        specifier[1]=std::to_string(rp);
+        specifier[2]=self_ip;
+        specifier[3]=remote_ip;
+        specifier[4]=flow["proto"].get<string>();
+        report["specifier"]=specifier;
 
-    std::string params = "";
-    double sleep_time_in_milli;
-    int rp;
-    int lp;
-    std::string remote_ip = "";
-    while (1) {
-        //generate random stats
-        for (int i = 0; i < STATS_LEN; i++) {
-            STATS[i] = float_uniform_distribution(generator);
-        }
+        string idt_fn=ditg_dir+flow["idt"].get<string>();
+        string ps_fn=ditg_dir+flow["ps"].get<string>();
 
+        stats stats_to_report=statsGenerator(idt_fn,ps_fn);
+        report["stats"]=stats_to_report;
+        std::cout<<report.dump()<<std::endl;
 
-        params = "";
+        break;
 
-
-        rp = port_uniform_distribution(generator);
-        lp = port_uniform_distribution(generator);
-
-        remote_ip = ips[remote_ip_uniform_distribution(generator)];
-        specifier[0] = std::to_string(lp);
-        specifier[1] = std::to_string(rp);
-        specifier[2] = self_ip;
-        specifier[3] = remote_ip;
-        specifier[4] = "TCP";
-        report["specifier"] = specifier;
-        report["stats"] = STATS;
-//        std::cout << report << std::endl;
-
-        append_params(params, "-a", remote_ip);
-        append_params(params, "-rp", std::to_string(rp));
-        append_params(params, "-sp", std::to_string(lp));
-        append_params(params, "-t", std::to_string(duration));
-        append_params(params, "-T", "TCP");
-//        std::cout<<params<<std::endl;
-
-//        std::cout<<report.dump()<<std::endl;
-
-        char *controller_ip = argv[4];
-
-        char *p = nullptr;
-        int controller_port = strtol(argv[5], &p, 10);
-
-        int report_res = report_to_controller(controller_ip, controller_port, report);
-        if (report_res == -1) {
-            printf("error report\n");
-        }
-
-        int res = DITGsend("localhost", const_cast<char *>(params.c_str()));
-
-
-        sleep_time_in_milli = distribution(generator);
-        std::this_thread::sleep_for(std::chrono::milliseconds(int(sleep_time_in_milli * 1000)));
-        if (res == -1) {
-            exit(1);
-        }
     }
-}
 
+}

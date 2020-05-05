@@ -13,7 +13,7 @@
 #include <arpa/inet.h>
 
 
-#include "ITGManager.h"
+#include "DummyManager.h"
 #include "../common/json.hpp"
 
 #ifdef UNIX

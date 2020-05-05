@@ -31,8 +31,8 @@ add_executable(src
         ITGLog/channel.h
         ITGLog/ITGLog.cpp
         ITGLog/ITGLog.h
-        ITGManager/ITGManager.cpp
-        ITGManager/ITGManager.h
+        ITGManager/DummyManager.cpp
+        ITGManager/DummyManager.h
         ITGRecv/data.cpp
         ITGRecv/data.h
         ITGRecv/ITGRecv.cpp
@@ -75,4 +75,4 @@ add_executable(src
         ITGSend/traffic.cpp
         ITGSend/traffic.h
         libITG/ITGapi.cpp
-        libITG/ITGapi.h ITGManager/ITGManager2.cpp ITGManager/socket_util.h)
+        libITG/ITGapi.h ITGManager/ITGManager.cpp ITGManager/socket_util.h)

@@ -1,18 +1,19 @@
-all: ITGManager2$(SUFFIX)
+all: ITGManager$(SUFFIX) DummyManager$(SUFFIX)
 
-OBJS = ../common/thread.o ITGManager.o
-OBJS2=../common/thread.o ITGManager2.o
 
-ITGManager$(SUFFIX): ../libITG/ITGapi.h $(OBJS)
+OBJS = ../common/thread.o DummyManager.o
+OBJS2=../common/thread.o ITGManager.o
+
+DummyManager$(SUFFIX): ../libITG/ITGapi.h $(OBJS)
 ifeq ($(BUILD_ENV),WIN32_MINGW)
 	@ echo [ LD ]  $@ ^<- $(OBJS)
 else
 	@ printf "[ LD ]\t$@ <- $(OBJS)\n"
 endif
-	@ $(CXX) $(CXXFLAGS) $(OBJS) -L$(BIN) -lITG -o $@ $(LDFLAGS) 
+	@ $(CXX) $(CXXFLAGS) $(OBJS) -L$(BIN) -lITG -o $@ $(LDFLAGS)
 	@ $(CP) $@ $(BIN)
 
-ITGManager2$(SUFFIX): ../libITG/ITGapi.h $(OBJS2)
+ITGManager$(SUFFIX): ../libITG/ITGapi.h $(OBJS2)
 ifeq ($(BUILD_ENV),WIN32_MINGW)
 	@ echo [ LD ]  $@ ^<- $(OBJS2)
 else
@@ -23,9 +24,11 @@ endif
 
 clean:
 ifeq ($(BUILD_ENV),WIN32_MINGW)
+	@- $(RM) *.o DummyManager$(SUFFIX) $(BIN)\DummyManager$(SUFFIX)
 	@- $(RM) *.o ITGManager$(SUFFIX) $(BIN)\ITGManager$(SUFFIX)
 else
-	@ $(RM) *.o ITGManager$(SUFFIX) $(BIN)/ITGManager$(SUFFIX)
+	@ $(RM) *.o DummyManager$(SUFFIX) $(BIN)/DummyManager$(SUFFIX)
+	@ $(RM) *.o ITGManager$(SUFFIX) $(BIN)/ITGManage$(SUFFIX)
 endif
 
 #---------------
