@@ -5,7 +5,7 @@
 #include "common.h"
 #include "stats.h"
 
-
+#define MODULE_NAME "ITGManager"
 
 string params;
 string ditg_dir="/tmp/ditgs/";
@@ -25,8 +25,8 @@ string specifier[5];
 int main(int argc,char* argv[]){
     argc--;
     if(argc<5){
-        std::cout<<"ITGManager 2 Error:"<<std::endl;
-        std::cout<<"Usage: ITGManager lambda ditg_dir"<<std::endl;
+        print_error(MODULE_NAME,"Invalid arguments");
+        print_msg(MODULE_NAME,"Usage: ITGManager ips_fn ditg_dir lambda controller_ip controller_socket_port");
         exit(-1);
     }
     ips_fn=string(argv[1]);
@@ -38,9 +38,14 @@ int main(int argc,char* argv[]){
     if(ditg_dir[ditg_dir.size()-1]!='/'){
         ditg_dir.append("/");
     }
+    if(!dir_exists(ditg_dir)){
+        print_error("ITGManager","DITG Dir not exists!");
+        exit(-1);
+    }
 
     //read possion lamba
     lambda=strtol(argv[3],nullptr,10);
+    print_msg(MODULE_NAME,"lambada",std::to_string(lambda).c_str());
 
     controller_ip=argv[4];
     controller_socket_port=strtol(argv[5],nullptr,10);
@@ -49,6 +54,10 @@ int main(int argc,char* argv[]){
 
     json statistics;
     string statistic_fn=ditg_dir+"/statistics.json";
+    if(!file_exists(statistic_fn)){
+        print_error(MODULE_NAME,"Cannot find file: statistics.json");
+        exit(-1);
+    }
     std::ifstream json_stream(statistic_fn);
     json_stream>>statistics;
     int num_flows=statistics["count"].get<int>();
@@ -81,6 +90,10 @@ int main(int argc,char* argv[]){
 
         string idt_fn=ditg_dir+flow["idt"].get<string>();
         string ps_fn=ditg_dir+flow["ps"].get<string>();
+        if(!file_exists(idt_fn)){
+            print_error(MODULE_NAME,"Cannot find idt file:",idt_fn.c_str());
+            exit(-1);
+        }
 
         stats stats_to_report=statsGenerator(idt_fn,ps_fn);
         report["stats"]=stats_to_report;
@@ -93,18 +106,19 @@ int main(int argc,char* argv[]){
 
         append_params(params,"-Ft",idt_fn);
         append_params(params,"-Fs",ps_fn);
+
+        print_msg(MODULE_NAME,params.c_str());
+
         if(!report_to_controller(controller_ip,controller_socket_port,report)){
-            printf("ITGManager: Error report stats\n");
-            continue;
+            print_error(MODULE_NAME,"Cannot send msg to controller");
         }
         int res=DITGsend("localhost", const_cast<char* >(params.c_str()));
         if(res==-1){
-            printf("ITGManager: Error in DITGSend\n");
+            print_error(MODULE_NAME,"Cannot perform ITGSend\n");
         }
 
         double sleep_time_in_milli = inter_flow_distr(generator);
-        std::this_thread::sleep_for(std::chrono::milliseconds(int(sleep_time_in_milli)));
-
+        std::this_thread::sleep_for(std::chrono::milliseconds(int(sleep_time_in_milli)*1000));
     }
 
 }

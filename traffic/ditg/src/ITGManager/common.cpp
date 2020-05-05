@@ -4,7 +4,6 @@
 
 #include "common.h"
 
-
 void read_ip_files(string &fn,std::string& self_ip,ip_addrs & others) {
     std::ifstream infile(fn);
     std::string line;
@@ -47,3 +46,6 @@ void append_params(std::string &command, std::string key, std::string value) {
     command.append(" ");
     command.append(value);
 }
+
+
+
