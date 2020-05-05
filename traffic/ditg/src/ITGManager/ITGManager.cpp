@@ -39,13 +39,12 @@ int main(int argc,char* argv[]){
         ditg_dir.append("/");
     }
     if(!dir_exists(ditg_dir)){
-        print_error("ITGManager","DITG Dir not exists!");
+        print_error(MODULE_NAME,"DITG Dir not exists! ",ditg_dir.c_str());
         exit(-1);
     }
 
     //read possion lamba
     lambda=strtol(argv[3],nullptr,10);
-    print_msg(MODULE_NAME,"lambada",std::to_string(lambda).c_str());
 
     controller_ip=string(argv[4]);
     controller_socket_port=strtol(argv[5],nullptr,10);
