@@ -85,6 +85,18 @@ inline void print_msg(const char* module,const char* m1,const char* m2){
     std::cout<<"Info: "<<module<<": "<<m1<<" "<<m2<<std::endl;
 }
 
+inline void sleep_in_milli(unsigned long long mill){
+    std::this_thread::sleep_for(std::chrono::milliseconds(mill));
+}
+
+inline void sleep_in_second(unsigned long long se){
+    sleep_in_milli(se*1000);
+}
+
+
+#define SLEEP_MILLI(m) sleep_in_milli(m)
+#define SLEEP_SEC(m) sleep_in_second(m)
+#define CAST_ULL(x) static_cast<unsigned long long>(x)
 
 #define SRC_SOCKET_UTIL_H
 

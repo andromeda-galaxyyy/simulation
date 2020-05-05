@@ -117,8 +117,8 @@ int main(int argc,char* argv[]){
             print_error(MODULE_NAME,"Cannot perform ITGSend\n");
         }
 
-        double sleep_time_in_milli = inter_flow_distr(generator);
-        std::this_thread::sleep_for(std::chrono::milliseconds(int(sleep_time_in_milli)*1000));
+        double sleep_second = inter_flow_distr(generator);
+        sleep_in_milli(int(sleep_second*1000));
     }
 
 }
