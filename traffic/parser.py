@@ -39,18 +39,17 @@ def inet_to_str(inet):
 
 
 class Parser:
-	def __init__(self, pcap_file: str, proto="TCP"):
+	def __init__(self, pcap_file: str):
 		check_file(pcap_file)
 		self.file = pcap_file
-		self.proto = proto
 
-	def parse(self) -> Dict[Tuple, List[Tuple]]:
-		proto = None
-		res = defaultdict(lambda: [])
-		if self.proto == "TCP":
-			proto = dpkt.ip.IP_PROTO_TCP
-		else:
-			proto = dpkt.ip.IP_PROTO_UDP
+	def parse(self)
+		tcp_packets = defaultdict(lambda: [])
+		udp_packets = defaultdict(list)
+
+		tcp_proto = dpkt.ip.IP_PROTO_TCP
+		udp_proto = dpkt.ip.IP_PROTO_UDP
+
 		fp = open(self.file, 'rb')
 		pcap = list(dpkt.pcap.Reader(fp))
 		for ts, buf in pcap:
@@ -63,29 +62,30 @@ class Parser:
 
 			ip = eth.data
 			if not hasattr(ip, "p"): continue
-			if ip.p != proto:
-				continue
+
 			sip = inet_to_str(ip.src)
 			dip = inet_to_str(ip.dst)
 			l4 = ip.data
 			sport = l4.sport
 			dport = l4.dport
-			res[(sip, sport, dip, dport, self.proto)].append((ts, l4))
-		return res
+			if ip.p == tcp_proto:
+				tcp_packets[(sip, sport, dip, dport, "TCP")].append((ts, l4))
+			elif ip.p == udp_proto:
+				udp_packets[(sip, sport, dip, dport, "UDP")].append((ts, l4))
+		return tcp_packets, udp_packets
 
 
-class TCPParser(Parser):
+class FilteredParser(Parser):
 	def __init__(self, pcap_file: str):
-		super(TCPParser, self).__init__(pcap_file, "TCP")
+		super(FilteredParser, self).__init__(pcap_file)
 
-	def parse(self) -> Dict[Tuple, List[Tuple]]:
-
-		packets = super(TCPParser, self).parse()
+	@staticmethod
+	def _filter(packets: Dict):
 
 		for key in packets.keys():
 			packets[key] = [(ts, len(x.data)) for ts, x in packets[key]]
 
-		# packet [(timestamp,l4 data size)]
+		# packet [(timestamp,l4_data_size)]
 
 		debug("There is {} flows (maybe bidirectional)".format(len(packets)))
 		res: Dict[Tuple, List[Tuple]] = defaultdict(list)
@@ -96,8 +96,10 @@ class TCPParser(Parser):
 			sport = specifier[1]
 			dip = specifier[2]
 			dport = specifier[3]
+			proto=specifier[4]
 
-			reverse_specifier = (dip, dport, sip, sport, "TCP")
+			reverse_specifier = (dip, dport, sip, sport, proto)
+			#分析过了，掠过
 			if specifier in list(res.keys()) or reverse_specifier in list(res.keys()):
 				continue
 
@@ -115,15 +117,21 @@ class TCPParser(Parser):
 
 			res[flow_specifier] = packets[flow_specifier]
 		info("There is {} disctinct flows".format(len(res)))
-
 		return res
+
+	def parse(self):
+		tcp_packets, udp_packets = super(FilteredParser, self).parse()
+		tcp_packets=self._filter(tcp_packets)
+		udp_packets=self._filter(udp_packets)
+		return tcp_packets,udp_packets
+
+
+
 
 
 # todo make timestamp start from zero
 
-
 def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict):
-	counter = 0
 	for specifier in list(flows.keys()):
 		sip = specifier[0]
 		sport = specifier[1]
@@ -172,58 +180,10 @@ def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Di
 				fp.write("{}\n".format(ps))
 			fp.flush()
 			fp.close()
-		# logger.debug("ps file written done")
 		statistics["flows"].append(flow)
 		statistics["count"] += 1
-	# print(sum(diff_ts))
-	debug(counter)
 
 
-# res_file=os.path.join(dirname,"statistics.json")
-
-
-class UDPParser(Parser):
-	def __init__(self, pcap_file: str):
-		super(UDPParser, self).__init__(pcap_file, "UDP")
-
-	def parse(self) -> Dict[Tuple, List[Tuple]]:
-		packets = super(UDPParser, self).parse()
-
-		for key in packets.keys():
-			packets[key] = [(ts, len(x.data)) for ts, x in packets[key]]
-
-		# packet (timestamp,l4 data size)
-
-		debug("There is {} flows (maybe bidirectional)".format(len(packets)))
-		res: Dict[Tuple, List[Tuple]] = defaultdict(list)
-
-		for specifier in list(packets.keys()):
-
-			sip = specifier[0]
-			sport = specifier[1]
-			dip = specifier[2]
-			dport = specifier[3]
-
-			reverse_specifier = (dip, dport, sip, sport, "UDP")
-			if specifier in list(res.keys()) or reverse_specifier in list(res.keys()):
-				continue
-
-			pkt_size = [p[1] for p in packets[specifier]]
-
-			flow_size = sum(pkt_size)
-			reverse_pkt_size = [p[1] for p in packets[reverse_specifier]]
-			reverse_flow_size = sum(reverse_pkt_size)
-
-			flow_specifier = None
-			if flow_size > reverse_flow_size:
-				flow_specifier = specifier
-			else:
-				flow_specifier = reverse_specifier
-
-			res[flow_specifier] = packets[flow_specifier]
-		info("There is {} disctinct flows".format(len(res)))
-
-		return res
 
 
 if __name__ == '__main__':
@@ -249,12 +209,15 @@ if __name__ == '__main__':
 	statistics = {"count": 0, "flows": []}
 	for file in files:
 		debug("Parsing {}".format(file))
-		p = TCPParser(file)
-		res = p.parse()
-		for f in list(res.keys()):
+		p = FilteredParser(file)
+		tcp,udp = p.parse()
+		for f in list(tcp.keys()):
 			# remove tcp handshake and other packet in which data len=0
-			res[f] = list(filter(lambda x: x[1] != 0, res[f]))
-	for file in files:
-		generate_ditg_files(res, output_dir, statistics)
+			tcp[f] = list(filter(lambda x: x[1] != 0, tcp[f]))
+		for f in list(udp.keys()):
+			udp[f] = list(filter(lambda x: x[1] != 0, udp[f]))
+
+		generate_ditg_files(tcp, output_dir, statistics)
+		generate_ditg_files(udp, output_dir, statistics)
 
 	save_json(os.path.join(output_dir, "statistics.json"), statistics)
