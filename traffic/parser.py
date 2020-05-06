@@ -43,7 +43,7 @@ class Parser:
 		check_file(pcap_file)
 		self.file = pcap_file
 
-	def parse(self)
+	def parse(self):
 		tcp_packets = defaultdict(lambda: [])
 		udp_packets = defaultdict(list)
 
