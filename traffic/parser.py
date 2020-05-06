@@ -9,6 +9,7 @@ import shutil
 from utils.common_utils import save_json, debug, info, check_file, check_dir
 from os import listdir
 from collections import Counter
+from argparse import ArgumentParser
 
 
 def mac_addr(address):
@@ -84,7 +85,7 @@ class TCPParser(Parser):
 		for key in packets.keys():
 			packets[key] = [(ts, len(x.data)) for ts, x in packets[key]]
 
-		# packet (timestamp,l4 data size)
+		# packet [(timestamp,l4 data size)]
 
 		debug("There is {} flows (maybe bidirectional)".format(len(packets)))
 		res: Dict[Tuple, List[Tuple]] = defaultdict(list)
@@ -145,13 +146,14 @@ def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Di
 
 		flow["proto"] = proto
 		flow["size"] = flow_size
-		flow["duration"]=timestamps[-1]-timestamps[0]
+		flow["duration"] = timestamps[-1] - timestamps[0]
 
 		diff_ts = []
 		pre_ts = timestamps[0]
 		for ts in timestamps:
 			# in pcap files, timestamp in in epoch time in seconds
 			diff = (int(int((ts - pre_ts) * 1000000) / 1000) + 0.01)
+			# ditg flow duration bug
 			diff /= 3
 			diff_ts.append(diff)
 			pre_ts = ts
@@ -225,23 +227,34 @@ class UDPParser(Parser):
 
 
 if __name__ == '__main__':
-	if pathlib.Path("/tmp/ditgs").is_dir():
-		shutil.rmtree("/tmp/ditgs", ignore_errors=True)
+	parser = ArgumentParser()
+	parser.add_argument("--pcaps", help="Directory where pcap files stay", default="/tmp/pcaps",
+	                    type=str)
+	parser.add_argument("--output", help="Directory where ditg script stay", default="/tmp/ditgs",
+	                    type=str)
+	args = parser.parse_args()
+	pcaps_dir = args.pcaps
+	check_dir(pcaps_dir)
+	output_dir = args.output
 
-	os.mkdir("/tmp/ditgs")
+	debug("remove ditg dir")
+	if pathlib.Path(output_dir).is_dir():
+		shutil.rmtree(output_dir, ignore_errors=True)
 
-	files = [f for f in listdir("/tmp/pcaps") if 'pcap' in f]
-	files = [os.path.join("/tmp/pcaps", f) for f in files]
-	# files=["/tmp/pcaps/16-09-28.pcap"]
+	os.mkdir(output_dir)
+
+	files = [f for f in listdir(pcaps_dir) if 'pcap' in f]
+	files = [os.path.join(pcaps_dir, f) for f in files]
+
 	statistics = {"count": 0, "flows": []}
 	for file in files:
 		debug("Parsing {}".format(file))
 		p = TCPParser(file)
 		res = p.parse()
 		for f in list(res.keys()):
+			# remove tcp handshake and other packet in which data len=0
 			res[f] = list(filter(lambda x: x[1] != 0, res[f]))
+	for file in files:
+		generate_ditg_files(res, output_dir, statistics)
 
-		generate_ditg_files(res, "/tmp/ditgs", statistics)
-
-	save_json("/tmp/ditgs/statistics.json", statistics)
-# filter zero size packets
+	save_json(os.path.join(output_dir, "statistics.json"), statistics)
