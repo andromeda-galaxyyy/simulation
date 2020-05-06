@@ -6,8 +6,11 @@ import threading
 import socketserver
 from utils.common_utils import is_digit, info
 from sockets.server import Server,recvall
+from classify.model import Dumb
 import random
+import numpy as np
 
+dumb_classifier=Dumb()
 
 def check(content: str):
 	try:
@@ -32,10 +35,7 @@ class DumbHandler(socketserver.BaseRequestHandler):
 			return
 		obj = json.loads(req_content)
 		info("received :{} ".format(obj))
-		res = {"res": 0}
-		r = random.random()
-		if r >= 0.5:
-			res["res"] += 1
+		res= {"res": dumb_classifier.predict(np.asarray(stats))}
 		self.request.sendall(bytes(json.dumps(res), "ascii"))
 
 

@@ -3,6 +3,8 @@ from path_utils import get_prj_root
 from pathlib import Path
 import os
 from utils.common_utils import save_pkl,load_pkl
+import numpy as np
+import random
 
 root_dir=get_prj_root()
 model_dir=os.path.join(root_dir,"models")
@@ -26,11 +28,14 @@ class Classifier:
 	def load_model(self,fn_name):
 		raise NotImplementedError
 
+'''
+min_pkt|max_pkt|mean_pkt|var_pkt
+min_idt|max_idt|mean_idt|var_idt
+'''
 class DT(Classifier):
 	def __init__(self):
 		super(DT, self).__init__()
 		self.model:DecisionTreeClassifier=DecisionTreeClassifier()
-
 
 	def fit(self,data):
 		assert len(data)==2
@@ -59,8 +64,9 @@ class Dumb(Classifier):
 		pass
 
 	def predict(self, features):
-		pass
-
+		if random.random()>=0.5:
+			return 1
+		return 0
 	def save_model(self, fn_name):
 		pass
 

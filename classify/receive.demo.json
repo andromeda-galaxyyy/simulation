@@ -1,3 +1,12 @@
 {
-  "stats": ["8个统计量"]
+  "stats": [
+    "min_pkt",
+    "max_pkt",
+    "mean_pkt",
+    "var_pkt",
+    "min_idt",
+    "max_idt",
+    "mean_idt",
+    "var_idt"
+  ]
 }
