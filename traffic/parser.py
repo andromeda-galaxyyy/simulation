@@ -78,6 +78,7 @@ class Parser:
 class FilteredParser(Parser):
 	def __init__(self, pcap_file: str):
 		super(FilteredParser, self).__init__(pcap_file)
+		self.fn=pcap_file
 
 	@staticmethod
 	def _filter(packets: Dict):
@@ -126,12 +127,9 @@ class FilteredParser(Parser):
 		return tcp_packets,udp_packets
 
 
-
-
-
 # todo make timestamp start from zero
 
-def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict):
+def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict,pcap_fn:str):
 	for specifier in list(flows.keys()):
 		sip = specifier[0]
 		sport = specifier[1]
@@ -154,6 +152,7 @@ def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Di
 
 		flow["proto"] = proto
 		flow["size"] = flow_size
+		flow["file"]=pcap_fn.split("/")[-1]
 		flow["duration"] = timestamps[-1] - timestamps[0]
 
 		diff_ts = []
@@ -217,7 +216,7 @@ if __name__ == '__main__':
 		for f in list(udp.keys()):
 			udp[f] = list(filter(lambda x: x[1] != 0, udp[f]))
 
-		generate_ditg_files(tcp, output_dir, statistics)
-		generate_ditg_files(udp, output_dir, statistics)
+		generate_ditg_files(tcp, output_dir, statistics,file)
+		generate_ditg_files(udp, output_dir, statistics,file)
 
 	save_json(os.path.join(output_dir, "statistics.json"), statistics)
