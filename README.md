@@ -26,6 +26,45 @@ stats为统计信息，均为float，顺序如示例
 
 # topo
 这个模块主要用于建立topo，目前是mininet，仅支持python2，因为python版本的原因，这个模块相对独立，不依赖于任何外部模块，外部模块使用python3
+考虑到网络中需要存在两种流，大带宽流和低延迟流，所以每个交换机上挂载两个主机，分别产生大带宽流和低延迟流，因此我们约定如下：
+如果交换机的ID为N（从0开始），那么挂载的两个主机 id分别为2*N 2*N+1
+他们的ip地址由下面的函数产生
+
+```python
+def generate_ip(id):
+	id = int(id)+1
+	if 1 <= id <= 254:
+		return "10.0.0." + str(id)
+	if 255 <= id <= 255 * 254+253:
+		return "10.0." + str(id // 254) + "." + str(id % 254)
+	raise Exception("Cannot support id address given a too large id")
+```
+
+比如id=1---> '10.0.0.1'
+id=255--->'10.0.1.1'
+id=254--->'10.0.0.254'
+
+他们的mac地址由下面的函数产生
+```python
+def generate_mac(id):
+	id = int(id) + 1	
+    # convert to base 16 str
+	raw_str=base_16(id)
+	if len(raw_str)>12:
+		raise Exception("Invalid id")
+	#reverse
+	raw_str=raw_str[::-1]
+	to_complete=12-len(raw_str)
+	while to_complete>0:
+		raw_str+="0"
+		to_complete-=1
+	mac_addr=":".join([raw_str[i:i + 2] for i in range(0, len(raw_str), 2)])
+	mac_addr=mac_addr[::-1]
+	return mac_addr
+```
+比如id=1 --->'00:00:00:00:00:02'
+id=257---> '00:00:00:00:01:02'
+
 
 
 ## 关于流量产生

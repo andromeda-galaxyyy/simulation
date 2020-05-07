@@ -14,6 +14,7 @@ from mininet.node import Controller
 from os import environ
 from argparse import ArgumentParser
 
+
 from mininet.node import Controller
 from os import environ
 
@@ -27,6 +28,44 @@ topo_dir = os.path.join(get_prj_root(), "files")
 daemon_sender_script = os.path.join(get_prj_root(), "../traffic/sender.sh")
 receiver_script = os.path.join(get_prj_root(), "../traffic/receiver.sh")
 manager_script = os.path.join(get_prj_root(), "../traffic/manager.sh")
+
+
+def generate_ip(id):
+	id = int(id) + 1
+	if 1 <= id <= 254:
+		return "10.0.0." + str(id)
+	if 255 <= id <= 255 * 254 + 253:
+		return "10.0." + str(id // 254) + "." + str(id % 254)
+	raise Exception("Cannot support id address given a too large id")
+
+
+def generate_mac(id):
+	id = int(id) + 1
+
+	def base_16(num):
+		res = []
+		num = int(num)
+		if num == 0:
+			return "0"
+		while num > 0:
+			left = num % 16
+			res.append(left if left < 10 else chr(ord('a') + (left - 10)))
+			num //= 16
+		res.reverse()
+		return "".join(map(str, res))
+
+	raw_str = base_16(id)
+	if len(raw_str) > 12:
+		raise Exception("Invalid id")
+	# reverse
+	raw_str = raw_str[::-1]
+	to_complete = 12 - len(raw_str)
+	while to_complete > 0:
+		raw_str += "0"
+		to_complete -= 1
+	mac_addr = ":".join([raw_str[i:i + 2] for i in range(0, len(raw_str), 2)])
+	mac_addr = mac_addr[::-1]
+	return mac_addr
 
 
 def read_topo(fn="topo.json"):
@@ -70,93 +109,114 @@ class TopoManager:
 	def __init__(self, fn="topo.json"):
 		self.topo = read_topo(fn)
 		self.hosts = []
+		self.num_switches = 0
 		self.switches = []
 		self.host_macs = []
 		self.host_ips = []
 
 	def __write_ip_file(self):
-		for ip in self.host_ips:
-			with open(os.path.join(topo_dir, "{}.ips".format(ip)), "w") as fp:
-				fp.write("{}\n".format(ip))
-				other_ips = list(filter(lambda x: x != ip, self.host_ips))
-				for other_ip in other_ips:
-					fp.write("{}\n".format(other_ip))
-				fp.flush()
-				fp.close()
+		for switch_id in range(self.num_switches):
+			other_ids = list(filter(lambda x: x != switch_id, list(range(self.num_switches))))
+			other_ips = []
+			other_ips.extend([generate_ip(2 * other_id) for other_id in other_ids])
+			other_ips.extend([generate_ip(2 * other_id + 1) for other_id in other_ids])
+			self_ips = [generate_ip(2 * switch_id), generate_ip(2 * switch_id + 1)]
 
-	def set_up_mininet(self, controller="default",socket_port=10000):
+			for self_ip in self_ips:
+				with open(os.path.join(topo_dir, "{}.ips".format(self_ip)), "w") as fp:
+					fp.write("{}\n".format(generate_ip(2 * switch_id)))
+					for other_ip in other_ips:
+						fp.write("{}\n".format(other_ip))
+					fp.flush()
+					fp.close()
+
+	def set_up_mininet(self, controller="default", socket_port=10000):
 
 		if controller == "default":
-			controller_ip="127.0.0.1"
+			controller_ip = "127.0.0.1"
 			net = Mininet(topo=None, controller=DefaultController, ipBase="10.0.0.0/8")
 		else:
 			controller_ip, controller_port = controller.split(":")
-			controller_port=int(controller_port)
+			controller_port = int(controller_port)
 			net = Mininet(topo=None, controller=None, ipBase="10.0.0.0/8")
 			c = RemoteController('c', controller_ip, controller_port)
 			net.addController(c)
 
 		topo = self.topo
-		nodes = len(topo)
-		info("Setting up {} switches".format(nodes))
+		num_switches = len(topo)
+		self.num_switches = num_switches
+		info("Setting up {} switches".format(num_switches))
 		# add nat
 
-		macs = []
 		ips = []
-		mac_prefix = "00:00:00:00:00:"
-		ip_prefix = "10.0.0."
 
-		for i in range(nodes):
+		for i in range(num_switches):
 			s = net.addSwitch("s{}".format(i), cls=OVSKernelSwitch, protocols=["OpenFlow13"])
 			self.switches.append(s)
-			mac_suffix = str((i + 1) / 16) + str((i + 1) % 16)
-			ip_suffix = str(i + 1)
-			macs.append(mac_prefix + mac_suffix)
-			ips.append(ip_prefix + ip_suffix)
+			id1 = 2 * i
+			id2 = 2 * i + 1
 
-			h = net.addHost("h{}".format(i),
-			                cls=Host,
-			                ip=(ip_prefix + ip_suffix),
-			                defaultRoute=None,
-			                mac=(mac_prefix + mac_suffix)
-			                )
-			self.hosts.append(h)
-			net.addLink(s, h)
+			# to generate large volume traffic
+			h1 = net.addHost("h{}".format(id1),
+			                 cls=Host,
+			                 ip=generate_ip(id1),
+			                 defaultRoute=None,
+			                 mac=generate_mac(id1)
+			                 )
+			self.hosts.append(h1)
+			net.addLink(s, h1)
+
+			h2 = net.addHost("h{}".format(id2), cls=Host, ip=generate_ip(id2), defaultRoute=None,
+			                 mac=generate_mac(id2))
+			self.hosts.append(h2)
+			net.addLink(s, h2)
+
 		self.host_ips = ips
 		self.__write_ip_file()
 
-		for i in range(nodes):
+		for i in range(num_switches):
 			src = "s{}".format(i)
-			for j in range(i + 1, nodes):
+			for j in range(i + 1, num_switches):
 				dst = "s{}".format(j)
 				bw, delay, loss = topo[i][j]
+				#TODO set up Qos
 				if bw is None or bw == "None": continue
 				# bw="{}m".format(bw)
 				delay = "{}ms".format(delay)
 				# loss=str(loss)
 				# net.addLink(src,dst,cls=TCLink,bw=bw,delay=delay,loss=loss)
 				net.addLink(src, dst)
-
-		net.addNAT(ip="10.0.0.254/8").configDefault()
+		# set up nat
+		net.addNAT(ip="10.0.255.254/8").configDefault()
 		net.start()
 
 		# set nat
 		for host in self.hosts:
-			host.cmd("route add default gw 10.0.0.254")
+			host.cmd("route add default gw 10.0.255.254")
 
 		for idx, host in enumerate(self.hosts):
-			host.cmd("{} >/tmp/receiver_{}.log 2>&1 &".format(receiver_script, self.host_ips[idx]))
+			ip = generate_ip(idx)
+			host.cmd("{} >/tmp/receiver_{}.log 2>&1 &".format(receiver_script, ip))
 			host.cmd(
-				"{} >/tmp/sender_{}.log 2>&1 &".format(daemon_sender_script, self.host_ips[idx]))
+				"{} >/tmp/sender_{}.log 2>&1 &".format(daemon_sender_script, ip))
 
 		time.sleep(3)
 		for idx, host in enumerate(self.hosts):
-			ip_file = os.path.join(topo_dir, "{}.ips".format(self.host_ips[idx]))
-			host.cmd("{} {} {} {} >/tmp/manager_{}.log 2>&1 &".format(manager_script,
-			                                                            ip_file,
-			                                                            controller_ip,
-			                                                            socket_port,
-			                                                            self.host_ips[idx]))
+			ip = generate_ip(idx)
+			ip_file = os.path.join(topo_dir, "{}.ips".format(ip))
+			if idx % 2 == 0:
+				# generate large volume traffic
+				host.cmd("{} {} {} {} >/tmp/manager_{}.log 2>&1 &".format(manager_script,
+				                                                          ip_file,
+				                                                          controller_ip,
+				                                                          socket_port,
+				                                                          ip))
+			if idx % 2 == 1:
+				host.cmd("{} {} {} {} >/tmp/manager_{}.log 2>&1 &".format(manager_script,
+				                                                          ip_file,
+				                                                          controller_ip,
+				                                                          socket_port,
+				                                                          ip))
 
 		CLI(net)
 		for idx, host in enumerate(self.hosts):
@@ -165,7 +225,7 @@ class TopoManager:
 			host.cmd("pkill -f %?receiver.sh")
 			host.cmd("pkill -f ITGRecv")
 			host.cmd("pkill -f %?manager.sh")
-			host.cmd("pkill -f ITGManager")
+			host.cmd("pkill -f DummyManager")
 
 		net.stop()
 
@@ -173,9 +233,14 @@ class TopoManager:
 if __name__ == '__main__':
 	manager = TopoManager()
 	parser = ArgumentParser()
-	parser.add_argument("--controller_ip", type=str, default="127.0.0.1")
-	parser.add_argument("--controller_port",type=int,default=6633)
+	parser.add_argument("--controller_ip", type=str, required=True, help="ryu ip,note that cannot "
+	                                                                     "be be localhost or "
+	                                                                     "127.0.0.1")
+	parser.add_argument("--controller_port", type=int, default=6633)
 	parser.add_argument("--controller_socket_port", type=int, default=10000)
-	args=parser.parse_args()
+	args = parser.parse_args()
+	if args.controller_ip == "127.0.0.1" or args.controller_ip == "localhost":
+		print("Ryu controller ip cannot be localhost or 127.0.0.1!")
+		exit(-1)
 
-	manager.set_up_mininet("{}:{}".format(args.controller_ip,args.controller_port),10000)
+	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 10000)
