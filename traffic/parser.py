@@ -62,15 +62,27 @@ class Parser:
 
 			ip = eth.data
 			if not hasattr(ip, "p"): continue
+			if ip.p!=udp_proto and ip.p!=tcp_proto:
+				continue
 
 			sip = inet_to_str(ip.src)
 			dip = inet_to_str(ip.dst)
 			l4 = ip.data
+			if not hasattr(l4,"sport"):continue
+			if not hasattr(l4,"dport"):continue
 			sport = l4.sport
 			dport = l4.dport
+
+
+			#drop dns
 			if ip.p == tcp_proto:
 				tcp_packets[(sip, sport, dip, dport, "TCP")].append((ts, l4))
 			elif ip.p == udp_proto:
+				#drop dns
+				if dport == 53: continue
+				#drop dhcp
+				if sport==68:continue
+				if dport==67:continue
 				udp_packets[(sip, sport, dip, dport, "UDP")].append((ts, l4))
 		return tcp_packets, udp_packets
 

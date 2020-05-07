@@ -60,12 +60,12 @@ def compare(a: packet, b: packet) -> int:
 
 
 class Parser(object):
-	def __init__(self, pcap_file):
-		self.file = pcap_file
+	def __init__(self):
+		self.file = "/Volumes/DATA/dataset/converted_iot/16-09-23.pcap"
 		self.tcp_flows = {}
 		self.udp_flows = {}
 
-	def __readPcap(self):
+	def readPcap(self):
 		try:
 			fp = open(self.file, 'rb')
 		except Exception as e:
@@ -110,3 +110,6 @@ class Parser(object):
 			else:
 				continue
 	# TODO log packet counts
+
+p=Parser()
+p.readPcap()
