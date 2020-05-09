@@ -11,6 +11,7 @@ import numpy as np
 logger = loguru.logger
 info=logger.info
 debug=logger.debug
+err=logger.error
 
 def check_dir(dir_name):
     if not Path(dir_name).is_dir():
