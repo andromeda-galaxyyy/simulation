@@ -175,3 +175,4 @@ traffic/DITG/.idea
 *.out
 *.app
 traffic/DITG/bin
+*.pkl
