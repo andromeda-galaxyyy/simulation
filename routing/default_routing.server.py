@@ -33,7 +33,7 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		for i in range(nodes*(nodes-1)*2):
 			res.append(ksps[i][0])
 		res={"res":res}
-		self.request.sendall(bytes(json.dumps(res),"utf-8"))
+		self.request.sendall(bytes(json.dumps(res),"ascii"))
 
 if __name__ == '__main__':
     port=10000

@@ -148,7 +148,7 @@ class Dumb(Routing):
 	def fit(self, train, test):
 		pass
 
-	def predict(self, data):
+	def predict(self, data=None):
 		res1=[]
 		res2=[]
 		demands=66*65
@@ -158,7 +158,7 @@ class Dumb(Routing):
 		x=np.zeros((n_samples,n_classes))
 		J=np.random.choice(n_classes,n_samples)
 		x[np.arange(n_samples),J]=1
-		return x
+		return x[0:66*65],x[66*65:]
 
 	def save_model(self, fn):
 		pass
