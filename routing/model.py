@@ -196,6 +196,7 @@ def map_to_instance(obj):
 	assert len(res) == 66 * 65 * 2 + 2
 	# discard utility and weighted
 	res = res[:-2]
+	tms=[t[0] for t in tms]
 	# 归一化
 	tms = normalize(tms)
 	labels1 = []
