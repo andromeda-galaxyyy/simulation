@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('agg')
 import numpy as np
-from utils.common_utils import load_pkl, save_pkl, save_json,is_digit
+from utils.common_utils import load_pkl, save_pkl, save_json,is_digit,check_file,check_dir,file_exsit,dir_exsit
 import matplotlib.pyplot as plt
 import networkx as nx
 from itertools import islice
@@ -15,6 +15,9 @@ from utils.num_utils import gaussion,uniform
 import os
 from path_utils import get_prj_root
 from copy import deepcopy
+from argparse import ArgumentParser
+import tmgen
+from tmgen.models import random_gravity_tm
 
 cache_dir = os.path.join(get_prj_root(), "cache")
 satellite_topo_dir=os.path.join(get_prj_root(),"routing/satellite_topos")
@@ -53,7 +56,7 @@ def read_statellite_topo():
 				capacity=uniform(4000,7000)
 				delay=float(old_topo[i][j])
 
-				#容量，延迟、丢包率
+				#容量，延迟、switch cost
 				spec=[capacity,delay,0]
 				next_iterval = 0
 				idx2 = old_topo_idx
@@ -79,16 +82,13 @@ def read_statellite_topo():
 					# print(spec[2])
 				new_topo[i][j]=deepcopy(spec)
 				new_topo[j][i]=deepcopy(spec)
-		print(len(links))
+		# print(len(links))
 		new_topos.append(deepcopy(new_topo))
 
 	topo_fn=os.path.join(cache_dir,"topo.pkl")
 	save_pkl(topo_fn,new_topos)
-	counter=Counter(exits_intervals)
-	print(counter)
-	print(len(exits_intervals))
-	print(max(exits_intervals),min(exits_intervals),np.mean(exits_intervals))
-	print(len(long_lasting_edge))
+	debug("satellite topo saved")
+
 
 
 class NetworkTopo:
@@ -120,13 +120,13 @@ class NetworkTopo:
 	def get_path_switch_cost(self, path: List[int]):
 		res = 0
 		for u, v in zip(path[0:-1], path[1:]):
-			res += self.g[u, v]["sc"]
+			res += self.g.edges[u, v]["sc"]
 		return res
 
 	def get_path_delay(self, path: List[int]):
 		res = 0
 		for u, v in zip(path[0:-1], path[1:]):
-			res += self.g[u, v]["delay"]
+			res += self.g.edges[u, v]["delay"]
 		return res
 
 	def plot(self):
@@ -219,7 +219,7 @@ class ILPModel:
 			lin_expr=greater_than_zero,
 			senses="L" * num_src_dsts * self.K * 2,
 			rhs=[0 for _ in range(num_src_dsts * self.K * 2)],
-			names=names
+			names=constraint_names
 		)
 		# link utility constraint
 		# u>0====> -u<=0
@@ -325,7 +325,7 @@ class ILPModel:
 
 		self.prob.linear_constraints.add(lin_expr=[[varss, coeffs]],
 		                                 senses="L",
-		                                 rhs=0,
+		                                 rhs=[0],
 		                                 names=["weighted_delay_constraint"]
 		                                 )
 
@@ -391,7 +391,6 @@ class ILPModel:
 		return self.prob.solution
 
 	def solve_demo(self):
-		res_file = "labels/res_{}.pkl".format(self.id)
 
 		assert self.demands is not None
 		assert self.lu_w != 0
@@ -418,25 +417,136 @@ class ILPModel:
 
 		max_idxs = []
 		for i in range(0, len(large_volume_res), self.K):
-			tmp = res[i:i + self.K]
+			tmp = large_volume_res[i:i + self.K]
 			max_idxs.append(tmp.index(max(tmp)))
 
 		counter = Counter(max_idxs)
-		debug("Large volume res",counter)
+		debug("Large volume res {}".format(counter))
 
 		max_idxes=[]
 		for i in range(0,len(low_latency_res),self.K):
-			tmp=res[i:i+self.K]
+			tmp=low_latency_res[i:i+self.K]
 			max_idxes.append(tmp.index(max(tmp)))
 		counter=Counter(max_idxes)
-		debug("Low latency res",counter)
+		debug("Low latency res:{}".format(counter))
+
+def demo_ilp():
+	topos_fn=os.path.join(cache_dir,"topo.pkl")
+	topo=load_pkl(topos_fn)[0]
+	n_nodes=len(topo)
+	demands=[]
+	large_volume_tms=random_gravity_tm(n_nodes,66*65*10).at_time(0).tolist()
+	low_latency_tms=random_gravity_tm(n_nodes,66*65*2).at_time(0).tolist()
+	for src in range(n_nodes):
+		for dst in range(n_nodes):
+			if src==dst:continue
+			demands.append((large_volume_tms[src][dst],0))
+	for src in range(n_nodes):
+		for dst in range(n_nodes):
+			if src==dst:continue
+			demands.append((low_latency_tms[src][dst],0))
+
+	net=NetworkTopo(topo)
+	model=ILPModel(net)
+	model.set_lu_weight(10)
+	model.set_demand(demands)
+	model.solve_demo()
+
 
 
 
 def generate_raw_labels():
+	limit=2000
+	'''
+	生成训练数据（未处理）
+	:return: void
+	'''
 	raw_labels_dir=os.path.join(get_prj_root(),"routing/raw_labels")
+	topo_file=os.path.join(get_prj_root(),"cache/topo.pkl")
+	if not file_exsit(topo_file):
+		err("Cannot find satellite topo file")
+		exit(-1)
+	topos=load_pkl(topo_file)
+	n_nodes=len(topos[0])
+	for idx,topo in enumerate(topos):
+		dir_n=os.path.join(raw_labels_dir,str(idx))
+		if not dir_exsit(dir_n):
+			os.mkdir(dir_n)
+		mask=[0 for _ in range(limit)]
+		for f in os.listdir(dir_n):
+			if ".pkl" not in f:continue
+			mask[int(f[:-4])]=1
+		network=NetworkTopo(topo)
+		model=ILPModel(network,idx)
+		model.set_lu_weight(15)
+		tms=[]
+		for i in range(limit):
+			if mask[i]==1:continue
+			fn=os.path.join(dir_n,"{}.pkl".format(i))
+			large_volume_all=n_nodes*(n_nodes-1)*5
+			low_latency_all=n_nodes*(n_nodes-1)*1
+
+			large_volume_tm=random_gravity_tm(n_nodes,large_volume_all).at_time(0).tolist()
+			low_latency_tm=random_gravity_tm(n_nodes,low_latency_all).at_time(0).tolist()
+			for src in range(n_nodes):
+				for dst in range(n_nodes):
+					if src==dst:continue
+					tms.append((large_volume_tm[src][dst],0))
+
+			for src in range(n_nodes):
+				for dst in range(n_nodes):
+					if src==dst:continue
+					tms.append((low_latency_tm[src][dst],0))
+			model.set_demand(tms)
+			debug("Start to solve ilp model")
+			try:
+				n_src_dst=n_nodes*(n_nodes-1)
+				solution = model.solve()
+				obj = solution.get_objective_value()
+				res = solution.get_values()
+				print(res[-2], res[-1], obj)
+				action=res[:-2]
+
+				large_volume_actions=action[0:n_src_dst]
+				low_latency_actions=action[n_src_dst:]
+				max_idxs = []
+				for k in range(0, len(large_volume_actions), 5):
+					tmp = large_volume_actions[k:k + 5]
+					max_idxs.append(tmp.index(max(tmp)))
+
+				counter = Counter(max_idxs)
+				info("Large volume actions stats:\n {}".format(counter))
+
+				max_idxs=[]
+				for k in range(0, len(low_latency_actions), 5):
+					tmp = low_latency_actions[k:k + 5]
+					max_idxs.append(tmp.index(max(tmp)))
+
+				counter = Counter(max_idxs)
+				info("Low latency actions stats:\n {}".format(counter))
+				save_pkl(fn, (tms, obj, res))
+
+			except cplex.exceptions.CplexSolverError as exc:
+				err(exc)
+
 
 
 
 if __name__ == '__main__':
-	pass
+	print("running mode:\n"
+	      "1 read and save topo\n"
+	      "2 generate raw labels\n"
+	      "3 run demo ilp model")
+	parser=ArgumentParser()
+	parser.add_argument("--mode",type=int,default=3,help="running mode 3")
+	args= parser.parse_args()
+	mode=int(args.mode)
+	if mode==1:
+		read_statellite_topo()
+	elif mode==2:
+		generate_raw_labels()
+	elif mode==3:
+		demo_ilp()
+	else:
+		err("Invalid argument")
+		exit(-1)

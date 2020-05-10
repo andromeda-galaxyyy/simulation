@@ -7,10 +7,16 @@ import keras.backend as K
 from utils.common_utils import load_pkl, load_json, debug, info, err, check_dir, check_file, \
 	save_pkl
 from path_utils import get_prj_root
+from utils.num_utils import normalize
 from keras.models import load_model
 from keras.callbacks import ModelCheckpoint
 import os
 import numpy as np
+from utils.common_utils import file_exsit,dir_exsit
+import random
+from argparse import ArgumentParser
+
+module_dir=os.path.join(get_prj_root(),"routing")
 
 class Routing:
 	def __init__(self, id_):
@@ -167,5 +173,58 @@ class Dumb(Routing):
 		pass
 
 
+def map_to_instance(obj):
+	tms,res,_=obj
+	assert len(tms) == 66 * 65 * 2
+	assert len(res) == 66 * 65 * 2 + 2
+	#discard utility and weighted
+	res=res[:-2]
+	#归一化
+	tms=normalize(tms)
+	return tms,res
+
+
+def generate_instances(model_id="NN",map_func=map_to_instance,ratio=0.7):
+	'''
+	generate nn train and test instances from raw labels
+	:param model_id:
+	:return:
+	'''
+	instances_dir=os.path.join(module_dir,"instances/0")
+	instances_fn=os.path.join(instances_dir,"instances_{}".format(model_id))
+	if file_exsit(instances_fn):
+		debug("instances file exists,loading")
+		return load_pkl(instances_fn)
+	#generate instance_fn
+	raw_label_dir=os.path.join(models_dir,"raw_labels/0")
+	'''
+	文件夹下的每个文件都是一个raw instance 
+	'''
+	instances=[]
+	for raw_instance_fn in list(os.listdir(raw_label_dir)):
+		if ".pkl" not in raw_instance_fn:continue
+		'''
+		每个raw_instance 的格式为 (tm,res(决策、utility、weighted_delay,obj)
+		'''
+		features,labels=map_func(load_pkl(os.path.join(raw_label_dir,raw_instance_fn)))
+		features=np.asarray(features)
+		labels=np.asarray(labels)
+		instances.append((features,labels))
+	random.shuffle(instances)
+
+	n_train=int(len(instances)*ratio)
+	train_instances=instances[0:n_train]
+	test_instances=instances[n_train:]
+	debug("loaded {} train instances".format(len(train_instances)))
+	debug("loaded {} test instances".format(len(test_instances)))
+	save_pkl(instances_fn,(train_instances,test_instances))
+	info("save instances")
+
+
 if __name__ == '__main__':
-	pass
+	parser=ArgumentParser()
+	print("mode:\n"
+	      "1 generate instances from raw labels\n"
+	      "3 train network\n"
+	      "4 test network")
+	parser.add_argument("--mode",type=int,help="run script in which mode",default=1)

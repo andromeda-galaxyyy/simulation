@@ -21,6 +21,11 @@ def check_file(fn):
     if not Path(fn).is_file():
         raise FileNotFoundError
 
+def file_exsit(fn):
+    return Path(fn).is_file()
+
+def dir_exsit(fn):
+    return Path(fn).is_dir()
 
 def gaussion(mean:float,std_var:float,size=1):
     if size==1:
