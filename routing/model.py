@@ -4,6 +4,8 @@ from keras.models import Model
 from keras.layers import Dense, Dropout, BatchNormalization, Input
 from keras.optimizers import Adam
 import keras.backend as K
+from numpy.core.multiarray import ndarray
+
 from utils.common_utils import load_pkl, load_json, debug, info, err, check_dir, check_file, \
 	save_pkl
 from path_utils import get_prj_root
@@ -15,6 +17,10 @@ import numpy as np
 from utils.common_utils import file_exsit, dir_exsit
 import random
 from argparse import ArgumentParser
+from collections import namedtuple
+from typing import Tuple, List, Dict
+
+Instance = namedtuple("Instance", "features labels")
 
 module_dir = os.path.join(get_prj_root(), "routing")
 
@@ -141,13 +147,13 @@ class NN(Routing):
 		'''
 		x_train, y_train = train
 		assert len(x_train) == len(y_train)
-		y_train_1 = y_train[:, 0:66 * 65*5]
-		y_train_2 = y_train[:, 66 * 65*5:]
+		y_train_1 = y_train[:, 0:66 * 65 * 5]
+		y_train_2 = y_train[:, 66 * 65 * 5:]
 
 		x_test, y_test = test
 		assert len(x_test) == len(y_test)
-		y_test_1 = y_test[:, 0:66 * 65*5]
-		y_test_2 = y_test[:, 66 * 65*5:]
+		y_test_1 = y_test[:, 0:66 * 65 * 5]
+		y_test_2 = y_test[:, 66 * 65 * 5:]
 
 		debug("loaded {} train instances".format(len(x_train)))
 		debug("loaded {} test instances".format(len(x_test)))
@@ -192,22 +198,25 @@ def map_to_instance(obj):
 	res = res[:-2]
 	# 归一化
 	tms = normalize(tms)
-	labels1=[]
-	for x in res[0:66*65]:
-		tmp=[0 for _ in range(5)]
-		tmp[x]=1
+	labels1 = []
+	for x in res[0:66 * 65]:
+		tmp = [0 for _ in range(5)]
+		tmp[x] = 1
 		labels1.extend(tmp)
-	labels2=[]
-	for x in res[66*65:]:
-		tmp=[0 for _ in range(5)]
-		tmp[x]=1
+	labels2 = []
+	for x in res[66 * 65:]:
+		tmp = [0 for _ in range(5)]
+		tmp[x] = 1
 		labels2.extend(tmp)
 	return tms, labels1, labels2
 
 
-def generate_instances(model_id="NN", map_func=map_to_instance, ratio=0.7):
+def generate_instances(model_id="NN", map_func=map_to_instance, ratio=0.7) -> Tuple[
+	Tuple[ndarray, ndarray], Tuple[ndarray, ndarray]]:
 	'''
 	generate nn train and test instances from raw labels
+	:param ratio:
+	:param map_func:
 	:param model_id:
 	:return: train_instances,test_instances
 	train_instances: (features,label1,label2)
@@ -229,24 +238,31 @@ def generate_instances(model_id="NN", map_func=map_to_instance, ratio=0.7):
 		每个raw_instance 的格式为 (tm,res(决策、utility、weighted_delay,obj)
 		'''
 		features, label1, label2 = map_func(load_pkl(os.path.join(raw_label_dir, raw_instance_fn)))
-		#simpy append
+		# simpy append
 		label1.extend(label2)
 		#
-		assert len(label1)==66*65*10
-		instances.append((features, label1))
+		assert len(label1) == 66 * 65 * 10
+		instance = Instance(features=features, labels=label1)
+		instances.append(instance)
 	random.shuffle(instances)
 
 	n_train = int(len(instances) * ratio)
 	train_instances = instances[0:n_train]
-	train_instances = np.asarray(train_instances)
+	x_train = [ins.features for ins in train_instances]
+	x_train = np.asarray(x_train)
+	y_train = [ins.labels for ins in train_instances]
+	y_train = np.asarray(y_train)
 	test_instances = instances[n_train:]
-	test_instances = np.asarray(test_instances)
+	x_test = [ins.features for ins in test_instances]
+	x_test = np.asarray(x_test)
+	y_test = [ins.labels for ins in test_instances]
+	y_test = np.asarray(y_test)
 
 	debug("loaded {} train instances".format(len(train_instances)))
 	debug("loaded {} test instances".format(len(test_instances)))
-	save_pkl(instances_fn, (train_instances, test_instances))
+	save_pkl(instances_fn, ((x_train, y_train), (x_test, y_test)))
 	info("save instances")
-	return train_instances, test_instances
+	return (x_train, y_train), (x_test, y_test)
 
 
 def train():
@@ -266,13 +282,13 @@ def run_demo():
 		f = normalize([np.random.uniform(10, 20) for _ in range(66 * 65 * 2)])
 		features.append(f)
 		ll = []
-		for _ in range(66*65):
+		for _ in range(66 * 65):
 			for _ in range(2):
 				temp = [0 for _ in range(5)]
 				temp[np.random.randint(0, 5)] = 1
 				ll.extend(temp)
 		labels.append(ll)
-		# labels.append([np.random.randint(0,5) for _ in range(66*65*2)])
+	# labels.append([np.random.randint(0,5) for _ in range(66*65*2)])
 
 	features = np.asarray(features)
 	labels = np.asarray(labels)
