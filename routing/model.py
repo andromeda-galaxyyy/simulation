@@ -260,6 +260,7 @@ def generate_instances(model_id="NN", map_func=map_to_instance, ratio=0.7) -> Tu
 
 	debug("loaded {} train instances".format(len(train_instances)))
 	debug("loaded {} test instances".format(len(test_instances)))
+
 	save_pkl(instances_fn, ((x_train, y_train), (x_test, y_test)))
 	info("save instances")
 	return (x_train, y_train), (x_test, y_test)

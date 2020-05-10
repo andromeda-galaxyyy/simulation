@@ -536,7 +536,7 @@ def generate_raw_labels():
 				res_.extend(max_idxs2)
 				res_.append(res[-2])
 				res_.append(res[-1])
-				save_pkl(fn, (tms, obj, res_))
+				save_pkl(fn, (tms,res_,obj))
 
 			except cplex.exceptions.CplexSolverError as exc:
 				err(exc)
