@@ -448,7 +448,7 @@ def demo_ilp():
 
 	net=NetworkTopo(topo)
 	model=ILPModel(net)
-	model.set_lu_weight(10)
+	model.set_lu_weight(5)
 	model.set_demand(demands)
 	model.solve_demo()
 

@@ -176,3 +176,4 @@ traffic/DITG/.idea
 *.app
 traffic/DITG/bin
 *.pkl
+*.hdf5
