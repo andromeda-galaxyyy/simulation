@@ -32,7 +32,7 @@ def is_connected(topo, i, j):
 
 
 def link_switch_cost(inter: float):
-	return 1 / np.exp(inter / 100)
+	return 10 / np.exp(inter / 100)
 
 
 def read_statellite_topo():
