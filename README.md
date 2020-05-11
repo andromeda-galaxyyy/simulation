@@ -9,9 +9,10 @@ socket+json,所有的编码均为ASCII编码
 
 # classify
 这个模块用于判断属于哪种流
-接受统计量，示例为receive.demo.json
+接受统计量，示例为receive.demo.json,端口为1025
 
 返回结果  示例为resp.demo.json "0"代表大流量，"1"低时延
+
 
 # deploy
 存放系统启动脚本、编译脚本等
@@ -23,6 +24,8 @@ socket+json,所有的编码均为ASCII编码
 主机会上报流的统计信息，socket.demo.json
 specifier 字段为五元祖，均为字符串，顺序为src_port，dst_port,src_ip,dst_ip,protocol,
 stats为统计信息，均为float，顺序如示例
+
+控制器端口为1026,需要在1026这个端口有一个socket程序在监听
 
 # topo
 这个模块主要用于建立topo，目前是mininet，仅支持python2，因为python版本的原因，这个模块相对独立，不依赖于任何外部模块，外部模块使用python3
@@ -81,7 +84,8 @@ DITG有潜在的问题，比如流的时间无法精确控制，例如（流的�
 DITG支持Daemon模式，项目采用ITGManager生成Possion到达的流，流根据idt和ps文件产生
 
 # routing
-这个模块主要用于决策路由,交互见json
+这个模块主要用于决策路由,交互见json，
+routing模块的socket端口为1027
 
 
 
