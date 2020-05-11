@@ -86,6 +86,7 @@ DITG支持Daemon模式，项目采用ITGManager生成Possion到达的流，流�
 # routing
 这个模块主要用于决策路由,交互见json，
 routing模块的socket端口为1027
+默认路由的模块socket端口为1028
 
 
 
@@ -96,7 +97,9 @@ routing模块的socket端口为1027
 目前可以自定义
 例子是topo/files/topo.json中给出的，三个节点，ABC，B---A---C,目前没有自定义链路QoS
 如需自定义topo，修改topo.json
-为邻接矩阵，矩阵中的每个元素代表一条链路，链路QoS为带宽、延迟、丢包率，以后的格式也这样
+为邻接矩阵，矩阵中的每个元素代表一条链路，链路QoS为带宽、延迟、丢包率、切换代价、以后的格式也这样
+元素中如果出现-1,表示这条链路不通
+邻接矩阵，仅表示半边，比如A----B，仅表示A--->B的连接
  
 运行例子需要ryu controller，默认ip地址为localhost,监听默认端口，并且controller用于接受主机上报的socket端口为10000
 

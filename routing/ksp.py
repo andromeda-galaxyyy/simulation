@@ -50,7 +50,7 @@ def read_statellite_topo():
 	for old_topo_idx, old_topo in enumerate(old_topos):
 		links = set()
 		nodes = len(old_topo)
-		new_topo = [[None for _ in range(nodes)] for _ in range(nodes)]
+		new_topo = [[[-1,-1,-1,-1] for _ in range(nodes)] for _ in range(nodes)]
 
 		for i in range(nodes):
 			for j in range(i + 1, nodes):
@@ -60,8 +60,8 @@ def read_statellite_topo():
 				capacity = uniform(4000, 7000)
 				delay = float(old_topo[i][j])
 
-				# 容量，延迟、switch cost
-				spec = [capacity, delay, 0]
+				# 容量，延迟、loss,switch_cost
+				spec = [capacity, delay, 0,0]
 				next_iterval = 0
 				idx2 = old_topo_idx
 				always_connected = False
@@ -80,9 +80,9 @@ def read_statellite_topo():
 						always_connected = True
 						break
 				if always_connected:
-					spec[2] = 0
+					spec[-1] = 0
 				else:
-					spec[2] = float(link_switch_cost(next_iterval))
+					spec[-1] = float(link_switch_cost(next_iterval))
 				# print(spec[2])
 				new_topo[i][j] = deepcopy(spec)
 				new_topo[j][i] = deepcopy(spec)
@@ -101,16 +101,16 @@ class NetworkTopo:
 
 	# self.plot()
 
-	def __gen_graph(self, topo: List[List[Tuple]]):
+	def __gen_graph(self, topo: List[List[List]]):
 		g = nx.Graph()
 		num_nodes = len(topo)
 		g.add_nodes_from(list(range(num_nodes)))
 		for i in range(num_nodes):
 			for j in range(i + 1, num_nodes):
-				if topo[i][j] is None: continue
-				capacity, delay, sc = topo[i][j]
+				if -1 in topo[i][j]:continue
+				capacity, delay, loss,sc = topo[i][j]
 				assert capacity >= 0
-				g.add_edge(i, j, weight=4000 / capacity, capacity=capacity, delay=delay, sc=sc)
+				g.add_edge(i, j, weight=4000 / capacity, capacity=capacity, delay=delay, sc=sc,loss=loss)
 
 		return g
 
