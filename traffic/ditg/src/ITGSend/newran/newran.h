@@ -889,7 +889,6 @@ public:
     SumRandom(ReverseShiftedRandom &rvx) : rv(&rvx) {}
 
     SumRandom(ScaledRandom &rvx) : rv(&rvx) {
-        printf("scaledrandom");
     }
 
     SumRandom(ReciprocalRandom &rvx) : rv(&rvx) {}

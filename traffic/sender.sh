@@ -11,4 +11,5 @@ fi
 while :
 do
     ${exec_file} -Q
+    sleep $((1+RANDOM%2))
 done

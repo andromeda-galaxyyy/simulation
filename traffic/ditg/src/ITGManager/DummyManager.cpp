@@ -94,10 +94,10 @@ static std::default_random_engine generator;
 //duration
 //controller ip
 //controller port
+static long long count=0;
 
 int main(int argc, char *argv[]) {
-   nlohmann:: json report;
-    argc--;
+    nlohmann:: json report;
 
     std::string ip_fn = std::string(argv[1]);
     std::cout << "ip_fn " << ip_fn << std::endl;
@@ -108,17 +108,14 @@ int main(int argc, char *argv[]) {
     int lambda = 5;
     int duration = 190;
 
-    argc--;
-    if (argc == 2) {
-        char *p;
-        char *q;
-        //lambda
-        lambda = strtol(argv[2], &p, 10);
-        duration = strtol(argv[3], &q, 10);
-        if (errno != 0 || *p != '\0' || lambda > 100 || duration <= 0) {
-            perror("ITGManager: Invalid Argument");
-            exit(1);
-        }
+    char *p;
+    char *q;
+    //lambda
+    lambda = strtol(argv[2], &p, 10);
+    duration = strtol(argv[3], &q, 10);
+    if (errno != 0 || *p != '\0' || lambda > 100 || duration <= 0) {
+        perror("ITGManager: Invalid Argument");
+        exit(1);
     }
 
     std::exponential_distribution<double> distribution(lambda);
@@ -127,11 +124,12 @@ int main(int argc, char *argv[]) {
     std::uniform_real_distribution<double> float_uniform_distribution(10, 20);
 
     std::string params = "";
-    double sleep_time_in_milli;
+    double sleep_time_in_second;
     int rp;
     int lp;
     std::string remote_ip = "";
     while (1) {
+        count++;
         //generate random stats
         for (int i = 0; i < STATS_LEN; i++) {
             STATS[i] = float_uniform_distribution(generator);
@@ -158,7 +156,12 @@ int main(int argc, char *argv[]) {
         append_params(params, "-rp", std::to_string(rp));
         append_params(params, "-sp", std::to_string(lp));
         append_params(params, "-t", std::to_string(duration));
-        append_params(params, "-T", "TCP");
+        append_params(params, "-T", "UDP");
+//        if(count%2==0){
+//            append_params(params,"-Sdp",std::to_string(1026));
+//        }else{
+//            append_params(params,"-Sdp",std::to_string(1027));
+//        }
 //        std::cout<<params<<std::endl;
 
 //        std::cout<<report.dump()<<std::endl;
@@ -168,18 +171,19 @@ int main(int argc, char *argv[]) {
         char *p = nullptr;
         int controller_port = strtol(argv[5], &p, 10);
 
-        int report_res = report_to_controller(controller_ip, controller_port, report);
-        if (report_res == -1) {
-            printf("error report\n");
-        }
 
         int res = DITGsend("localhost", const_cast<char *>(params.c_str()));
+        if(res!=-1){
+//            int report_res = report_to_controller(controller_ip, controller_port, report);
+//            if (report_res == -1) {
+//                printf("error report\n");
+//            }
+        }
 
-
-        sleep_time_in_milli = distribution(generator);
-        std::this_thread::sleep_for(std::chrono::milliseconds(int(sleep_time_in_milli * 1000)));
-        if (res == -1) {
-            exit(1);
+        sleep_time_in_second = distribution(generator);
+        std::this_thread::sleep_for(std::chrono::milliseconds(int(sleep_time_in_second * 1000)));
+        if(count%8000==0){
+            exit(-1);
         }
     }
 }

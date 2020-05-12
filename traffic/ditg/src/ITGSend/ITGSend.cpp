@@ -333,7 +333,7 @@ int modeCommandLine(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
     printVersion("ITGSend");
-
+    signal(SIGPIPE, SIG_IGN);
     strcpy(programName, argv[0]);
     argv++;
     argc--;
@@ -1904,6 +1904,7 @@ void *flowParser(void *param) {
     Random::Set(urng);
 
 
+    printf("create parser new pipe\n");
     if (createNewPipe(flows[id].parserPipe) < 0) {
         printf("Error in flowParser() trying to create a new pipe. [flow %d]\n", id);
         exitThread();
@@ -1911,6 +1912,7 @@ void *flowParser(void *param) {
 
 
     if ((passiveMode == true) && (multiFlows == 1) && (flows[id].dstAddrSpecify == true)) {
+        closePipe(flows[id].parserPipe);
         ReportErrorAndExit("flowParser",
                            "\"-a <address>\" option not work on passive-multiflow mode",
                            programName, id);
@@ -1920,6 +1922,7 @@ void *flowParser(void *param) {
     if ((passiveMode == true) &&
         (((flows[id].l4Proto != L4_PROTO_TCP) && (flows[id].l4Proto != L4_PROTO_UDP)) ||
          (flows[id].l7Proto != LX_PROTO_NONE))) {
+        closePipe(flows[id].parserPipe);
         ReportErrorAndExit("flowParser", "Passive Mode only with TCP or UDP protocol", programName,
                            id);
     }
@@ -1927,6 +1930,7 @@ void *flowParser(void *param) {
 
     if ((passiveMode == true) && (multiFlows == 1) &&
         ((flows[id].srcPortSpecify == false) || (flows[id].dstPortSpecify == false))) {
+        closePipe(flows[id].parserPipe);
         ReportErrorAndExit("flowParser",
                            "Passive-multiflow mode requires \"-sp\" and \"-rp\" options",
                            programName, id);
@@ -1935,6 +1939,7 @@ void *flowParser(void *param) {
 #ifndef MULTIPORT
 
     if ((passiveMode == false) && (multiFlows == 1) && (flows[id].dstPortSpecify == false)) {
+        closePipe(flows[id].parserPipe);
         ReportErrorAndExit("flowParser", "Multiflow mode requires \"-rp\" option", programName, id);
     }
 #endif
@@ -1958,6 +1963,7 @@ void *flowParser(void *param) {
     int rit = identifySignalManager(id, &chanId, flows[id].SigDestHost, flows[id].dstAddrSpecify);
 
     if (rit == -1) {
+        closePipe(flows[id].parserPipe);
         printf("Error into function identifySignalManager() \n");
         exitThread();
     }
@@ -1985,6 +1991,7 @@ void *flowParser(void *param) {
         if (flows[id].DestHost) freeaddrinfo(flows[id].DestHost);
         if (getaddrinfo(buffer, NULL, &hint, &(flows[id].DestHost)) < 0) {
             perror("flowParser getaddrinfo() (1)");
+            closePipe(flows[id].parserPipe);
             exitThread();
         }
         SET_PORT((flows[id].DestHost), SigPort);
@@ -2002,6 +2009,7 @@ void *flowParser(void *param) {
             if (flows[id].SrcHost)
                 freeaddrinfo(flows[id].SrcHost);
             if (getaddrinfo("::", NULL, &hint, &(flows[id].SrcHost)) < 0) {
+                closePipe(flows[id].parserPipe);
                 perror("flowParser getaddrinfo() (2)");
                 exitThread();
             }
@@ -2022,8 +2030,11 @@ void *flowParser(void *param) {
         if (signalChannels[chanId].errorLog == true) {
             printf("Error log file specified is already open \n");
             isChannelClosable(chanId);
-            if (multiFlows)
+            if (multiFlows){
+                closePipe(flows[id].parserPipe);
                 exitThread();
+            }
+
             else return 0;
         }
     }
@@ -2034,6 +2045,7 @@ void *flowParser(void *param) {
     msg.code = MSG_SM_NEWFLOW;
     msg.flowId = id;
     if (sendPipeMsg(signalChannels[chanId].pipe, &msg) < 0) {
+        closePipe(flows[id].parserPipe);
         perror("flowParser sending msg");
         exitThread();
     }
@@ -2041,6 +2053,7 @@ void *flowParser(void *param) {
 
     if (recvPipeMsg(flows[id].parserPipe, &msg) < 0) {
         perror("flowParser receiving msg");
+        closePipe(flows[id].parserPipe);
         exitThread();
     }
 
@@ -2059,7 +2072,7 @@ void *flowParser(void *param) {
             printf("Error undefined message received from signal manager\n");
             break;
     }
-    printf("Finished sending packets of flow ID: %d\n\n", msg.flowId);
+//    printf("Finished sending packets of flow ID: %d\n\n", msg.flowId);
     fflush(stdout);
 
 
@@ -2075,6 +2088,7 @@ void *flowParser(void *param) {
     }
 
 
+//    printf("close parser pipe\n");
     closePipe(flows[id].parserPipe);
 
 
@@ -2460,6 +2474,7 @@ identifySignalManager(int flowId, int *chanId, struct addrinfo *&DestHost, bool 
         while (signalChannels[*chanId].socket != -1)
             (*chanId)++;
 
+        printf("create signal channel pipe\n");
         if (createNewPipe(signalChannels[*chanId].pipe) < 0) {
             printf("signalManager() could not open pipe for flowId %d\n", flowId);
             fflush(stdout);

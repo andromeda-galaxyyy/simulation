@@ -87,54 +87,50 @@ def read_topo(fn="topo.json"):
 	assert len(topo[0]) == num_nodes
 	for i in range(num_nodes):
 		for j in range(i + 1, num_nodes):
-			assert len(topo[i][j]) == 3
+			assert len(topo[i][j]) == 4
 	return topo
 
 
 POXDIR = environ['HOME'] + '/pox'
 
 
-class DefaultController(Controller):
-	def __init__(self, name, cdir=POXDIR,
-	             command='python pox.py',
-	             cargs=('openflow.of_01 --port=%s '
-	                    'forwarding.l2_learning'),
-	             **kwargs):
-		Controller.__init__(self, name, cdir=cdir,
-		                    command=command,
-		                    cargs=cargs, **kwargs)
+
 
 
 class TopoManager:
-	def __init__(self, fn="topo.json"):
+	def __init__(self, fn="topo.json",n_hosts_per_switch=10):
 		self.topo = read_topo(fn)
 		self.hosts = []
 		self.num_switches = 0
 		self.switches = []
 		self.host_macs = []
 		self.host_ips = []
+		self.n_hosts_per_switch=n_hosts_per_switch
 
 	def __write_ip_file(self):
 		for switch_id in range(self.num_switches):
-			other_ids = list(filter(lambda x: x != switch_id, list(range(self.num_switches))))
+			other_switches = list(filter(lambda x: x != switch_id, list(range(self.num_switches))))
 			other_ips = []
-			other_ips.extend([generate_ip(2 * other_id) for other_id in other_ids])
-			other_ips.extend([generate_ip(2 * other_id + 1) for other_id in other_ids])
-			self_ips = [generate_ip(2 * switch_id), generate_ip(2 * switch_id + 1)]
+			for i in range(self.n_hosts_per_switch):
+				other_ips.extend([generate_ip(self.n_hosts_per_switch * other_id+i) for other_id in other_switches])
 
-			for self_ip in self_ips:
+			for host_idx in range(self.n_hosts_per_switch):
+				host_id=switch_id*self.n_hosts_per_switch+host_idx
+				self_ip=generate_ip(host_id)
 				with open(os.path.join(topo_dir, "{}.ips".format(self_ip)), "w") as fp:
-					fp.write("{}\n".format(generate_ip(2 * switch_id)))
+					fp.write("{}\n".format(self_ip))
 					for other_ip in other_ips:
 						fp.write("{}\n".format(other_ip))
 					fp.flush()
 					fp.close()
 
+
+
 	def set_up_mininet(self, controller="default", socket_port=10000):
 
 		if controller == "default":
 			controller_ip = "127.0.0.1"
-			net = Mininet(topo=None, controller=DefaultController, ipBase="10.0.0.0/8")
+			net = Mininet(topo=None, controller=None, ipBase="10.0.0.0/8")
 		else:
 			controller_ip, controller_port = controller.split(":")
 			controller_port = int(controller_port)
@@ -153,23 +149,17 @@ class TopoManager:
 		for i in range(num_switches):
 			s = net.addSwitch("s{}".format(i), cls=OVSKernelSwitch, protocols=["OpenFlow13"])
 			self.switches.append(s)
-			id1 = 2 * i
-			id2 = 2 * i + 1
+			for host_idx in range(self.n_hosts_per_switch):
+				host_id=i*self.n_hosts_per_switch+host_idx
 
-			# to generate large volume traffic
-			h1 = net.addHost("h{}".format(id1),
+				h = net.addHost("h{}".format(host_id),
 			                 cls=Host,
-			                 ip=generate_ip(id1),
+			                 ip=generate_ip(host_id),
 			                 defaultRoute=None,
-			                 mac=generate_mac(id1)
+			                 mac=generate_mac(host_id)
 			                 )
-			self.hosts.append(h1)
-			net.addLink(s, h1)
-
-			h2 = net.addHost("h{}".format(id2), cls=Host, ip=generate_ip(id2), defaultRoute=None,
-			                 mac=generate_mac(id2))
-			self.hosts.append(h2)
-			net.addLink(s, h2)
+				self.hosts.append(h)
+				net.addLink(s, h)
 
 		self.host_ips = ips
 		self.__write_ip_file()
@@ -178,9 +168,8 @@ class TopoManager:
 			src = "s{}".format(i)
 			for j in range(i + 1, num_switches):
 				dst = "s{}".format(j)
-				bw, delay, loss = topo[i][j]
-				#TODO set up Qos
-				if bw is None or bw == "None": continue
+				if -1 in topo[i][j]:continue
+				bw, delay, loss,sc = topo[i][j]
 				# bw="{}m".format(bw)
 				delay = "{}ms".format(delay)
 				# loss=str(loss)
@@ -233,14 +222,15 @@ class TopoManager:
 if __name__ == '__main__':
 	manager = TopoManager()
 	parser = ArgumentParser()
-	parser.add_argument("--controller_ip", type=str, required=True, help="ryu ip,note that cannot "
+	parser.add_argument("--controller_ip", type=str, default="192.168.64.1", help="ryu ip,note that cannot "
 	                                                                     "be be localhost or "
 	                                                                     "127.0.0.1")
-	parser.add_argument("--controller_port", type=int, default=6633)
-	parser.add_argument("--controller_socket_port", type=int, default=10000)
+	parser.add_argument("--controller_port", type=int, default=6653)
+	parser.add_argument("--controller_socket_port", type=int, default=1026)
+	parser.add_argument("-n",type=int,default=10,help="number of hosts per switch")
 	args = parser.parse_args()
 	if args.controller_ip == "127.0.0.1" or args.controller_ip == "localhost":
 		print("Ryu controller ip cannot be localhost or 127.0.0.1!")
 		exit(-1)
 
-	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 10000)
+	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1026)

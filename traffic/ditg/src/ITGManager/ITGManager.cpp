@@ -110,14 +110,15 @@ int main(int argc,char* argv[]){
         append_params(params,"-Ft",idt_fn);
         append_params(params,"-Fs",ps_fn);
 
-        print_msg(MODULE_NAME,params.c_str());
 
-        if(!report_to_controller(controller_ip.c_str(),controller_socket_port,report)){
-            print_error(MODULE_NAME,"Cannot send msg to controller");
-        }
+
         int res=DITGsend("localhost", const_cast<char* >(params.c_str()));
         if(res==-1){
             print_error(MODULE_NAME,"Cannot perform ITGSend\n");
+        }else{
+            if(!report_to_controller(controller_ip.c_str(),controller_socket_port,report)){
+                print_error(MODULE_NAME,"Cannot send msg to controller");
+            }
         }
 
         long long in_milli =(long long)(inter_flow_distr(generator)*1000);

@@ -11,4 +11,5 @@ fi
 while :
 do
     ${exec_file}
+    sleep 1
 done

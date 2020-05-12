@@ -1090,8 +1090,12 @@ void pipeParser(int newSockSignaling, int &numFlow, HANDLE rPipe[],
             PRINTD(1, "pipeParser: Error into bind - flow %d \n", msg.flowId);
 
             if (sendAckFlow(newSockSignaling, TSP_ERR_MSG_2, msg.flowId) < 0)
-                reportErrorAndExit("pipeParser", "",
-                                   "Cannot send TSP_ERR_MSG_2 message to sender");
+            {
+//                reportErrorAndExit("pipeParser", "",
+//                                   "Cannot send TSP_ERR_MSG_2 message to sender");
+            //change log comment above
+            }
+
             int k;
             k = 0;
 
@@ -1193,8 +1197,12 @@ void pipeParser(int newSockSignaling, int &numFlow, HANDLE rPipe[],
 
 
                 if (sendAckFlow(newSockSignaling, TSP_ACK_SEND_FLOW, msg.flowId, port) == -1)
-                    reportErrorAndExit("pipeParser", "",
-                                       "Cannot send TSP_ACK_SEND_FLOW message to sender");
+                {
+//                    reportErrorAndExit("pipeParser", "",
+//                                       "Cannot send TSP_ACK_SEND_FLOW message to sender");
+                 //change log comment above
+                }
+
 
                 PRINTD(1, "pipeParser: Sent TSP_ACK_SEND_FLOW(5) message with port number = %u\n",
                        port);
@@ -1516,8 +1524,9 @@ int typeParser(BYTE type, int &numFlow, int newSockSignaling,
             if (passiveMode == true) {
 
                 if (sendAckFlow(newSockSignaling, TSP_ACK_SEND_FLOW, flowPosition + 1) == -1) {
-                    reportErrorAndExit("typeParser", "",
-                                       "Cannot send TSP_ACK_SEND_FLOW message to sender");
+//                    reportErrorAndExit("typeParser", "",
+//                                       "Cannot send TSP_ACK_SEND_FLOW message to sender");
+                    //change log comment above
                 }
                 PRINTD(1, "typeParser: Sent TSP_ACK_SEND_FLOW(5) message\n");
                 return 0;
@@ -1800,9 +1809,14 @@ int typeParser(BYTE type, int &numFlow, int newSockSignaling,
 
 
             if (sendAckFlow(newSockSignaling, TSP_ACK_CLOSED_FLOW, *(int *) ptrFlowId) < 0)
-                reportErrorAndExit("typeParser",
-                                   " - type = TSP_ACK_CLOSED_FLOW(6)",
-                                   "Cannot send ack closed flow id on newSockSignaling");
+            {
+//                reportErrorAndExit("typeParser",
+//                                   " - type = TSP_ACK_CLOSED_FLOW(6)",
+//                                   "Cannot send ack closed flow id on newSockSignaling");
+                //changelog :comment above
+
+            }
+
             PRINTD(1, "typeParser: Sent TSP_ACK_CLOSED_FLOW(6) message\n");
             PRINTD(1, "typeParser: Closed Flow %d \n", *ptrFlowId);
         }
@@ -2160,8 +2174,8 @@ void parserRecv(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 
-
     paramThread para[MAX_NUM_THREAD];
+    signal(SIGPIPE, SIG_IGN);
 
 
     pthread_t hThr[MAX_NUM_THREAD];

@@ -33,11 +33,16 @@ bool report_to_controller(const char *dst_ip, int dst_port, json &obj) {
         return false;
     }
     if (connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
+        close(sockfd);
         print_error(MODULE,"Cannot connect to remote ip:",dst_ip);
         return false;
     }
-    string content = obj.dump();
-    return send(sockfd, content.c_str(), content.size(), MSG_CONFIRM);
+    string content=obj.dump();
+    const char* content_p = content.c_str();
+    size_t len=strlen(content_p);
+    ssize_t sent=send(sockfd,content_p, len, MSG_CONFIRM);
+    close(sockfd);
+    return sent==len;
 }
 
 

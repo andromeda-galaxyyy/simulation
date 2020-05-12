@@ -101,7 +101,7 @@ routing模块的socket端口为1027
 元素中如果出现-1,表示这条链路不通
 邻接矩阵，仅表示半边，比如A----B，仅表示A--->B的连接
  
-运行例子需要ryu controller，默认ip地址为localhost,监听默认端口，并且controller用于接受主机上报的socket端口为10000
+运行例子需要ryu controller，默认ip地址为localhost,监听默认端口，并且controller用于接受主机上报的socket端口为1026
 
 ## test 
 文件夹test下面存放测试代码，目前主要测试socket通信

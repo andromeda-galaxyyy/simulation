@@ -32,5 +32,6 @@ fi
 
 while :
 do
-    ${exec_file} ${ip_file} 1 190 ${controller_ip} ${controller_port}
+    ${exec_file} ${ip_file} 2 100 ${controller_ip} ${controller_port}
+    sleep 1
 done

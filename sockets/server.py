@@ -8,6 +8,7 @@ from utils.common_utils import is_digit
 
 socketserver.TCPServer.allow_reuse_address=True
 
+
 BUFF_SIZE = 4096  # 4 KiB
 
 def recvall(req):
@@ -32,13 +33,15 @@ class Server:
 		self.handler=handler
 
 	def start(self):
-		server=ThreadedTCPServer(("0.0.0.0",self.port),self.handler)
-		with server:
-			# ip,port=server.server_address
-			server_thread=threading.Thread(target=server.serve_forever)
-			server_thread.daemon=True
-			server_thread.start()
-			server.serve_forever()
+		# server=ThreadedTCPServer(("0.0.0.0",self.port),self.handler)
+		server=socketserver.ThreadingTCPServer(("0.0.0.0",self.port),self.handler)
+		server.serve_forever()
+		# with server:
+		# 	# ip,port=server.server_address
+		# 	server_thread=threading.Thread(target=server.serve_forever)
+		# 	server_thread.daemon=True
+		# 	server_thread.start()
+		# 	server.serve_forever()
 			# server.shutdown()
 
 

@@ -79,7 +79,6 @@ int DITGsend(char *sender, char *message) {
 
     freeaddrinfo(locale);
 
-
     getaddrinfo("0.0.0.0", NULL, NULL, &locale);
     socket_r = socket(locale->ai_family, SOCK_DGRAM, 0);
     if (socket_r < 0)
@@ -102,15 +101,21 @@ int DITGsend(char *sender, char *message) {
 
     Sender.sin_family = AF_INET;
     if (!(host = gethostbyname(sender))) {
+        close(socket_r);
         cerr << endl << "DITGsend: Invalid destination address" << endl;
         return -1;
     }
     memcpy((char *) &Sender.sin_addr, host->h_addr, host->h_length);
     Sender.sin_port = htons(DEFAULT_PORT_SENDER_MANAGER);
+    int res=0;
+
     if (sendto(socket_r, message, strlen(message), 0, (struct sockaddr *) &Sender,
                sizeof(Sender)) != (int) strlen(message))
-        return -1;
-    return 0;
+    {
+        res=-1;
+    }
+    close(socket_r);
+    return res;
 }
 
 

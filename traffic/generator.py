@@ -8,6 +8,11 @@ import subprocess
 from time import sleep
 from utils.common_utils import debug
 from multiprocessing import Process
+from threading import Thread
+
+from path_utils import get_prj_root
+bin_dir=os.path.join(get_prj_root(),"traffic/ditg/bin")
+
 def run(commands):
     return subprocess.run(commands)
 
@@ -69,11 +74,40 @@ class IperfGen:
         pass
 
 
+class DummyGen:
+    def __init__(self,lambada,self_ip,dst_ips):
+        self.interval_generator=possion_interval_generator(lambada)
+        self.ip=self_ip
+        self.dst_ips=dst_ips
+
+    @staticmethod
+    def bin_runner(commands):
+        subprocess.run(commands)
+
+    def start(self):
+        sender_bin = os.path.join(bin_dir,"ITGSend")
+        dst_ips=self.dst_ips
+        while True:
+            target=random.choice(dst_ips)
+            print("target ip: ",target)
+            src_port=random.randint(1500,65534)
+            src_port=str(src_port)
+            dst_port=random.randint(1500,65534)
+            dst_port=str(dst_port)
+            sig_port=str(random.choice(["1030","1031","1032"]))
+
+            commands=[sender_bin,"-a",target,"-Sdp",sig_port,"-sp",src_port,"-rp",dst_port,"-t","100"]
+            thread = Thread(target=DummyGen.bin_runner, args=(commands,))
+            thread.start()
+            sleep(self.interval_generator())
+
+
+
 
 if __name__ == '__main__':
-    dst_ips=["192.168.64.3"]
-    self_ip="192.168.64.5"
+    dst_ips=["127.0.0.1"]
+    self_ip="127.0.0.1"
     stats_file="/home/ubuntu/temp/ditgs/statistics.json"
     ditg_dir="/home/ubuntu/temp/ditgs"
-    generator=DITGGen(stats_file,ditg_dir,self_ip,dst_ips)
+    generator=DummyGen(10,self_ip,dst_ips)
     generator.start()
