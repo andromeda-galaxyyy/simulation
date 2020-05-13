@@ -37,10 +37,14 @@ class DumbHandler(socketserver.BaseRequestHandler):
 			self.request.close()
 			return
 		obj = json.loads(req_content)
+		print(obj)
 		millis = int(round(time.time() * 1000))
 
 		print("received ", millis)
-		res= {"res": 1}
+		if random.random()>0.5:
+			res= {"res":1 }
+		else:
+			res = {"res": 0}
 		self.request.sendall(bytes(json.dumps(res), "ascii"))
 
 

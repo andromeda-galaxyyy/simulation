@@ -8,8 +8,17 @@ then
     exit -1
 fi
 
+if [[ $@ -eq 0 ]];
+then
+Sp=1030
+else
+Sp=$1
+fi
+
+echo ${Sp}
+
 while :
 do
-    ${exec_file}
+    ${exec_file} -Sp ${Sp}
     sleep 1
 done

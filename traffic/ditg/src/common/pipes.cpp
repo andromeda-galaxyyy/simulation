@@ -50,12 +50,12 @@ int recvPipeMsg(int fd[2], pipeMsg *msg) {
 }
 
 int createNewPipe(int fd[2]) {
-    printf("new pipe created\n");
+//    printf("new pipe created\n");
     return (pipe(fd));
 }
 
 int closePipe(int fd[2]) {
-    printf("close pipe\n");
+//    printf("close pipe\n");
     close(fd[1]);
     close(fd[0]);
     return (0);

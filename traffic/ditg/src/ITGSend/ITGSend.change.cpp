@@ -76,6 +76,8 @@ const char DefaultDestIP[] = DEFAULT_DEST_IP;
 flowDescriptor flows[MAX_NUM_THREAD];
 signalChannel signalChannels[MAX_NUM_THREAD];
 pthread_t h_flowParser[MAX_NUM_THREAD];
+bool thread_used[MAX_NUM_THREAD];
+pthread_mutex_t thread_used_lock=PTHREAD_MUTEX_INITIALIZER;
 flowParserParams parserParams[MAX_NUM_THREAD];
 int multiFlows = 0;
 int flowCount = 0;
@@ -212,6 +214,28 @@ int modeManager(int argc, char *argv[])
         buffer[size_r] = '\n';
         buffer[size_r + 1] = '\0';
 
+
+
+        //find unused pthread
+        pthread_mutex_lock(&thread_used_lock);
+
+        if(flowCount>MAX_NUM_THREAD) {
+            printf("cannot create new thread\n");
+            pthread_mutex_unlock(&thread_used_lock);
+            continue;
+        }
+
+        int idx=-1;
+        for(int i=0;i<MAX_NUM_THREAD;i++){
+            if(!thread_used[i]){
+                idx=i;
+                break;
+            }
+        }
+        if(idx==-1){
+            pthread_mutex_unlock(&thread_used_lock);
+            continue;
+        }
         strncpy(parserParams[flowCount].line, buffer, MAX_FLOW_LINE_SIZE-3);
 
         parserParams[flowCount].flowId = flowCount + 1;
@@ -221,18 +245,25 @@ int modeManager(int argc, char *argv[])
         ((uint8_t *) buffer)[0] = MNG_FLOWSTART;
         ((uint16_t *) buffer)[1] = size_r;
 
+        CREATE_THREAD(&parserParams[flowCount], flowParser, NULL, h_flowParser[idx], true);
+        if (h_flowParser[idx] < 0) {
+            cerr << "Cannot create a process to handle flow " << flowCount +
+                                                                 1 << endl;
+            pthread_mutex_unlock(&thread_used_lock);
+            continue;
+        }
+        thread_used[idx]=true;
+        flowCount++;
+        printf("flow count %d\n",flowCount);
+        pthread_mutex_unlock(&thread_used_lock);
+
+        PRINTD(1,"modeManager: Notify ITGManager about the start of the generation %d, \n",size_s);
+
+//        printf("%d\n",flowCount);
         size_s = sendto(managerSock, buffer, size_r + 3, 0, (struct sockaddr *) &ManagerIP, ManagerIPslen);
         if (size_s < 0) {
             perror("modeManager: error while sending ACK to the manager");
         }
-        PRINTD(1,"modeManager: Notify ITGManager about the start of the generation %d, \n",size_s);
-
-        CREATE_THREAD(&parserParams[flowCount], flowParser, NULL, h_flowParser[flowCount], true);
-        if (h_flowParser[flowCount] < 0) {
-            cerr << "Cannot create a process to handle flow " << flowCount +
-                                                                 1 << endl;
-        }
-        flowCount++;
 
 
         MUTEX_THREAD_LOCK(mutexBufferPayload);
@@ -329,6 +360,8 @@ int modeCommandLine(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
     printVersion("ITGSend");
+
+    memset(thread_used,0,MAX_NUM_THREAD);
 
     strcpy(programName, argv[0]);
     argv++;
@@ -1964,6 +1997,11 @@ void *flowParser(void *param)
                ManagerIPslen);
         PRINTD(1,"flowParser: Notify ITGManager about the end of the generation \n");
     }
+
+    pthread_mutex_lock(&thread_used_lock);
+    thread_used[id-1]=false;
+    flowCount--;
+    pthread_mutex_unlock(&thread_used_lock);
 
     printf("flow %d ended\n",id);
     closePipe(flows[id].parserPipe);

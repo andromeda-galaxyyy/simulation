@@ -28,8 +28,12 @@
 
 #include "../common/ITG.h"
 
+struct sockaddr_in Sender;
+struct hostent *host;
+
 static int socket_r = 0;
 
+char buffer[MAX_FLOW_LINE_SIZE];
 #ifdef WIN32
 int InitializeWinsock(WORD wVersionRequested)
 {
@@ -66,8 +70,7 @@ int InitializeWinsock(WORD wVersionRequested)
 char nameProgram[]="ITGapi";
 #endif
 
-
-int DITGsend(char *sender, char *message) {
+int init_socket(char* sender){
 #ifdef WIN32
     if (InitializeWinsock(MAKEWORD(1,1)) != 1)	{
         fprintf(stderr, "WSAStartup() failed");
@@ -75,7 +78,9 @@ int DITGsend(char *sender, char *message) {
     }
 #endif
 
+
     struct addrinfo *locale = 0;
+    memset(&buffer,0,MAX_FLOW_LINE_SIZE);
 
     freeaddrinfo(locale);
 
@@ -88,6 +93,7 @@ int DITGsend(char *sender, char *message) {
     int flags;
     flags = fcntl(socket_r, F_GETFL, 0);
     fcntl(socket_r, F_SETFL, flags | O_NONBLOCK);
+
 #endif
 
 #ifdef WIN32
@@ -96,8 +102,6 @@ int DITGsend(char *sender, char *message) {
 #endif
 
 
-    struct sockaddr_in Sender;
-    struct hostent *host;
 
     Sender.sin_family = AF_INET;
     if (!(host = gethostbyname(sender))) {
@@ -107,15 +111,36 @@ int DITGsend(char *sender, char *message) {
     }
     memcpy((char *) &Sender.sin_addr, host->h_addr, host->h_length);
     Sender.sin_port = htons(DEFAULT_PORT_SENDER_MANAGER);
-    int res=0;
+    return 0;
+}
 
+
+
+int DITGsend(char *sender, char *message) {
     if (sendto(socket_r, message, strlen(message), 0, (struct sockaddr *) &Sender,
                sizeof(Sender)) != (int) strlen(message))
     {
-        res=-1;
+        printf("cannot send to sender\n");
+        return -1;
     }
-    close(socket_r);
-    return res;
+    printf("msg from manager send\n");
+    socklen_t SenderSlen = sizeof(Sender);
+    memset(buffer,0,MAX_FLOW_LINE_SIZE);
+    if(recvfrom(socket_r,buffer,MAX_FLOW_LINE_SIZE,0,(struct  sockaddr*)&Sender,&SenderSlen)<0){
+        printf("cannot receive msg from sender\n");
+        return -1;
+    }
+//    printf("prepare buffer\n");
+//    uint8_t res= *(uint8_t *)buffer;
+//    uint16_t length = *((uint16_t *) &(buffer[1]));
+//    buffer[MAX_FLOW_LINE_SIZE-1]='\0';
+//
+//    printf("memory move %d\n",length);
+////    memmove(buffer, &buffer[3], length);
+////    buffer[length] = '\0';
+//    printf("msg from sender %s\n",buffer);
+//    close(socket_r);
+    return 0;
 }
 
 
@@ -124,16 +149,16 @@ int catchManagerMsg(char **senderIP, char **msg) {
     socklen_t SenderSlen = sizeof(Sender);
     uint16_t length;
     uint8_t msgtype;
-    char *buffer;
+//    char *buffer;
 
     if (!socket_r)
         return MNG_NOMSG;
 
-    buffer = (char *) malloc(MAX_FLOW_LINE_SIZE);
+//    buffer = (char *) malloc(MAX_FLOW_LINE_SIZE);
 
     if (recvfrom(socket_r, buffer, MAX_FLOW_LINE_SIZE, 0, (struct sockaddr *) &Sender,
                  &SenderSlen) < 0) {
-        free(buffer);
+//        free(buffer);
         return MNG_NOMSG;
     }
     *senderIP = (char *) malloc(30);
@@ -142,7 +167,9 @@ int catchManagerMsg(char **senderIP, char **msg) {
     length = *((uint16_t *) &(buffer[1]));
     memmove(buffer, &buffer[3], length);
     buffer[length] = '\0';
-    *msg = buffer;
+//    msg = string(buffer);
+    *msg=buffer;
+//    free(buffer);
 
     return msgtype;
 }

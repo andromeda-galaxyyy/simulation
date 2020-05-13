@@ -97,6 +97,7 @@ static std::default_random_engine generator;
 static long long count=0;
 
 int main(int argc, char *argv[]) {
+
     nlohmann:: json report;
 
     std::string ip_fn = std::string(argv[1]);
@@ -128,6 +129,10 @@ int main(int argc, char *argv[]) {
     int rp;
     int lp;
     std::string remote_ip = "";
+    if(init_socket("localhost")<0){
+        printf("cannot init socket\n");
+        exit(1);
+    }
     while (1) {
         count++;
         //generate random stats
@@ -172,12 +177,8 @@ int main(int argc, char *argv[]) {
         int controller_port = strtol(argv[5], &p, 10);
 
 
-        int res = DITGsend("localhost", const_cast<char *>(params.c_str()));
-        if(res!=-1){
-//            int report_res = report_to_controller(controller_ip, controller_port, report);
-//            if (report_res == -1) {
-//                printf("error report\n");
-//            }
+        if(DITGsend("localhost", const_cast<char *>(params.c_str()))!=0){
+            printf("Cannot perform send,maybe flow sender has down\n");
         }
 
         sleep_time_in_second = distribution(generator);

@@ -84,7 +84,7 @@ export BIN = $(shell dirname $(BASEDIR))/bin
 export COMMON = $(BASEDIR)/common/
 export NRCLEAN = $(BASEDIR)/ITGSend/newran/
 export EXEC_DIR = /usr/local/bin
-export CXX = /usr/bin/g++ -std=c++11
+export CXX = /usr/bin/g++ -std=c++11 -g
 export RANLIB = ranlib
 export THOBJS = common/thread.o
 export OBJS = common/ITG.o common/timestamp.o common/serial.o common/pipes.o
