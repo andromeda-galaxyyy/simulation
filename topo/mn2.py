@@ -24,10 +24,7 @@ def get_prj_root():
 
 topo_dir = os.path.join(get_prj_root(), "files")
 
-daemon_sender_script = os.path.join(get_prj_root(), "../traffic/sender.sh")
-receiver_script = os.path.join(get_prj_root(), "../traffic/receiver.sh")
-manager_script = os.path.join(get_prj_root(), "../traffic/manager.sh")
-generator_script = os.path.join(get_prj_root(), "../traffic/generator.py")
+generator_script = os.path.join(get_prj_root(), "../traffic/scapy_generator.py")
 
 
 def generate_ip(id):
