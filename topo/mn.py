@@ -177,7 +177,8 @@ class TopoManager:
 		for idx, host in enumerate(self.hosts):
 			ip = generate_ip(idx)
 			ids_fn = os.path.join(topo_dir, "{}.hostids".format(idx))
-			pkts_dir="/home/ubuntu/temp/pkts"
+			# pkts_dir="/home/ubuntu/temp/pkts"
+
 			command="nohup python3 {} --id {} --dst_id {} --pkts_dir {} >/tmp/{}.gen.log 2>&1 &".format(generator_script,idx,ids_fn,pkts_dir,ip)
 			host.cmd(command)
 			# host.cmd(command)
