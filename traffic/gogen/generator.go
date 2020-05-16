@@ -39,6 +39,7 @@ type Generator struct {
 	flowStats map[int]map[string][]float64
     sentRecord *IntSet
 	buffer gopacket.SerializeBuffer
+	flowId2Port map[int][2]int
 
 }
 
@@ -48,6 +49,9 @@ var (
 	tcp *layers.TCP
 	udp *layers.UDP
 )
+
+
+
 
 func init()  {
 	ether= &layers.Ethernet{
@@ -115,6 +119,11 @@ func processFlowStats(ip string,port int,specifier [5]string,stats map[string][]
 
 }
 
+func randomFlowIdToPort(flowId int) (sport,dport int){
+	sport=rand.Intn(65536-1500)+1500
+	dport=rand.Intn(65536-1500)+1500
+	return sport,dport
+}
 
 func (g *Generator)Start() (err error) {
 	log.Printf("Start to generate")
@@ -181,13 +190,10 @@ func (g *Generator)Start() (err error) {
 	}
 	log.Printf("#pkt files %d\n",pktFileCount)
 	//shuffle
-	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(pktFns), func(i, j int) {
 		pktFns[i],pktFns[j]=pktFns[j],pktFns[i]
 	})
 
-	//尽量减少端口冲突
-	portSegLen:=(65535-1500)/pktFileCount
 	pktFileIdx:=0
 
 	for{
@@ -236,8 +242,19 @@ func (g *Generator)Start() (err error) {
 			dstIP:=net.ParseIP(dstIPStr)
 			dstMAC,_:=net.ParseMAC(DstMACs[flowId%nDsts])
 
-			srcPort:=1500+(pktFileIdx*portSegLen)+flowId%portSegLen
-			dstPort:=srcPort
+			//determine sport and dport
+			srcPort:=-1
+			dstPort:=-1
+			if ports,exsits:=g.flowId2Port[flowId];exsits{
+				srcPort=ports[0]
+				dstPort=ports[1]
+			}else{
+				srcPort,dstPort=randomFlowIdToPort(flowId)
+				g.flowId2Port[flowId]=[2]int{srcPort,dstPort}
+			}
+
+
+
 
 			ether.DstMAC=dstMAC
 			ipv4.DstIP=dstIP
@@ -364,6 +381,8 @@ func (g *Generator)Init()  {
 	g.flowStats=make(map[int]map[string][]float64)
 	g.sentRecord=&IntSet{}
 	g.buffer=gopacket.NewSerializeBuffer()
+	g.flowId2Port=make(map[int][2]int)
+	rand.Seed(time.Now().UnixNano())
 
 }
 
@@ -372,5 +391,6 @@ func (g *Generator)reset(){
 	g.flowStats=make(map[int]map[string][]float64)
 	g.sentRecord.init()
 	_=g.buffer.Clear()
+	g.flowId2Port=make(map[int][2]int)
 }
 

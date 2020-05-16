@@ -41,13 +41,13 @@ def inet_to_str(inet):
 
 
 class Parser:
-	def __init__(self, pcap_file: str, out_dir: str):
+	def __init__(self, pcap_file: str, out_fn:str):
 		check_file(pcap_file)
 		self.file = pcap_file
 		# if dir_exsit(out_dir):
 		# 	os.rmdir(out_dir)
 		# os.mkdir(out_dir)
-		self.out_dir = out_dir
+		self.out_fn=out_fn
 
 	def parse(self):
 		fp = open(self.file, 'rb')
@@ -124,12 +124,12 @@ class Parser:
 
 		timestamps = [pkt[1][0] for pkt in raw_pkts]
 		time_diffs = [y - x for x, y in zip(timestamps, timestamps[1:])]
-		with open(os.path.join(self.out_dir, "pkts2.pkts"), 'w') as fp:
+		with open(self.out_fn, 'w') as fp:
 			for idx, pkt in enumerate(raw_pkts):
 				# pkt =(specifier,(ts,size))
 				specifier=pkt[0]
 
-				flow_id = filtered_flow[pkt[0]]
+				flow_id = filtered_flow[specifier]
 				if flow_id in last_ts_in_flow:
 					diff_two_pkt = timestamps[idx] - last_ts_in_flow[flow_id]
 				else:
@@ -148,15 +148,15 @@ class Parser:
 					ts_diff = time_diffs[idx]
 
 				size = pkt[1][1]
-
 				fp.write("{} {} {} {} {}\n".format(ts_diff, size, proto, flow_id, diff_two_pkt))
-
 			fp.flush()
 			fp.close()
 
 
 if __name__ == '__main__':
-	fn = "/Volumes/DATA/dataset/converted_iot/16-09-27.pcap"
-	fn2="/tmp/ssh.pcap"
-	parser = Parser(fn2, "/tmp/pkts")
-	parser.parse()
+	for file in os.listdir("/Volumes/DATA/dataset/converted_iot"):
+		if ".pcap" not in file:continue
+		fn=os.path.join("/Volumes/DATA/dataset/converted_iot",file)
+		fname=file[:-5]
+		parser = Parser(fn, os.path.join("/tmp/pkts",fname+".pkts"))
+		parser.parse()
