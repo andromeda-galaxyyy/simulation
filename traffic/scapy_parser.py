@@ -124,11 +124,11 @@ class Parser:
 
 		timestamps = [pkt[1][0] for pkt in raw_pkts]
 		time_diffs = [y - x for x, y in zip(timestamps, timestamps[1:])]
-		with open(os.path.join(self.out_dir, "pkts.pkts"), 'w') as fp:
+		with open(os.path.join(self.out_dir, "pkts2.pkts"), 'w') as fp:
 			for idx, pkt in enumerate(raw_pkts):
 				# pkt =(specifier,(ts,size))
 				specifier=pkt[0]
-				
+
 				flow_id = filtered_flow[pkt[0]]
 				if flow_id in last_ts_in_flow:
 					diff_two_pkt = timestamps[idx] - last_ts_in_flow[flow_id]
@@ -157,6 +157,6 @@ class Parser:
 
 if __name__ == '__main__':
 	fn = "/Volumes/DATA/dataset/converted_iot/16-09-27.pcap"
-	# fn2="/tmp/ssh.pcap"
-	parser = Parser(fn, "/tmp/pkts")
+	fn2="/tmp/ssh.pcap"
+	parser = Parser(fn2, "/tmp/pkts")
 	parser.parse()

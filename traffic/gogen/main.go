@@ -23,6 +23,8 @@ func main(){
 	winSize:=flag.Int("ws",10,"Window size")
 	controllerIP:=flag.String("cip","172.16.181.1","Controller ip")
 	controllerSocketPort:=flag.Int("cport",1025,"Controller Socket Port")
+	sleep:=flag.Bool("sleep",true,"whether sleep between packets")
+	report:=flag.Bool("report",true,"whether report between packets")
 
 
 	flag.Parse()
@@ -62,6 +64,8 @@ func main(){
 		WinSize: *winSize,
 		ControllerIP: *controllerIP,
 		ControllerPort: *controllerSocketPort,
+		Sleep: *sleep,
+		Report: *report,
 	}
 	generator.Init()
 	err=generator.Start()

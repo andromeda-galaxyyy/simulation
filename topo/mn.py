@@ -24,7 +24,7 @@ def get_prj_root():
 
 topo_dir = os.path.join(get_prj_root(), "files")
 
-generator_script = os.path.join(get_prj_root(), "../traffic/scapy_generator.py")
+generator = os.path.join(get_prj_root(), "../traffic/gogen/gogen")
 
 
 def generate_ip(id):
@@ -176,7 +176,21 @@ class TopoManager:
 			host.cmd("route add default gw 10.0.255.254")
 
 		for idx, host in enumerate(self.hosts):
-			pass
+			dstIdFn="/home/stack/code/graduate/sim/system/topo/files/{}.hostids".format(idx)
+			pkt_dir="/home/stack/code/graduate/sim/system/traffic/gogen/pkts"
+			comands="nohup {} --id {} --dst_id {} --pkts {} --mtu 1500 -emppkt 60 --int h{}-eth0 " \
+			        "--ws {} --cip {} --cport {} >/tmp/{}.gen.log 2>&1 &".format(
+				generator,
+				idx,
+				dstIdFn,
+				pkt_dir,
+				idx,
+				10,
+				controller_ip,
+				socket_port,
+				idx
+			)
+			host.cmd(comands)
 			# ip = generate_ip(idx)
 			# ids_fn = os.path.join(topo_dir, "{}.hostids".format(idx))
 			# # pkts_dir="/home/ubuntu/temp/pkts"
@@ -189,7 +203,7 @@ class TopoManager:
 
 		CLI(net)
 		for idx, host in enumerate(self.hosts):
-			host.cmd("pkill -f python3")
+			host.cmd("pkill -f gogen")
 
 		net.stop()
 
@@ -209,4 +223,4 @@ if __name__ == '__main__':
 		print("Ryu controller ip cannot be localhost or 127.0.0.1!")
 		exit(-1)
 
-	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1026)
+	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1025)

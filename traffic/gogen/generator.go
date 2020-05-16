@@ -28,6 +28,8 @@ type Generator struct {
 	WinSize int
 	ControllerIP string
 	ControllerPort int
+	Sleep bool
+	Report bool
 
 	rawData []byte
 	handle *pcap.Handle
@@ -177,6 +179,7 @@ func (g *Generator)Start() (err error) {
 	if pktFileCount==0{
 		log.Fatalf("there is no pkt file in %s",g.PktsDir)
 	}
+	log.Printf("#pkt files %d\n",pktFileCount)
 	//shuffle
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(pktFns), func(i, j int) {
@@ -192,7 +195,7 @@ func (g *Generator)Start() (err error) {
 		//#read pkt file
 		pktFile:=path.Join(g.PktsDir,pktFns[pktFileIdx])
 		lines,err:=ReadLines(pktFile)
-		log.Printf("#lines %d",len(lines))
+		//log.Printf("#lines %d",len(lines))
 		if err!=nil{
 			log.Fatalf("Error reading pkt file %s\n",pktFile)
 		}
@@ -256,48 +259,44 @@ func (g *Generator)Start() (err error) {
 					log.Fatal(err)
 				}
 			}
-			//collects
-			if g.sentRecord.Contains(flowId){
-				if toSleep>0{
-					nano:=int(1e9*toSleep)
-					time.Sleep(time.Duration(nano) * time.Nanosecond)
+			_, exits := g.flowStats[flowId]
+			if !exits {
+				g.flowStats[flowId] = map[string][]float64{
+					"pkt_size": make([]float64, 0),
+					"idt":      make([]float64, 0),
 				}
-				continue
 			}
 
-			_,exits:=g.flowStats[flowId]
-			if !exits{
-				g.flowStats[flowId]= map[string][]float64{
-					"pkt_size":make([]float64,0),
-					"idt":make([]float64,0),
+			if g.Report {
+				//collects
+				if !g.sentRecord.Contains(flowId) {
+					//log.Printf("hello : %d\n",len(g.flowStats[flowId]["pkt_size"]))
+					//collect stats
+					if len(g.flowStats[flowId]["pkt_size"]) == g.WinSize {
+						//ok
+						g.sentRecord.Add(flowId)
+						specifier := [5]string{
+							fmt.Sprintf("%d", srcPort),
+							fmt.Sprintf("%d", dstPort),
+							ipStr,
+							dstIPStr,
+							proto,
+						}
+						stats := g.flowStats[flowId]
+						go processFlowStats(g.ControllerIP, g.ControllerPort, specifier, CopyMap(stats))
+						delete(g.flowStats, flowId)
+						g.sentRecord.Add(flowId)
+					} else {
+						g.flowStats[flowId]["pkt_size"] = append(g.flowStats[flowId]["pkt_size"], float64(size))
+						g.flowStats[flowId]["idt"] = append(g.flowStats[flowId]["idt"], tsDiffInFlow)
+					}
 				}
 			}
-			//log.Printf("hello : %d\n",len(g.flowStats[flowId]["pkt_size"]))
-			//collect stats
-			if len(g.flowStats[flowId]["pkt_size"])==g.WinSize{
-				//ok
-				g.sentRecord.Add(flowId)
-				specifier:=[5]string{
-					fmt.Sprintf("%d",srcPort),
-					fmt.Sprintf("%d",dstPort),
-					ipStr,
-					dstIPStr,
-					proto,
-				}
-				stats:=g.flowStats[flowId]
-				go processFlowStats(g.ControllerIP,g.ControllerPort,specifier,CopyMap(stats))
-				delete(g.flowStats,flowId)
-				g.sentRecord.Add(flowId)
-			}else{
 
-				g.flowStats[flowId]["pkt_size"]=append(g.flowStats[flowId]["pkt_size"],float64(size))
-				g.flowStats[flowId]["idt"]=append(g.flowStats[flowId]["idt"],tsDiffInFlow)
-			}
-			if toSleep>0{
-				nano:=int(1e9*toSleep)
+			if toSleep > 0 && g.Sleep {
+				nano := int(1e9 * toSleep)
 				time.Sleep(time.Duration(nano) * time.Nanosecond)
 			}
-
 		}
 
 		pktFileIdx=(pktFileIdx+1)%pktFileCount
@@ -342,11 +341,20 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 		if err!=nil{
 			return err
 		}
+		err=g.handle.WritePacketData(buffer.Bytes())
+		if err!=nil{
+			return err
+		}
 	}else{
 		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,udp,gopacket.Payload(g.rawData[:payloadSize]))
 		if err!=nil{
 			return err
 		}
+		err=g.handle.WritePacketData(buffer.Bytes())
+		if err!=nil{
+			return err
+		}
+
 	}
 
 	return nil
@@ -356,6 +364,7 @@ func (g *Generator)Init()  {
 	g.flowStats=make(map[int]map[string][]float64)
 	g.sentRecord=&IntSet{}
 	g.buffer=gopacket.NewSerializeBuffer()
+
 }
 
 func (g *Generator)reset(){
