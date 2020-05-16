@@ -172,15 +172,17 @@ class TopoManager:
 
 		# set nat
 		for host in self.hosts:
+			pass
 			host.cmd("route add default gw 10.0.255.254")
 
 		for idx, host in enumerate(self.hosts):
-			ip = generate_ip(idx)
-			ids_fn = os.path.join(topo_dir, "{}.hostids".format(idx))
-			# pkts_dir="/home/ubuntu/temp/pkts"
-
-			command="nohup python3 {} --id {} --dst_id {} --pkts_dir {} >/tmp/{}.gen.log 2>&1 &".format(generator_script,idx,ids_fn,pkts_dir,ip)
-			host.cmd(command)
+			pass
+			# ip = generate_ip(idx)
+			# ids_fn = os.path.join(topo_dir, "{}.hostids".format(idx))
+			# # pkts_dir="/home/ubuntu/temp/pkts"
+			#
+			# command="nohup python3 {} --id {} --dst_id {} --pkts_dir {} >/tmp/{}.gen.log 2>&1 &".format(generator_script,idx,ids_fn,pkts_dir,ip)
+			# host.cmd(command)
 			# host.cmd(command)
 			# host.cmd(command)
 
@@ -195,11 +197,11 @@ class TopoManager:
 if __name__ == '__main__':
 	manager = TopoManager()
 	parser = ArgumentParser()
-	parser.add_argument("--controller_ip", type=str, default="192.168.64.1",
+	parser.add_argument("--controller_ip", type=str, default="172.16.181.1",
 	                    help="ryu ip,note that cannot "
 	                         "be be localhost or "
 	                         "127.0.0.1")
-	parser.add_argument("--controller_port", type=int, default=6653)
+	parser.add_argument("--controller_port", type=int, default=6633)
 	parser.add_argument("--controller_socket_port", type=int, default=1026)
 	parser.add_argument("-n", type=int, default=1, help="number of hosts per switch")
 	args = parser.parse_args()

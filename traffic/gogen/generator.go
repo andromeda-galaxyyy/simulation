@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+	"gonum.org/v1/gonum/stat"
 	"io/ioutil"
 	"log"
+	"math"
 	"math/rand"
 	"net"
 	"path"
@@ -23,15 +26,17 @@ type Generator struct {
 	PktsDir string
 	Int string
 	WinSize int
+	ControllerIP string
+	ControllerPort int
 
 	rawData []byte
 	handle *pcap.Handle
 	timeout time.Duration
 	options gopacket.SerializeOptions
-	flowStats map[string] []float32
-    sentRecord IntSet
-	//destinationIPs []string
-	//destinationMACs []string
+	//flow-id ---> {pkt_size:[],idt:[]}
+	flowStats map[int]map[string][]float64
+    sentRecord *IntSet
+	buffer gopacket.SerializeBuffer
 
 }
 
@@ -42,7 +47,7 @@ var (
 	udp *layers.UDP
 )
 
-func Init()  {
+func init()  {
 	ether= &layers.Ethernet{
 		EthernetType: 0x800,
 	}
@@ -59,9 +64,59 @@ func Init()  {
 	udp=&layers.UDP{}
 }
 
+func processStats(nums []float64) (min,max,mean float64)  {
+	min=math.MaxFloat64
+	max=-1
+	valid_count:=0
+	sum:=float64(0)
+	for _,v:=range nums{
+		if v<0{
+			continue
+		}
+		valid_count++
+		sum+=v
+		if v>max{
+			max=v
+		}
+		if v<min{
+			min=v
+		}
+	}
+	return min,max, sum/float64(valid_count)
+}
+
+func processFlowStats(ip string,port int,specifier [5]string,stats map[string][]float64){
+	pktSizes:=stats["pkt_size"]
+	idts:=stats["idt"]
+	minPktSize,maxPktSize,meanPktSize:=processStats(pktSizes)
+	stdvPktSize:=stat.StdDev(pktSizes,nil)
+	maxIdt,minIdt,meanIdt:=processStats(idts)
+	stdvIdt:=stat.StdDev(idts,nil)
+
+	//construct map
+	report:=make(map[string]interface{})
+	report["specifier"]=specifier
+	report["stats"]=[]float64{
+		minPktSize,
+		maxPktSize,
+		meanPktSize,
+		stdvPktSize,
+		minIdt,
+		maxIdt,
+		meanIdt,
+		stdvIdt,
+	}
+	err:=SendMap(ip,port, report)
+	if err!=nil{
+		log.Fatalln(err)
+	}
+
+}
+
 
 func (g *Generator)Start() (err error) {
 	log.Printf("Start to generate")
+	//g.
 	nDsts:=len(g.DestinationIDs)
 	//init handler
 	handle,err:=pcap.OpenLive(g.Int,1024,false,g.timeout)
@@ -103,6 +158,8 @@ func (g *Generator)Start() (err error) {
 		DstMACs=append(DstMACs,mac)
 
 	}
+	log.Printf("#Destination host %d, first %s,last %s",len(DstIPs),DstIPs[0],DstIPs[len(DstIPs)-1])
+	log.Printf("#Destination host mac %d, first %s,last %s",len(DstMACs),DstMACs[0],DstMACs[len(DstMACs)-1])
 
 	//count files
 	pktFileCount:=0
@@ -117,6 +174,9 @@ func (g *Generator)Start() (err error) {
 			pktFns=append(pktFns,f.Name())
 		}
 	}
+	if pktFileCount==0{
+		log.Fatalf("there is no pkt file in %s",g.PktsDir)
+	}
 	//shuffle
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(pktFns), func(i, j int) {
@@ -124,7 +184,7 @@ func (g *Generator)Start() (err error) {
 	})
 
 	//尽量减少端口冲突
-	portSegLen:=(66635-1500)/pktFileCount
+	portSegLen:=(65535-1500)/pktFileCount
 	pktFileIdx:=0
 
 	for{
@@ -141,7 +201,10 @@ func (g *Generator)Start() (err error) {
 				log.Fatalf("Invalid pkt file %s\n",pktFile)
 			}
 			//todo to_sleep
-			//toSleep,err:=strconv.ParseFloat(content[0],32)
+			toSleep,err:=strconv.ParseFloat(content[0],64)
+			if toSleep<0 && int(toSleep)!=-1{
+				log.Fatalln("Invalid sleep time")
+			}
 			if err!=nil{
 				log.Printf("Invalid idt time in pkt file %s\n\n", pktFile)
 				break
@@ -158,37 +221,119 @@ func (g *Generator)Start() (err error) {
 				break
 			}
 			//todo tsDiffInFlow
-			//tsDiffInFlow,err:=strconv.Atoi(content[4])
+			tsDiffInFlow,err:=strconv.ParseFloat(content[4],64)
+			if tsDiffInFlow<0 && int(tsDiffInFlow)!=-1{
+				log.Fatalln("Invalid ts diff in flow")
+			}
 			if err!=nil{
 				log.Printf("Invalid ts diff in flow in pkt file %s\n\n", pktFile)
 				break
 			}
-
-			dstIP:=net.ParseIP(DstIPs[flowId%nDsts])
+			dstIPStr:=DstIPs[flowId%nDsts]
+			dstIP:=net.ParseIP(dstIPStr)
 			dstMAC,_:=net.ParseMAC(DstMACs[flowId%nDsts])
 
 			srcPort:=1500+(pktFileIdx*portSegLen)+flowId%portSegLen
 			dstPort:=srcPort
+
 			ether.DstMAC=dstMAC
 			ipv4.DstIP=dstIP
 
 			if proto=="TCP"{
 				tcp.SrcPort= layers.TCPPort(srcPort)
 				tcp.DstPort= layers.TCPPort(dstPort)
-				_=g.send(size,ether,ipv4,tcp,nil,true)
+				ipv4.Protocol=6
+				err=g.send(size,ether,ipv4,tcp,nil,true)
+				if err!=nil{
+					log.Fatal(err)
+				}
 			}else{
 				udp.SrcPort= layers.UDPPort(srcPort)
 				udp.DstPort= layers.UDPPort(dstPort)
-				_=g.send(size,ether,ipv4,nil,udp,false)
+				ipv4.Protocol=17
+				err=g.send(size,ether,ipv4,nil,udp,false)
+				if err!=nil{
+					log.Fatal(err)
+				}
 			}
-			//time.Sleep(time.Duration())
+			//collects
+			if g.sentRecord.Contains(flowId){
+				if toSleep>0{
+					nano:=int(1e9*toSleep)
+					time.Sleep(time.Duration(nano) * time.Nanosecond)
+				}
+				continue
+			}
+
+			_,exits:=g.flowStats[flowId]
+			if !exits{
+				g.flowStats[flowId]= map[string][]float64{
+					"pkt_size":make([]float64,0),
+					"idt":make([]float64,0),
+				}
+			}
+			//log.Printf("hello : %d\n",len(g.flowStats[flowId]["pkt_size"]))
+			//collect stats
+			if len(g.flowStats[flowId]["pkt_size"])==g.WinSize{
+				//ok
+				g.sentRecord.Add(flowId)
+				specifier:=[5]string{
+					fmt.Sprintf("%d",srcPort),
+					fmt.Sprintf("%d",dstPort),
+					ipStr,
+					dstIPStr,
+					proto,
+				}
+				stats:=g.flowStats[flowId]
+				go processFlowStats(g.ControllerIP,g.ControllerPort,specifier,CopyMap(stats))
+				delete(g.flowStats,flowId)
+				g.sentRecord.Add(flowId)
+			}else{
+
+				g.flowStats[flowId]["pkt_size"]=append(g.flowStats[flowId]["pkt_size"],float64(size))
+				g.flowStats[flowId]["idt"]=append(g.flowStats[flowId]["idt"],tsDiffInFlow)
+			}
+			//todo sleep
+			nano:=int(1e9*toSleep)
+			time.Sleep(time.Duration(nano) * time.Nanosecond)
 		}
+		pktFileIdx=(pktFileIdx+1)%pktFileCount
 	}
 
 }
 
+//udp fragmentation
 func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP,udp *layers.UDP,isTCP bool) (err error){
-	buffer:=gopacket.NewSerializeBuffer()
+	payloadPerPacketSize:=g.MTU-g.EmptySize
+	count:=payloadSize/payloadPerPacketSize
+
+	buffer:=g.buffer
+	for ;count>0;count--{
+		_ = buffer.Clear()
+		payLoadPerPacket:=g.rawData[:payloadPerPacketSize]
+		payloadSize-=payloadPerPacketSize
+		if isTCP{
+			err=gopacket.SerializeLayers(buffer,g.options,ether,ip,tcp,gopacket.Payload(payLoadPerPacket))
+			if err!=nil{
+				return err
+			}
+			err=g.handle.WritePacketData(buffer.Bytes())
+			if err!=nil{
+				return err
+			}
+		}else{
+			err=gopacket.SerializeLayers(buffer,g.options,ether,ip,udp,gopacket.Payload(payLoadPerPacket))
+			if err!=nil{
+				return err
+			}
+			err=g.handle.WritePacketData(buffer.Bytes())
+			if err!=nil{
+				return err
+			}
+		}
+	}
+
+	_=buffer.Clear()
 	if isTCP{
 		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,tcp,gopacket.Payload(g.rawData[:payloadSize]))
 		if err!=nil{
@@ -200,11 +345,20 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 			return err
 		}
 	}
+
 	return nil
 }
 
+func (g *Generator)Init()  {
+	g.flowStats=make(map[int]map[string][]float64)
+	g.sentRecord=&IntSet{}
+	g.buffer=gopacket.NewSerializeBuffer()
+}
+
 func (g *Generator)reset(){
+	g.sentRecord=&IntSet{}
+	g.flowStats=make(map[int]map[string][]float64)
 	g.sentRecord.init()
-	g.flowStats=make(map[string][]float32)
+	_=g.buffer.Clear()
 }
 

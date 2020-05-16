@@ -1,9 +1,13 @@
 package main
 
-import "net"
+import (
+	"encoding/json"
+	"fmt"
+	"net"
+)
 
-func SendByte(ip *string,port int,content []byte) (err error)  {
-	conn,err:=net.Dial("tcp",*ip)
+func SendByte(ip string,port int,content []byte) (err error)  {
+	conn,err:=net.Dial("tcp",fmt.Sprintf("%s:%d",ip,port))
 	if err!=nil{
 		return err
 	}
@@ -14,6 +18,15 @@ func SendByte(ip *string,port int,content []byte) (err error)  {
 
 }
 
-func SendStr(ip *string,port int,content *string)(err error)  {
+func SendStr(ip string,port int,content *string)(err error)  {
 	return SendByte(ip,port,[]byte(*content))
+}
+
+func SendMap(ip string,port int,content map[string]interface{}) error  {
+	jsonBytes,err:=json.Marshal(content)
+	if err!=nil{
+		return err
+	}
+	err=SendByte(ip,port,jsonBytes)
+	return err
 }

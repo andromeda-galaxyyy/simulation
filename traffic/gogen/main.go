@@ -15,8 +15,16 @@ import (
 
 func main(){
 	id:=flag.Int("id",0,"self id")
-	dstIdFn:=flag.String("dst_id","/tmp","destiantion id file")
-	pktDir:=flag.String("pkts","/tmp/pkts","pkts dir")
+	dstIdFn:=flag.String("dst_id","/home/stack/code/graduate/sim/system/topo/files/0.hostids","destiantion id file")
+	pktDir:=flag.String("pkts","/home/stack/code/graduate/sim/system/traffic/gogen/pkts","pkts dir")
+	mtu:=flag.Int("mtu",1500,"Interface MTU")
+	emptyPktSize:=flag.Int("emppkt",60,"Emptry Layer4 Packet Size in bytes")
+	interf:=flag.String("int","h0-eth0","Interface name")
+	winSize:=flag.Int("ws",10,"Window size")
+	controllerIP:=flag.String("cip","172.16.181.1","Controller ip")
+	controllerSocketPort:=flag.Int("cport",1025,"Controller Socket Port")
+
+
 	flag.Parse()
 
 	if !FileExist(*dstIdFn){
@@ -44,13 +52,20 @@ func main(){
 	log.Println(fmt.Sprintf("#destination id file %d",len(dstIds)))
 
 	generator:=Generator{
+		ID:*id,
+		MTU: *mtu,
+		EmptySize: *emptyPktSize,
 		SelfID:        *id,
 		DestinationIDs: dstIds,
 		PktsDir:       *pktDir,
+		Int: *interf,
+		WinSize: *winSize,
+		ControllerIP: *controllerIP,
+		ControllerPort: *controllerSocketPort,
 	}
+	generator.Init()
 	err=generator.Start()
 	if err!=nil{
-
+		log.Fatalln(err)
 	}
-
 }

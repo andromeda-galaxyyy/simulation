@@ -21,8 +21,20 @@ func (set *StringSet)Contains(s string) bool {
 	return exits
 }
 
+func NewStringSet() *StringSet  {
+	return &StringSet{
+		content: make(map[string]void),
+	}
+}
+
 type IntSet struct {
 	content map[int] void
+}
+
+func NewIntSet() *IntSet {
+	return &IntSet{
+		content: make(map[int]void),
+	}
 }
 
 func (set *IntSet) init()  {
@@ -41,5 +53,34 @@ func (set *IntSet)Contains(i int)  bool {
 	return exits
 }
 
+func CopySlice(src []float64) (dst []float64)  {
+	dst=make([]float64,len(src))
+	for idx,v:=range src{
+		dst[idx]=v
+	}
+	return dst
+}
 
+func CopyMap(m map[string][]float64) (dst map[string][]float64)  {
+	dst=make(map[string][]float64)
+	for k,v:=range m{
+		dst[k]=CopySlice(v)
+	}
+	return dst
+}
+
+
+//func CopyMap(m map[string]interface{}) map[string]interface{} {
+//	cp := make(map[string]interface{})
+//	for k, v := range m {
+//		vm, ok := v.(map[string]interface{})
+//		if ok {
+//			cp[k] = CopyMap(vm)
+//		} else {
+//			cp[k] = v
+//		}
+//	}
+//
+//	return cp
+//}
 
