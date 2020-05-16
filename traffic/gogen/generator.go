@@ -192,6 +192,7 @@ func (g *Generator)Start() (err error) {
 		//#read pkt file
 		pktFile:=path.Join(g.PktsDir,pktFns[pktFileIdx])
 		lines,err:=ReadLines(pktFile)
+		log.Printf("#lines %d",len(lines))
 		if err!=nil{
 			log.Fatalf("Error reading pkt file %s\n",pktFile)
 		}
@@ -200,7 +201,6 @@ func (g *Generator)Start() (err error) {
 			if len(content)!=5{
 				log.Fatalf("Invalid pkt file %s\n",pktFile)
 			}
-			//todo to_sleep
 			toSleep,err:=strconv.ParseFloat(content[0],64)
 			if toSleep<0 && int(toSleep)!=-1{
 				log.Fatalln("Invalid sleep time")
@@ -293,10 +293,13 @@ func (g *Generator)Start() (err error) {
 				g.flowStats[flowId]["pkt_size"]=append(g.flowStats[flowId]["pkt_size"],float64(size))
 				g.flowStats[flowId]["idt"]=append(g.flowStats[flowId]["idt"],tsDiffInFlow)
 			}
-			//todo sleep
-			nano:=int(1e9*toSleep)
-			time.Sleep(time.Duration(nano) * time.Nanosecond)
+			if toSleep>0{
+				nano:=int(1e9*toSleep)
+				time.Sleep(time.Duration(nano) * time.Nanosecond)
+			}
+
 		}
+
 		pktFileIdx=(pktFileIdx+1)%pktFileCount
 	}
 
