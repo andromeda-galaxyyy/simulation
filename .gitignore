@@ -178,3 +178,4 @@ traffic/DITG/bin
 *.pkl
 *.hdf5
 gogen
+*.hostids

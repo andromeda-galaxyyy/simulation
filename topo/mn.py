@@ -25,7 +25,7 @@ def get_prj_root():
 topo_dir = os.path.join(get_prj_root(), "files")
 
 generator = os.path.join(get_prj_root(), "../traffic/gogen/gogen")
-
+script=os.path.join(get_prj_root(),"../traffic/never.stop.sh")
 
 def generate_ip(id):
 	id = int(id) + 1
@@ -89,7 +89,7 @@ def read_topo(fn="topo.json"):
 
 
 class TopoManager:
-	def __init__(self, fn="topo.json", n_hosts_per_switch=1):
+	def __init__(self, fn="topo.json", n_hosts_per_switch=3):
 		self.topo = read_topo(fn)
 		self.hosts = []
 		self.num_switches = 0
@@ -178,8 +178,9 @@ class TopoManager:
 		for idx, host in enumerate(self.hosts):
 			dstIdFn="/home/stack/code/graduate/sim/system/topo/files/{}.hostids".format(idx)
 			pkt_dir="/home/stack/code/graduate/sim/system/traffic/gogen/pkts"
-			comands="nohup {} --id {} --dst_id {} --pkts {} --mtu 1500 -emppkt 60 --int h{}-eth0 " \
+			comands="nohup {} {} --id {} --dst_id {} --pkts {} --mtu 1500 -emppkt 60 --int h{}-eth0 " \
 			        "--ws {} --cip {} --cport {} >/tmp/{}.gen.log 2>&1 &".format(
+				script,
 				generator,
 				idx,
 				dstIdFn,
@@ -209,7 +210,6 @@ class TopoManager:
 
 
 if __name__ == '__main__':
-	manager = TopoManager()
 	parser = ArgumentParser()
 	parser.add_argument("--controller_ip", type=str, default="172.16.181.1",
 	                    help="ryu ip,note that cannot "
@@ -217,10 +217,12 @@ if __name__ == '__main__':
 	                         "127.0.0.1")
 	parser.add_argument("--controller_port", type=int, default=6633)
 	parser.add_argument("--controller_socket_port", type=int, default=1026)
-	parser.add_argument("-n", type=int, default=1, help="number of hosts per switch")
+	parser.add_argument("--n", type=int, default=3, help="number of hosts per switch")
 	args = parser.parse_args()
 	if args.controller_ip == "127.0.0.1" or args.controller_ip == "localhost":
 		print("Ryu controller ip cannot be localhost or 127.0.0.1!")
 		exit(-1)
 
-	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1025)
+	manager = TopoManager(n_hosts_per_switch=int(args.n))
+
+	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1026)
