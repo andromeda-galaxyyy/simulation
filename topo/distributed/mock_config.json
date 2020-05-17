@@ -2,24 +2,24 @@
   "workers_count": 2,
   "workers": [
     [
+      0,
       1,
-      2,
-      3
-    ],[4,5,6]
+      2
+    ],[3,4,5]
 
   ],
   "workers_ip": [
     "192.168.64.5",
     "192.168.64.2"
   ],
-  "controller": "192.168.64.1",
+  "controller": "192.168.64.1:6633",
   "id": "0",
+  "host_per_switch": 1,
   "scripts_dir": "/home/ubuntu/code/graduate/satellite_topo/scripts",
   "traffic_dir":"/home/ubuntu/code/graduate/traffic_ditg",
   "traiffc_dir":{
     "iot":"/home/ubuntu/code/iot",
     "video":"/home/ubuntu/code/video",
     "vr":"/home/ubuntu/code/vr"
-  },
-  "ditg_log":"ditg.log"
+  }
 }

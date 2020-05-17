@@ -88,6 +88,8 @@ def read_statellite_topo():
 				new_topo[j][i] = deepcopy(spec)
 		# print(len(links))
 		new_topos.append(deepcopy(new_topo))
+		if old_topo_idx==0:
+			save_json("/tmp/topo.json",{"topo":new_topo})
 
 	topo_fn = os.path.join(cache_dir, "topo.pkl")
 	save_pkl(topo_fn, new_topos)
@@ -548,7 +550,7 @@ if __name__ == '__main__':
 	      "2 generate raw labels\n"
 	      "3 run demo ilp model")
 	parser = ArgumentParser()
-	parser.add_argument("--mode", type=int, default=3, help="running mode 3")
+	parser.add_argument("--mode", type=int, default=1, help="running mode")
 	args = parser.parse_args()
 	mode = int(args.mode)
 	if mode == 1:

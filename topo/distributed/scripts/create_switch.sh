@@ -26,7 +26,7 @@ ip link add $HOST_PORT type veth peer name $OVS_PORT
 ip link set $HOST_PORT netns $HOST
 
 #set up host ip 
-ip netns exec $HOST ifconfig $HOST_PORT $HOST_IP/16
+ip netns exec $HOST ifconfig $HOST_PORT $HOST_IP/8
 ip netns exec $HOST ifconfig lo up 
 
 

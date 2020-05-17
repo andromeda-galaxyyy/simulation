@@ -89,7 +89,7 @@ def read_topo(fn="topo.json"):
 
 
 class TopoManager:
-	def __init__(self, fn="topo.json", n_hosts_per_switch=3):
+	def __init__(self, fn="satellite.json", n_hosts_per_switch=1):
 		self.topo = read_topo(fn)
 		self.hosts = []
 		self.num_switches = 0
@@ -124,6 +124,7 @@ class TopoManager:
 		else:
 			controller_ip, controller_port = controller.split(":")
 			controller_port = int(controller_port)
+			print("Controller ip {} Controller port {}".format(controller_ip,controller_port))
 			net = Mininet(topo=None, controller=None, ipBase="10.0.0.0/8")
 			c = RemoteController('c', controller_ip, controller_port)
 			net.addController(c)
@@ -131,7 +132,7 @@ class TopoManager:
 		topo = self.topo
 		num_switches = len(topo)
 		self.num_switches = num_switches
-		info("Setting up {} switches".format(num_switches))
+		print("Setting up {} switches".format(num_switches))
 		# add nat
 
 		ips = []
@@ -192,14 +193,7 @@ class TopoManager:
 				idx
 			)
 			host.cmd(comands)
-			# ip = generate_ip(idx)
-			# ids_fn = os.path.join(topo_dir, "{}.hostids".format(idx))
-			# # pkts_dir="/home/ubuntu/temp/pkts"
-			#
-			# command="nohup python3 {} --id {} --dst_id {} --pkts_dir {} >/tmp/{}.gen.log 2>&1 &".format(generator_script,idx,ids_fn,pkts_dir,ip)
-			# host.cmd(command)
-			# host.cmd(command)
-			# host.cmd(command)
+
 
 
 		CLI(net)
@@ -217,7 +211,7 @@ if __name__ == '__main__':
 	                         "127.0.0.1")
 	parser.add_argument("--controller_port", type=int, default=6633)
 	parser.add_argument("--controller_socket_port", type=int, default=1026)
-	parser.add_argument("--n", type=int, default=3, help="number of hosts per switch")
+	parser.add_argument("--n", type=int, default=1, help="number of hosts per switch")
 	args = parser.parse_args()
 	if args.controller_ip == "127.0.0.1" or args.controller_ip == "localhost":
 		print("Ryu controller ip cannot be localhost or 127.0.0.1!")

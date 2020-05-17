@@ -18,6 +18,6 @@ class PrintHandler(socketserver.BaseRequestHandler):
 
 
 if __name__ == '__main__':
-	port = 1025
+	port = 1026
 	server = Server(port, PrintHandler)
 	server.start()
