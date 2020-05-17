@@ -30,6 +30,7 @@ type Generator struct {
 	ControllerPort int
 	Sleep bool
 	Report bool
+	Delay bool
 
 	rawData []byte
 	handle *pcap.Handle
@@ -126,8 +127,10 @@ func randomFlowIdToPort(flowId int) (sport,dport int){
 }
 
 func (g *Generator)Start() (err error) {
+	if g.Delay{
+		time.Sleep(time.Millisecond*time.Duration(rand.Intn(10000)))
+	}
 	log.Printf("Start to generate")
-	//g.
 	nDsts:=len(g.DestinationIDs)
 	//init handler
 	handle,err:=pcap.OpenLive(g.Int,1024,false,g.timeout)

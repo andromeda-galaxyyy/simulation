@@ -25,6 +25,7 @@ func main(){
 	controllerSocketPort:=flag.Int("cport",1025,"Controller Socket Port")
 	sleep:=flag.Bool("sleep",true,"whether sleep between packets")
 	report:=flag.Bool("report",true,"whether report between packets")
+	delay:=flag.Bool("delay",true,"whether delay before packet injection")
 
 
 	flag.Parse()
@@ -66,6 +67,7 @@ func main(){
 		ControllerPort: *controllerSocketPort,
 		Sleep: *sleep,
 		Report: *report,
+		Delay: *delay,
 	}
 	generator.Init()
 	err=generator.Start()
