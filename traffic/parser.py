@@ -84,6 +84,10 @@ class Parser:
 			if not hasattr(l4, "dport"): continue
 			sport = l4.sport
 			dport = l4.dport
+			#drop dhcp and dns packet
+			if dport==53:continue
+			if sport==68:continue
+			if dport==67:continue
 			proto = ip.p
 			specifier = (sip, sport, dip, dport, proto)
 			flow_sizes[specifier] + len(l4.data)

@@ -22,7 +22,6 @@ def mac_addr(address):
 	"""
 	return ':'.join('%02x' % ord(b) for b in address)
 
-
 def inet_to_str(inet):
 	"""Convert inet object to a string
 
