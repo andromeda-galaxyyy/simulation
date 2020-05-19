@@ -141,7 +141,7 @@ class FilteredParser(Parser):
 
 # todo make timestamp start from zero
 
-def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict,pcap_fn:str,flow_type="iot"):
+def generate_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict, pcap_fn:str, flow_type="iot"):
 	for specifier in list(flows.keys()):
 		sip = specifier[0]
 		sport = specifier[1]
@@ -230,7 +230,7 @@ if __name__ == '__main__':
 		except:
 			continue
 
-		generate_ditg_files(tcp, output_dir, statistics,file)
-		generate_ditg_files(udp, output_dir, statistics,file)
+		generate_files(tcp, output_dir, statistics, file)
+		generate_files(udp, output_dir, statistics, file)
 
 	save_json(os.path.join(output_dir, "statistics.json"), statistics)

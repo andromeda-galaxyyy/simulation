@@ -10,8 +10,13 @@ from sockets.server import Server,recvall
 import random
 import numpy as np
 import time
+from classify.model import DT
+from path_utils import get_prj_root
+import os
+dt_model_dir= os.path.join(get_prj_root(),"classify/models")
 
-# dumb_classifier=Dumb()
+dt=DT()
+dt.load_model(os.path.join(dt_model_dir,"dt.pkl"))
 
 def check(content: str):
 	try:
@@ -47,7 +52,25 @@ class DumbHandler(socketserver.BaseRequestHandler):
 			res = {"res": 0}
 		self.request.sendall(bytes(json.dumps(res), "ascii"))
 
+class DTHandler(socketserver.BaseRequestHandler):
+	def handle(self) -> None:
+		req_content = str(recvall(self.request), "ascii")
+		stats = check(req_content)
+		if stats == -1:
+			err("invalid")
+			self.request.close()
+			return
+		obj = json.loads(req_content)
+		stats=obj[stats]
+		resp={"res":0}
+		try:
+			res=dt.predict([stats])
+		except:
+			pass
+		resp["res"]=res[0]
+		self.request.sendall(bytes(json.dumps(resp),"ascii"))
 
+			
 if __name__ == '__main__':
 	server = Server(1025, DumbHandler)
 	server.start()

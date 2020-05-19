@@ -5,6 +5,8 @@ from typing import List, Dict
 from path_utils import get_prj_root
 from classify.model import DT
 from datetime import datetime
+import numpy as np
+
 random.seed(datetime.now())
 
 Instance = namedtuple("Instance", ["features", "label"])
@@ -20,6 +22,16 @@ instances_dir = os.path.join(get_prj_root(), "classify/instances")
 
 
 def gen_single_instance(dirname, flow, flow_type):
+	def extract_features(raw_features: List[float]):
+		extracted_features = []
+		raw_features = [r for r in raw_features if int(r) != 0]
+
+		extracted_features.append(min(raw_features))
+		extracted_features.append(max(raw_features))
+		extracted_features.append(sum(raw_features) / len(raw_features))
+		extracted_features.append(np.std(raw_features))
+		return extracted_features
+
 	features = []
 	idts = []
 	ps = []
@@ -41,12 +53,25 @@ def gen_single_instance(dirname, flow, flow_type):
 		fp.close()
 	if len(lines) < win_size:
 		return None
+	lines = [l.strip() for l in lines]
+	lines = [l for l in lines if l != "" and l != "\n"]
 	lines = lines[:win_size]
 	for l in lines:
 		ps.append(float(l))
-	assert len(ps) == len(idts)
-	features.extend(ps)
-	features.extend(idts)
+
+	# 有很奇怪的现象
+	ps = [p for p in ps if p != 0]
+	if len(ps) == 0:
+		print(flow["ps"])
+		return None
+	# assert len(ps)!=0
+	idts = [i for i in idts if int(i) != 0]
+	if len(idts) == 0:
+		print(flow["idt"])
+		return None
+
+	features.extend(extract_features(ps))
+	features.extend(extract_features(idts))
 	if flow_type == "iot":
 		label = 1
 	else:
@@ -91,7 +116,7 @@ def train_and_predict():
 	train_x = [x.features for x in train]
 	train_y = [x.label for x in train]
 
-	#test 1:1
+	# test 1:1
 	test = []
 	iot_test = iot[20000:20086]
 	info("#iot test {}".format(len(iot_test)))
