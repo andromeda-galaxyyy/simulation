@@ -113,7 +113,7 @@ class FilteredParser(Parser):
 
 			reverse_specifier = (dip, dport, sip, sport, proto)
 			#分析过了，掠过
-			if specifier in list(res.keys()) or reverse_specifier in list(res.keys()):
+			if specifier in res or reverse_specifier in res:
 				continue
 
 			pkt_size = [p[1] for p in packets[specifier]]
@@ -141,7 +141,7 @@ class FilteredParser(Parser):
 
 # todo make timestamp start from zero
 
-def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict,pcap_fn:str):
+def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict,pcap_fn:str,flow_type="iot"):
 	for specifier in list(flows.keys()):
 		sip = specifier[0]
 		sport = specifier[1]
@@ -166,14 +166,13 @@ def generate_ditg_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Di
 		flow["size"] = flow_size
 		flow["file"]=pcap_fn.split("/")[-1]
 		flow["duration"] = timestamps[-1] - timestamps[0]
+		flow["type"]=flow_type
 
 		diff_ts = []
 		pre_ts = timestamps[0]
 		for ts in timestamps:
-			# in pcap files, timestamp in in epoch time in seconds
-			diff = (int(int((ts - pre_ts) * 1000000) / 1000) + 0.01)
-			# ditg flow duration bug
-			diff /= 3
+			# diff = (int(int((ts - pre_ts) * 1000000) / 1000) + 0.01)
+			diff=(ts-pre_ts)*1e9
 			diff_ts.append(diff)
 			pre_ts = ts
 		idts_file = os.path.join(dirname, "{}.idts".format(key))
@@ -220,13 +219,16 @@ if __name__ == '__main__':
 	statistics = {"count": 0, "flows": []}
 	for file in files:
 		debug("Parsing {}".format(file))
-		p = FilteredParser(file)
-		tcp,udp = p.parse()
-		for f in list(tcp.keys()):
+		try:
+			p = FilteredParser(file)
+			tcp,udp = p.parse()
+			for f in list(tcp.keys()):
 			# remove tcp handshake and other packet in which data len=0
-			tcp[f] = list(filter(lambda x: x[1] != 0, tcp[f]))
-		for f in list(udp.keys()):
-			udp[f] = list(filter(lambda x: x[1] != 0, udp[f]))
+				tcp[f] = list(filter(lambda x: x[1] != 0, tcp[f]))
+			for f in list(udp.keys()):
+				udp[f] = list(filter(lambda x: x[1] != 0, udp[f]))
+		except:
+			continue
 
 		generate_ditg_files(tcp, output_dir, statistics,file)
 		generate_ditg_files(udp, output_dir, statistics,file)

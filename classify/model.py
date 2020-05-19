@@ -2,7 +2,7 @@ from sklearn.tree import DecisionTreeClassifier
 from path_utils import get_prj_root
 from pathlib import Path
 import os
-from utils.common_utils import save_pkl,load_pkl
+from utils.common_utils import save_pkl,load_pkl,info
 import numpy as np
 import random
 
@@ -42,9 +42,11 @@ class DT(Classifier):
 		features=data[0]
 		y=data[1]
 		assert len(features)==len(y)
+		info("# instances {}".format(len(features)))
 		self.model.fit(features,y)
 
 	def predict(self,features):
+		info("# instances {}".format(len(features)))
 		return self.model.predict(features)
 
 	def save_model(self,fn_name):
