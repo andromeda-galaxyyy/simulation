@@ -69,6 +69,16 @@ func CopyMap(m map[string][]float64) (dst map[string][]float64)  {
 	return dst
 }
 
+func FilterFloat(nums []float64,test func(float64) bool) (filtered []float64){
+	for _,v:=range nums{
+		if !test(v){
+			continue
+		}
+		filtered=append(filtered,v)
+	}
+	return nums
+}
+
 
 //func CopyMap(m map[string]interface{}) map[string]interface{} {
 //	cp := make(map[string]interface{})

@@ -74,13 +74,9 @@ func init()  {
 func processStats(nums []float64) (min,max,mean float64)  {
 	min=math.MaxFloat64
 	max=-1
-	valid_count:=0
+
 	sum:=float64(0)
 	for _,v:=range nums{
-		if v<0{
-			continue
-		}
-		valid_count++
 		sum+=v
 		if v>max{
 			max=v
@@ -89,7 +85,7 @@ func processStats(nums []float64) (min,max,mean float64)  {
 			min=v
 		}
 	}
-	return min,max, sum/float64(valid_count)
+	return min,max, sum/float64(len(nums))
 }
 
 func mapStatsToFeatures(nums []float64) interface{}  {
@@ -100,6 +96,20 @@ func mapStatsToFeatures(nums []float64) interface{}  {
 func processFlowStats(ip string,port int,specifier [5]string,stats map[string][]float64){
 	pktSizes:=stats["pkt_size"]
 	idts:=stats["idt"]
+	idts=FilterFloat(idts, func(f float64) bool {
+		return f>0
+	})
+	if len(idts)==0{
+		return
+	}
+
+	pktSizes=FilterFloat(pktSizes, func(f float64) bool {
+		return f>=0
+	})
+	if len(pktSizes)==0{
+		return
+	}
+
 	minPktSize,maxPktSize,meanPktSize:=processStats(pktSizes)
 	stdvPktSize:=stat.StdDev(pktSizes,nil)
 	maxIdt,minIdt,meanIdt:=processStats(idts)
