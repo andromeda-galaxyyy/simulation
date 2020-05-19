@@ -80,7 +80,7 @@ def train_and_predict():
 	random.shuffle(iot)
 	random.shuffle(videos)
 	# train 3:1
-	iot_train = iot[:900]
+	iot_train = iot[:20000]
 	info("#iot train {}".format(len(iot_train)))
 	video_train = videos[:300]
 	info("#video train {}".format(len(video_train)))
@@ -93,7 +93,7 @@ def train_and_predict():
 
 	#test 1:1
 	test = []
-	iot_test = iot[900:986]
+	iot_test = iot[20000:20086]
 	info("#iot test {}".format(len(iot_test)))
 	video_test = videos[300:]
 	info("#video test {}".format(len(video_test)))
