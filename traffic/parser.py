@@ -122,9 +122,10 @@ class Parser:
 			flow_idx += 1
 		debug("#flows {}".format(len(filtered_flow)))
 
-		print(len(raw_pkts))
 		raw_pkts = list(filter(lambda x: x[0] in filtered_flow, raw_pkts))
 		debug("#raw valid pkts {}".format(len(raw_pkts)))
+		# filter packet with zero size
+		raw_pkts=list(filter(lambda pkt:pkt[1][1]!=0,raw_pkts))
 
 		#in nano seconds
 		timestamps = [(pkt[1][0])*1e9 for pkt in raw_pkts]
@@ -135,10 +136,11 @@ class Parser:
 				specifier=pkt[0]
 
 				flow_id = filtered_flow[specifier]
+				# 跟同一个流中 上一个包的时间差
 				if flow_id in last_ts_in_flow:
-					diff_two_pkt = timestamps[idx] - last_ts_in_flow[flow_id]
+					diff_two_pkt_in_same_flow = timestamps[idx] - last_ts_in_flow[flow_id]
 				else:
-					diff_two_pkt = -1
+					diff_two_pkt_in_same_flow = -1
 
 				last_ts_in_flow[flow_id] = timestamps[idx]
 
@@ -147,21 +149,27 @@ class Parser:
 					proto = "TCP"
 				else:
 					proto = "UDP"
+				#距离下一个包的时间
 				if idx == len(raw_pkts) - 1:
 					ts_diff = -1
 				else:
 					ts_diff = time_diffs[idx]
 
 				size = pkt[1][1]
-				fp.write("{} {} {} {} {}\n".format(ts_diff, size, proto, flow_id, diff_two_pkt))
+				fp.write("{} {} {} {} {}\n".format(ts_diff, size, proto, flow_id, diff_two_pkt_in_same_flow))
 			fp.flush()
 			fp.close()
 
 
 if __name__ == '__main__':
-	for file in os.listdir("/Volumes/DATA/dataset/converted_iot"):
+	parser=ArgumentParser()
+	parser.add_argument("--pcaps",help="pcap dir",default="/Volumes/DATA/dataset/converted_iot",type=str)
+	parser.add_argument("--output",help="output dir",default="/tmp/pkts",type=str)
+	args=parser.parse_args()
+
+	for file in os.listdir(args.pcaps):
 		if ".pcap" not in file:continue
-		fn=os.path.join("/Volumes/DATA/dataset/converted_iot",file)
+		fn=os.path.join(args.pcaps,file)
 		fname=file[:-5]
-		parser = Parser(fn, os.path.join("/tmp/pkts",fname+".pkts"))
+		parser = Parser(fn, os.path.join(args.output,fname+".pkts"))
 		parser.parse()
