@@ -92,6 +92,11 @@ func processStats(nums []float64) (min,max,mean float64)  {
 	return min,max, sum/float64(valid_count)
 }
 
+func mapStatsToFeatures(nums []float64) interface{}  {
+
+	return void{}
+}
+
 func processFlowStats(ip string,port int,specifier [5]string,stats map[string][]float64){
 	pktSizes:=stats["pkt_size"]
 	idts:=stats["idt"]
@@ -314,7 +319,7 @@ func (g *Generator)Start() (err error) {
 			}
 
 			if toSleep > 0 && g.Sleep {
-				nano := int(1e9 * toSleep)
+				nano := int(toSleep)
 				time.Sleep(time.Duration(nano) * time.Nanosecond)
 			}
 		}
