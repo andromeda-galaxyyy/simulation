@@ -122,7 +122,8 @@ class Parser:
 		raw_pkts = list(filter(lambda x: x[0] in filtered_flow, raw_pkts))
 		debug("#raw valid pkts {}".format(len(raw_pkts)))
 
-		timestamps = [pkt[1][0] for pkt in raw_pkts]
+		#in nano seconds
+		timestamps = [(pkt[1][0])*1e9 for pkt in raw_pkts]
 		time_diffs = [y - x for x, y in zip(timestamps, timestamps[1:])]
 		with open(self.out_fn, 'w') as fp:
 			for idx, pkt in enumerate(raw_pkts):
