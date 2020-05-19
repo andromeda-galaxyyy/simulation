@@ -70,7 +70,7 @@ class DTHandler(socketserver.BaseRequestHandler):
 		resp["res"]=res[0]
 		self.request.sendall(bytes(json.dumps(resp),"ascii"))
 
-			
+
 if __name__ == '__main__':
 	server = Server(1025, DumbHandler)
 	server.start()
