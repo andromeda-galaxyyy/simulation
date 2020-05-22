@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chandler.com/gogen/utils"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -15,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"chandler.com/gogen/utils"
 )
 
 type Generator struct {
@@ -209,9 +209,10 @@ func (g *Generator)Start() (err error) {
 	}
 	log.Printf("#pkt files %d\n",pktFileCount)
 	//shuffle
-	rand.Shuffle(len(pktFns), func(i, j int) {
-		pktFns[i],pktFns[j]=pktFns[j],pktFns[i]
-	})
+	//rand.Shuffle(len(pktFns), func(i, j int) {
+	//	pktFns[i],pktFns[j]=pktFns[j],pktFns[i]
+	//})
+	utils.ShuffleStrings(pktFns)
 
 	pktFileIdx:=0
 
@@ -394,6 +395,10 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 	}
 
 	return nil
+}
+
+func init()  {
+	rand.Seed(time.Now().UnixNano())
 }
 
 func (g *Generator)Init()  {

@@ -1,5 +1,7 @@
 package utils
 
+import "math/rand"
+
 type void struct {}
 var dumb void
 
@@ -77,6 +79,24 @@ func FilterFloat(nums []float64,test func(float64) bool) (filtered []float64){
 		filtered=append(filtered,v)
 	}
 	return nums
+}
+
+
+func ShuffleStrings(strs []string){
+	rand.Shuffle(len(strs), func(i, j int) {
+		strs[i],strs[j]=strs[j],strs[i]
+	})
+}
+
+func ShuffleFloats(fs []float64)  {
+	rand.Shuffle(len(fs), func(i, j int) {
+		fs[i],fs[j]=fs[j],fs[i]
+	})
+}
+func ShuffleInts(ints []int)  {
+	rand.Shuffle(len(ints), func(i, j int) {
+		ints[i],ints[j]=ints[j],ints[i]
+	})
 }
 
 

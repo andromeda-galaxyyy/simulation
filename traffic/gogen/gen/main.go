@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"chandler.com/gogen/utils"
-
 )
 
 
@@ -28,6 +27,7 @@ func main(){
 	sleep:=flag.Bool("sleep",true,"whether sleep between packets")
 	report:=flag.Bool("report",true,"whether report between packets")
 	delay:=flag.Bool("delay",true,"whether delay before packet injection")
+	
 
 
 	flag.Parse()
