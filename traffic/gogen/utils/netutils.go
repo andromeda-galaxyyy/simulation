@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"bytes"
@@ -59,18 +59,18 @@ func reverseStr(s string)string{
 
 func GenerateMAC(id int)(string,error){
 	id++
-	rawStr :=base16(id)
+	rawStr := base16(id)
 	//fmt.Println("raw str ",rawStr)
 	if len(rawStr)>12{
 		return "",errors.New("Invalid id")
 	}
-	rawStr =reverseStr(rawStr)
+	rawStr = reverseStr(rawStr)
 	toComplete :=12-len(rawStr)
 
 	for ; toComplete >0; toComplete--{
 		rawStr +="0"
 	}
-	rawStr=reverseStr(rawStr)
+	rawStr= reverseStr(rawStr)
 	//every two elements
 	var buffer bytes.Buffer
 	for i, r :=range rawStr {

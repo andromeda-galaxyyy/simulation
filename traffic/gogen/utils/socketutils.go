@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"encoding/json"
@@ -27,6 +27,6 @@ func SendMap(ip string,port int,content map[string]interface{}) error  {
 	if err!=nil{
 		return err
 	}
-	err=SendByte(ip,port,jsonBytes)
+	err= SendByte(ip,port,jsonBytes)
 	return err
 }

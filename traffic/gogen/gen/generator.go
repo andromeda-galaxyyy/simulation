@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"chandler.com/gogen/utils"
 )
 
 type Generator struct {
@@ -38,7 +39,7 @@ type Generator struct {
 	options gopacket.SerializeOptions
 	//flow-id ---> {pkt_size:[],idt:[]}
 	flowStats map[int]map[string][]float64
-    sentRecord *IntSet
+    sentRecord *utils.IntSet
 	buffer gopacket.SerializeBuffer
 	flowId2Port map[int][2]int
 
@@ -88,22 +89,22 @@ func processStats(nums []float64) (min,max,mean float64)  {
 	return min,max, sum/float64(len(nums))
 }
 
-func mapStatsToFeatures(nums []float64) interface{}  {
-
-	return void{}
-}
+//func mapStatsToFeatures(nums []float64) interface{}  {
+//
+//	return utils.
+//}
 
 func processFlowStats(ip string,port int,specifier [5]string,stats map[string][]float64){
 	pktSizes:=stats["pkt_size"]
 	idts:=stats["idt"]
-	idts=FilterFloat(idts, func(f float64) bool {
+	idts= utils.FilterFloat(idts, func(f float64) bool {
 		return f>0
 	})
 	if len(idts)==0{
 		return
 	}
 
-	pktSizes=FilterFloat(pktSizes, func(f float64) bool {
+	pktSizes= utils.FilterFloat(pktSizes, func(f float64) bool {
 		return f>=0
 	})
 	if len(pktSizes)==0{
@@ -128,7 +129,7 @@ func processFlowStats(ip string,port int,specifier [5]string,stats map[string][]
 		meanIdt,
 		stdvIdt,
 	}
-	err:=SendMap(ip,port, report)
+	err:= utils.SendMap(ip,port, report)
 	if err!=nil{
 		log.Fatalln(err)
 	}
@@ -157,13 +158,13 @@ func (g *Generator)Start() (err error) {
 	g.rawData=make([]byte,1600)
 
 	//self ip and mac
-	ipStr,err:=GenerateIP(g.ID)
+	ipStr,err:= utils.GenerateIP(g.ID)
 	if err!=nil{
 		log.Fatalf("Invalid generator id %d\n",g.ID)
 	}
 	ip:=net.ParseIP(ipStr)
 	ipv4.SrcIP=ip
-	macStr,err:=GenerateMAC(g.ID)
+	macStr,err:= utils.GenerateMAC(g.ID)
 	mac,_:=net.ParseMAC(macStr)
 	ether.SrcMAC=mac
 
@@ -175,12 +176,12 @@ func (g *Generator)Start() (err error) {
 	DstIPs:=make([]string,0)
 	DstMACs:=make([]string,0)
 	for _,dstId:=range g.DestinationIDs{
-		ip,err:=GenerateIP(dstId)
+		ip,err:= utils.GenerateIP(dstId)
 		if err!=nil{
 			log.Fatalf("Generator: %d Error when generate ip for %d",g.ID,dstId)
 		}
 		DstIPs=append(DstIPs,ip)
-		mac,err:=GenerateMAC(dstId)
+		mac,err:= utils.GenerateMAC(dstId)
 		if err!=nil{
 			log.Fatalf("Generator: %d Error when generate mac for %d",g.ID,dstId)
 		}
@@ -218,7 +219,7 @@ func (g *Generator)Start() (err error) {
 		g.reset()
 		//#read pkt file
 		pktFile:=path.Join(g.PktsDir,pktFns[pktFileIdx])
-		lines,err:=ReadLines(pktFile)
+		lines,err:= utils.ReadLines(pktFile)
 		//log.Printf("#lines %d",len(lines))
 		if err!=nil{
 			log.Fatalf("Error reading pkt file %s\n",pktFile)
@@ -318,7 +319,7 @@ func (g *Generator)Start() (err error) {
 							proto,
 						}
 						stats := g.flowStats[flowId]
-						go processFlowStats(g.ControllerIP, g.ControllerPort, specifier, CopyMap(stats))
+						go processFlowStats(g.ControllerIP, g.ControllerPort, specifier, utils.CopyMap(stats))
 						delete(g.flowStats, flowId)
 						g.sentRecord.Add(flowId)
 					} else {
@@ -397,7 +398,7 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 
 func (g *Generator)Init()  {
 	g.flowStats=make(map[int]map[string][]float64)
-	g.sentRecord=&IntSet{}
+	g.sentRecord=&utils.IntSet{}
 	g.buffer=gopacket.NewSerializeBuffer()
 	g.flowId2Port=make(map[int][2]int)
 	rand.Seed(time.Now().UnixNano())
@@ -405,9 +406,9 @@ func (g *Generator)Init()  {
 }
 
 func (g *Generator)reset(){
-	g.sentRecord=&IntSet{}
+	g.sentRecord=&utils.IntSet{}
 	g.flowStats=make(map[int]map[string][]float64)
-	g.sentRecord.init()
+	g.sentRecord.Init()
 	_=g.buffer.Clear()
 	g.flowId2Port=make(map[int][2]int)
 }

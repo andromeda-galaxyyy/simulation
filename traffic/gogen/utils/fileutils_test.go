@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ func TestDirExists(t *testing.T) {
 	}
 }
 func TestReadLines(t *testing.T) {
-	lines,err:=ReadLines("/tmp/pkts/pkts.pkts")
+	lines,err:= ReadLines("/tmp/pkts/pkts.pkts")
 	if err!=nil{
 		t.Fatal("Wrong!")
 	}else{

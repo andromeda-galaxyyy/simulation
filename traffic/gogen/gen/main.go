@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"chandler.com/gogen/utils"
+
 )
 
 
@@ -30,10 +32,10 @@ func main(){
 
 	flag.Parse()
 
-	if !FileExist(*dstIdFn){
+	if !utils.FileExist(*dstIdFn){
 		log.Fatal(fmt.Sprintf("File not exists %s\n", *dstIdFn))
 	}
-	if !DirExists(*pktDir){
+	if !utils.DirExists(*pktDir){
 		log.Fatal(fmt.Sprintf("Dir not exists %s\n", *pktDir))
 	}
 	dstIds:=make([]int,0)

@@ -1,4 +1,4 @@
-package main
+package utils
 
 type void struct {}
 var dumb void
@@ -11,7 +11,7 @@ func (set *StringSet)init(){
 	set.content=make(map[string]void)
 }
 func (set *StringSet)Add(s string)  {
-	set.content[s]=dumb
+	set.content[s]= dumb
 }
 func (set *StringSet)Del(s string)  {
 	delete(set.content,s)
@@ -21,14 +21,14 @@ func (set *StringSet)Contains(s string) bool {
 	return exits
 }
 
-func NewStringSet() *StringSet  {
+func NewStringSet() *StringSet {
 	return &StringSet{
 		content: make(map[string]void),
 	}
 }
 
 type IntSet struct {
-	content map[int] void
+	content map[int]void
 }
 
 func NewIntSet() *IntSet {
@@ -37,12 +37,12 @@ func NewIntSet() *IntSet {
 	}
 }
 
-func (set *IntSet) init()  {
+func (set *IntSet) Init()  {
 	set.content= make(map[int]void)
 }
 
 func (set *IntSet)Add(i int)  {
-	set.content[i]=dumb
+	set.content[i]= dumb
 }
 func (set *IntSet)Del(i int)  {
 	delete(set.content,i)
@@ -64,7 +64,7 @@ func CopySlice(src []float64) (dst []float64)  {
 func CopyMap(m map[string][]float64) (dst map[string][]float64)  {
 	dst=make(map[string][]float64)
 	for k,v:=range m{
-		dst[k]=CopySlice(v)
+		dst[k]= CopySlice(v)
 	}
 	return dst
 }
