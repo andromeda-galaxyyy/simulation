@@ -177,5 +177,7 @@ traffic/DITG/.idea
 traffic/DITG/bin
 *.pkl
 *.hdf5
-gogen
+traffic/gogen/gogen
+traffic/gogen/golisten/golisten
+traffic/gogen/pkts
 *.hostids
