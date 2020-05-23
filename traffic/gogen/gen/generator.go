@@ -148,6 +148,7 @@ func (g *Generator)Start() (err error) {
 	}
 	log.Printf("Start to generate")
 	nDsts:=len(g.DestinationIDs)
+	utils.ShuffleInts(g.DestinationIDs)
 	//init handler
 	handle,err:=pcap.OpenLive(g.Int,1024,false,g.timeout)
 	if err!=nil{
