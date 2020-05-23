@@ -122,9 +122,9 @@ func (l *Listener)Start()  {
 	packetSource:=gopacket.NewPacketSource(handle,handle.LinkType())
 	//todo set filter
 	if l.EnableWorkers{
+		log.Println("Dispatching")
 		for packet:=range packetSource.Packets(){
 			if net:=packet.NetworkLayer();net!=nil{
-				log.Println("Dispatching")
 				l.packetChannels[int(net.NetworkFlow().FastHash())&(l.NWorker-1)]<-packet
 			}
 		}
@@ -138,8 +138,18 @@ func (l *Listener)Start()  {
 }
 
 func (l *Listener)Init()  {
+	var roundUp = func(n int) int {
+		n=n-1
+		for;n&(n-1)!=0;{
+			n=n&(n-1)
+		}
+		return n*2
+	}
 	//init channel
 	if l.EnableWorkers{
+
+		l.NWorker=roundUp(l.NWorker)
+		log.Printf("Listener get workers enabled, #workers: %d\n",l.NWorker)
 		l.workers=make([]*Worker,l.NWorker)
 		l.packetChannels=make([]chan gopacket.Packet,l.NWorker)
 		//TODO win size

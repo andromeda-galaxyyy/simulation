@@ -20,7 +20,11 @@ func main()  {
 	dstSubnet:=flag.String("dst","172.16.181.0/24","Destination host subnet")
 	sportRange:=flag.String("srange","1500-65535","Source port range")
 	dportRange:=flag.String("drange","1500-65535","Destination port range")
-	
+	flag.Parse()
+	if *enableWorkers&&!(*nworker>0){
+		err=errors.New(fmt.Sprintf("Invalid number of worker: %d",*nworker))
+	}
+
 	sports:=strings.Split(*sportRange,"-")
 	if len(sports)!=2{
 		err=errors.New(fmt.Sprintf("Invalid sport range: %s",*sportRange))
