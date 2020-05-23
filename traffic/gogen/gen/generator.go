@@ -33,6 +33,10 @@ type Generator struct {
 	Report bool
 	Delay bool
 
+	//whether add timestamp to transport layer payload
+	addTimeStamp bool
+	timestampWindow int
+
 	rawData []byte
 	handle *pcap.Handle
 	timeout time.Duration
@@ -43,6 +47,14 @@ type Generator struct {
 	buffer gopacket.SerializeBuffer
 	flowId2Port map[int][2]int
 
+	//TODO 设置没100个包，携带timestamp，防止长时间的流超过流表项的生存时间
+	// whether the flow has finish sent timestamps
+	flowTimestampAddRecord *utils.IntSet
+	// count times flow has send timestamp
+	flowTimestampCount map[int]int
+
+	//bytes to change
+
 }
 
 var (
@@ -50,6 +62,7 @@ var (
 	ipv4 *layers.IPv4
 	tcp *layers.TCP
 	udp *layers.UDP
+	payloadPerPacketSize int
 )
 
 
@@ -274,17 +287,33 @@ func (g *Generator)Start() (err error) {
 				g.flowId2Port[flowId]=[2]int{srcPort,dstPort}
 			}
 
-
-
-
 			ether.DstMAC=dstMAC
 			ipv4.DstIP=dstIP
+
+			addTs:=false
+			if g.addTimeStamp{
+				// process flow timestamps
+				// 这条流没有完成打标签
+				if !g.flowTimestampAddRecord.Contains(flowId){
+					addTs=true
+					count:=size/payloadPerPacketSize
+					if size%payloadPerPacketSize>=8{
+						count++
+					}
+					g.flowTimestampCount[flowId]+=count
+				}
+				//这条流完成了打标签
+				if g.flowTimestampCount[flowId]>=g.WinSize{
+					g.flowTimestampAddRecord.Add(flowId)
+				}
+			}
+
 
 			if proto=="TCP"{
 				tcp.SrcPort= layers.TCPPort(srcPort)
 				tcp.DstPort= layers.TCPPort(dstPort)
 				ipv4.Protocol=6
-				err=g.send(size,ether,ipv4,tcp,nil,true)
+				err=g.send(size,ether,ipv4,tcp,nil,true,addTs)
 				if err!=nil{
 					log.Fatal(err)
 				}
@@ -292,11 +321,13 @@ func (g *Generator)Start() (err error) {
 				udp.SrcPort= layers.UDPPort(srcPort)
 				udp.DstPort= layers.UDPPort(dstPort)
 				ipv4.Protocol=17
-				err=g.send(size,ether,ipv4,nil,udp,false)
+				err=g.send(size,ether,ipv4,nil,udp,false,addTs)
 				if err!=nil{
 					log.Fatal(err)
 				}
 			}
+
+
 			_, exits := g.flowStats[flowId]
 			if !exits {
 				g.flowStats[flowId] = map[string][]float64{
@@ -312,7 +343,6 @@ func (g *Generator)Start() (err error) {
 					//collect stats
 					if len(g.flowStats[flowId]["pkt_size"]) == g.WinSize {
 						//ok
-						g.sentRecord.Add(flowId)
 						specifier := [5]string{
 							fmt.Sprintf("%d", srcPort),
 							fmt.Sprintf("%d", dstPort),
@@ -343,14 +373,20 @@ func (g *Generator)Start() (err error) {
 }
 
 //udp fragmentation
-func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP,udp *layers.UDP,isTCP bool) (err error){
+func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP,udp *layers.UDP,isTCP bool,addTs bool) (err error){
 	payloadPerPacketSize:=g.MTU-g.EmptySize
 	count:=payloadSize/payloadPerPacketSize
 
 	buffer:=g.buffer
 	for ;count>0;count--{
 		_ = buffer.Clear()
+		//assume payload per packet is larger than 8
 		payLoadPerPacket:=g.rawData[:payloadPerPacketSize]
+		if g.addTimeStamp&& payloadPerPacketSize>=8 &&addTs{
+			nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
+			utils.Copy(payLoadPerPacket,0,nowMilliSeconds,0,8)
+		}
+
 		payloadSize-=payloadPerPacketSize
 		if isTCP{
 			err=gopacket.SerializeLayers(buffer,g.options,ether,ip,tcp,gopacket.Payload(payLoadPerPacket))
@@ -374,8 +410,16 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 	}
 
 	_=buffer.Clear()
+	payload:=g.rawData[:payloadSize]
+	if g.addTimeStamp&&addTs{
+		if payloadSize>=8{
+			nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
+			utils.Copy(payload,0,nowMilliSeconds,0,8)
+		}
+	}
+
 	if isTCP{
-		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,tcp,gopacket.Payload(g.rawData[:payloadSize]))
+		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,tcp,gopacket.Payload(payload))
 		if err!=nil{
 			return err
 		}
@@ -384,7 +428,7 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 			return err
 		}
 	}else{
-		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,udp,gopacket.Payload(g.rawData[:payloadSize]))
+		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,udp,gopacket.Payload(payload))
 		if err!=nil{
 			return err
 		}
@@ -392,7 +436,6 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 		if err!=nil{
 			return err
 		}
-
 	}
 
 	return nil
@@ -403,11 +446,21 @@ func init()  {
 }
 
 func (g *Generator)Init()  {
+	g.options.FixLengths=true
+	payloadPerPacketSize=g.MTU-g.EmptySize
 	g.flowStats=make(map[int]map[string][]float64)
 	g.sentRecord=&utils.IntSet{}
 	g.buffer=gopacket.NewSerializeBuffer()
 	g.flowId2Port=make(map[int][2]int)
+
+	g.flowTimestampAddRecord=&utils.IntSet{}
+	g.flowTimestampAddRecord.Init()
+	g.flowTimestampCount=make(map[int]int)
+
 	rand.Seed(time.Now().UnixNano())
+	//todo export this field
+	g.addTimeStamp=true
+	g.timestampWindow=5
 
 }
 
@@ -417,5 +470,9 @@ func (g *Generator)reset(){
 	g.sentRecord.Init()
 	_=g.buffer.Clear()
 	g.flowId2Port=make(map[int][2]int)
+
+	g.flowTimestampAddRecord=&utils.IntSet{}
+	g.flowTimestampAddRecord.Init()
+	g.flowTimestampCount=make(map[int]int)
 }
 

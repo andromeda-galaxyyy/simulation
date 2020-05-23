@@ -7,13 +7,15 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+	"log"
 	"net"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
-	rawBytes       [1600] byte
+	rawBytes       [] byte
 	buffer         gopacket.SerializeBuffer
 	etherLayer     *layers.Ethernet
 	ipv4Layer      *layers.IPv4
@@ -26,6 +28,7 @@ var (
 func init()  {
 	buffer=gopacket.NewSerializeBuffer()
 	defaultOptions=&gopacket.SerializeOptions{}
+	defaultOptions.FixLengths=true
 	etherLayer = &layers.Ethernet{
 		EthernetType: 0x800,
 	}
@@ -40,6 +43,7 @@ func init()  {
 	}
 	tcpLayer=&layers.TCP{}
 	udpLayer=&layers.UDP{}
+	rawBytes=make([]byte,1600)
 }
 
 func GenerateIP(id int) (string,error){
@@ -119,11 +123,18 @@ func GenerateMAC(id int)(string,error){
 
 
 func send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP,udp *layers.UDP,isTCP bool,handle *pcap.Handle,options *gopacket.SerializeOptions) (err error){
+	nowInMilli:=Int64ToBytes(time.Now().UnixNano()/1e6)
+	log.Println(nowInMilli)
+	Copy(rawBytes,0,nowInMilli,0,8)
+
+	//log.Println(rawBytes[:payloadSize])
+
 		if isTCP{
 			err=gopacket.SerializeLayers(buffer,*options,ether,ip,tcp,gopacket.Payload(rawBytes[:payloadSize]))
 			if err!=nil{
 				return err
 			}
+
 			err=handle.WritePacketData(buffer.Bytes())
 			if err!=nil{
 				return err
@@ -141,7 +152,8 @@ func send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP
 	return nil
 }
 
-//a function to send raw bytes for test only
+//a function to send raw bytes
+//for test only
 func Send(specifier [5]string,smac,dmac string,payloadSize int,handle *pcap.Handle) error {
 	sport,err:=strconv.Atoi(specifier[0])
 	if err!=nil{

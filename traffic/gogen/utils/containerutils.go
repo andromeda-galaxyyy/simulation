@@ -1,6 +1,8 @@
 package utils
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 type void struct {}
 var dumb void
@@ -22,6 +24,7 @@ func (set *StringSet)Contains(s string) bool {
 	_,exits:=set.content[s]
 	return exits
 }
+
 
 func NewStringSet() *StringSet {
 	return &StringSet{
@@ -53,6 +56,25 @@ func (set *IntSet)Del(i int)  {
 func (set *IntSet)Contains(i int)  bool {
 	_,exits:=set.content[i]
 	return exits
+}
+
+type SpecifierSet struct {
+	content map[[5]string]void
+}
+
+func (set *SpecifierSet)Contains(specifier *[5]string) bool  {
+	_,exsits:=set.content[*specifier]
+	return exsits
+}
+func (set *SpecifierSet)Add(specifier *[5]string)  {
+	set.content[*specifier]=dumb
+}
+
+func (set *SpecifierSet)Del(specifier *[5]string)  {
+	delete(set.content,*specifier)
+}
+func NewSpecifierSet() *SpecifierSet{
+	return &SpecifierSet{content: make(map[[5]string]void)}
 }
 
 func CopySlice(src []float64) (dst []float64)  {
@@ -99,6 +121,12 @@ func ShuffleInts(ints []int)  {
 	})
 }
 
+//todo correctness check
+func Copy(dst []byte,dstStart int,src []byte,srcStart,n int){
+	for i:=0;i<n;i++{
+		dst[dstStart+i]=src[srcStart+i]
+	}
+}
 
 //func CopyMap(m map[string]interface{}) map[string]interface{} {
 //	cp := make(map[string]interface{})
