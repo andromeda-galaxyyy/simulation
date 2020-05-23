@@ -48,45 +48,6 @@ func Init()  {
 	rawBytes=make([]byte,1600)
 }
 
-func send_tcp(data []byte,
-	tcpLayer *layers.TCP,
-	ipv4Layer *layers.IPv4,
-	ethernetLayer *layers.Ethernet) (err error) {
-
-	buffer := gopacket.NewSerializeBuffer()
-	gopacket.SerializeLayers(buffer, options,
-		tcpLayer,
-		gopacket.Payload(data),
-	)
-	return send_ipv4(buffer.Bytes(), ipv4Layer, ethernetLayer)
-}
-
-func send_ipv4(data []byte,
-	ipv4Layer *layers.IPv4,
-	ethernetLayer *layers.Ethernet) (err error) {
-
-	buffer_ipv4 := gopacket.NewSerializeBuffer()
-	gopacket.SerializeLayers(buffer_ipv4, options,
-		ipv4Layer,
-		gopacket.Payload(data),
-	)
-	return send_ethernet(buffer_ipv4.Bytes(), ethernetLayer)
-}
-
-func send_ethernet(data []byte,
-	ethernetLayer *layers.Ethernet) (err error) {
-
-	buffer_ethernet := gopacket.NewSerializeBuffer()
-	gopacket.SerializeLayers(buffer_ethernet, options,
-		ethernetLayer,
-		gopacket.Payload(data),
-	)
-	err = handle.WritePacketData(buffer_ethernet.Bytes())
-	if err != nil {
-		log.Fatal(err)
-	}
-	return err
-}
 
 func TestListener_Start(t *testing.T) {
 	//Init()
@@ -110,34 +71,5 @@ func TestListener_Start(t *testing.T) {
 	if err!=nil{
 		log.Fatal(err)
 	}
-	//sport,err:=strconv.Atoi(specifier[0])
-	//if err!=nil{
-	//	log.Fatalln(err)
-	//}
-	//dport,err:=strconv.Atoi(specifier[1])
-	//if err!=nil{
-	//	log.Fatalln(err)
-	//}
-	//sip:=specifier[2]
-	//dip:=specifier[3]
-	//proto:=specifier[4]
-	//tcp:= proto=="TCP"
-	//srcMac,_:=net.ParseMAC(smac)
-	//dstMac,_:=net.ParseMAC(dmac)
-	//etherLayer.SrcMAC=srcMac
-	//etherLayer.DstMAC=dstMac
-	//
-	//ipv4Layer.SrcIP=net.ParseIP(sip)
-	//ipv4Layer.DstIP=net.ParseIP(dip)
-	//if tcp{
-	//	ipv4Layer.Protocol=6
-	//	tcpLayer.SrcPort=layers.TCPPort(sport)
-	//	tcpLayer.DstPort=layers.TCPPort(dport)
-	//
-	//}else{
-	//	ipv4Layer.Protocol=17
-	//	udpLayer.SrcPort=layers.UDPPort(sport)
-	//	udpLayer.DstPort=layers.UDPPort(dport)
-	//}
-	//send_tcp([]byte{1,2,3,4},tcpLayer,ipv4Layer,etherLayer)
+
 }
