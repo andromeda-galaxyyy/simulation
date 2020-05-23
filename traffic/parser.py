@@ -59,6 +59,7 @@ class Parser:
 
 		flow_idx = 1
 		flow_sizes = defaultdict(lambda: 0)
+		num_pkts=defaultdict(lambda :0)
 		# 删除反向的流
 		for ts, buf in pcap:
 			try:
@@ -90,7 +91,9 @@ class Parser:
 			if dport==67:continue
 			proto = ip.p
 			specifier = (sip, sport, dip, dport, proto)
+			if len(l4.data)==0:continue
 			flow_sizes[specifier] + len(l4.data)
+			num_pkts[specifier]+=1
 			raw_pkts.append((specifier, (ts, len(l4.data))))
 
 		# flow_id
@@ -156,7 +159,7 @@ class Parser:
 					ts_diff = time_diffs[idx]
 
 				size = pkt[1][1]
-				fp.write("{} {} {} {} {}\n".format(ts_diff, size, proto, flow_id, diff_two_pkt_in_same_flow))
+				fp.write("{} {} {} {} {} {}\n".format(ts_diff, size, proto, flow_id, diff_two_pkt_in_same_flow,num_pkts[specifier]))
 			fp.flush()
 			fp.close()
 
