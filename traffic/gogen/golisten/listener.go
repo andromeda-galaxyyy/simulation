@@ -43,9 +43,12 @@ type Worker struct {
 	//some private fields
 }
 
-func printPacket(packet *gopacket.Packet)  {
+func processPacket(packet *gopacket.Packet)  {
 	//sport,dport,sip,dip,proto
 	ipLayer:=(*packet).Layer(layers.LayerTypeIPv4)
+	//meta:=(*packet).Metadata()
+	//captureInfo:=meta.CaptureInfo
+	//log.Println(captureInfo.Timestamp.UnixNano()/1e6)
 	if ipLayer ==nil{
 		return
 	}
@@ -84,7 +87,7 @@ func printPacket(packet *gopacket.Packet)  {
 
 func (w *Worker)start(packetChannel chan gopacket.Packet)  {
 	for packet:=range packetChannel{
-		printPacket(&packet)
+		processPacket(&packet)
 	}
 }
 
@@ -131,7 +134,7 @@ func (l *Listener)Start()  {
 	}else{
 		//disable worker
 		for packet:=range packetSource.Packets(){
-			printPacket(&packet)
+			processPacket(&packet)
 		}
 	}
 
