@@ -60,6 +60,7 @@ type Generator struct {
 
 var (
 	ether *layers.Ethernet
+	vlan *layers.Dot1Q
 	ipv4 *layers.IPv4
 	tcp *layers.TCP
 	udp *layers.UDP
@@ -67,11 +68,13 @@ var (
 )
 
 
-
-
 func init()  {
+	vlan=&layers.Dot1Q{
+		VLANIdentifier: 3,
+		Type: layers.EthernetTypeIPv4,
+	}
 	ether= &layers.Ethernet{
-		EthernetType: 0x800,
+		EthernetType: layers.EthernetTypeDot1Q,
 	}
 	ipv4= &layers.IPv4{
 		Version:    4,   //uint8
@@ -103,10 +106,7 @@ func processStats(nums []float64) (min,max,mean float64)  {
 	return min,max, sum/float64(len(nums))
 }
 
-//func mapStatsToFeatures(nums []float64) interface{}  {
-//
-//	return utils.
-//}
+
 
 func processFlowStats(ip string,port int,specifier [5]string,stats map[string][]float64){
 	pktSizes:=stats["pkt_size"]
@@ -275,6 +275,7 @@ func (g *Generator)Start() (err error) {
 			}
 			isLastL4Payload :=false
 			if last>0{
+				log.Printf("Flow %d finished\n",flowId)
 				isLastL4Payload =true
 			}
 
@@ -319,7 +320,7 @@ func (g *Generator)Start() (err error) {
 				tcp.SrcPort= layers.TCPPort(srcPort)
 				tcp.DstPort= layers.TCPPort(dstPort)
 				ipv4.Protocol=6
-				err=g.send(size,ether,ipv4,tcp,nil,true,addTs, isLastL4Payload)
+				err=g.send(size,true,addTs, isLastL4Payload)
 				if err!=nil{
 					log.Fatal(err)
 				}
@@ -327,7 +328,7 @@ func (g *Generator)Start() (err error) {
 				udp.SrcPort= layers.UDPPort(srcPort)
 				udp.DstPort= layers.UDPPort(dstPort)
 				ipv4.Protocol=17
-				err=g.send(size,ether,ipv4,nil,udp,false,addTs, isLastL4Payload)
+				err=g.send(size,false,addTs,isLastL4Payload)
 				if err!=nil{
 					log.Fatal(err)
 				}
@@ -378,9 +379,8 @@ func (g *Generator)Start() (err error) {
 
 }
 
-//udp fragmentation
 // 前8个byte记录时间戳，后一个byte最高位表示流是否结束，后几位表示流的种类，是否需要记录时间戳
-func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP,udp *layers.UDP,isTCP bool,addTs bool,lastPayload bool) (err error){
+func (g *Generator) send(payloadSize int,isTCP bool,addTs bool,lastPayload bool) (err error) {
 	payloadPerPacketSize:=g.MTU-g.EmptySize
 	count:=payloadSize/payloadPerPacketSize
 
@@ -409,7 +409,7 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 
 		payloadSize-=payloadPerPacketSize
 		if isTCP{
-			err=gopacket.SerializeLayers(buffer,g.options,ether,ip,tcp,gopacket.Payload(payLoadPerPacket))
+			err=gopacket.SerializeLayers(buffer,g.options,ether,vlan,ipv4,tcp,gopacket.Payload(payLoadPerPacket))
 			if err!=nil{
 				return err
 			}
@@ -418,7 +418,7 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 				return err
 			}
 		}else{
-			err=gopacket.SerializeLayers(buffer,g.options,ether,ip,udp,gopacket.Payload(payLoadPerPacket))
+			err=gopacket.SerializeLayers(buffer,g.options,ether,vlan,ipv4,udp,gopacket.Payload(payLoadPerPacket))
 			if err!=nil{
 				return err
 			}
@@ -449,7 +449,7 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 	}
 
 	if isTCP{
-		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,tcp,gopacket.Payload(leftPayload))
+		err=gopacket.SerializeLayers(buffer,g.options,ether,vlan,ipv4,tcp,gopacket.Payload(leftPayload))
 		if err!=nil{
 			return err
 		}
@@ -458,7 +458,7 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 			return err
 		}
 	}else{
-		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,udp,gopacket.Payload(leftPayload))
+		err=gopacket.SerializeLayers(buffer,g.options,ether,vlan,ipv4,udp,gopacket.Payload(leftPayload))
 		if err!=nil{
 			return err
 		}
@@ -470,6 +470,9 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 
 	return nil
 }
+
+
+
 
 func init()  {
 	rand.Seed(time.Now().UnixNano())

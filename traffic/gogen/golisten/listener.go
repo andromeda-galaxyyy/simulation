@@ -114,6 +114,7 @@ func (worker *Worker)processPacket(packet *gopacket.Packet)  {
 		//must copied
 		go processPktDelays(specifier,utils.CopyInt64Slice(worker.flowDelay[specifier]))
 		//delete
+		log.Println("flow finished")
 		delete(worker.flowDelay,specifier)
 	}
 

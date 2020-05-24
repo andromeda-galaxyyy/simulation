@@ -7,7 +7,6 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
-	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -23,6 +22,7 @@ var (
 	udpLayer       *layers.UDP
 	defaultOptions *gopacket.SerializeOptions
 	err error
+	vlan *layers.Dot1Q
 )
 
 func init()  {
@@ -30,7 +30,7 @@ func init()  {
 	defaultOptions=&gopacket.SerializeOptions{}
 	defaultOptions.FixLengths=true
 	etherLayer = &layers.Ethernet{
-		EthernetType: 0x800,
+		EthernetType: layers.EthernetTypeDot1Q,
 	}
 	ipv4Layer = &layers.IPv4{
 		Version:    4,   //uint8
@@ -44,6 +44,10 @@ func init()  {
 	tcpLayer=&layers.TCP{}
 	udpLayer=&layers.UDP{}
 	rawBytes=make([]byte,1600)
+	vlan=&layers.Dot1Q{
+		VLANIdentifier: 3,
+		Type: layers.EthernetTypeIPv4,
+	}
 }
 
 func GenerateIP(id int) (string,error){
@@ -123,8 +127,9 @@ func GenerateMAC(id int)(string,error){
 
 
 func send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP,udp *layers.UDP,isTCP bool,handle *pcap.Handle,options *gopacket.SerializeOptions) (err error){
+
 	nowInMilli:=Int64ToBytes(time.Now().UnixNano()/1e6)
-	log.Println(nowInMilli)
+	//log.Println(nowInMilli)
 	Copy(rawBytes,0,nowInMilli,0,8)
 	rawBytes[8]=SetBit(byte(0),7)
 	rawBytes[8]=UnsetBit(byte(0),7)
@@ -132,7 +137,7 @@ func send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP
 	//log.Println(rawBytes[:payloadSize])
 
 		if isTCP{
-			err=gopacket.SerializeLayers(buffer,*options,ether,ip,tcp,gopacket.Payload(rawBytes[:payloadSize]))
+			err=gopacket.SerializeLayers(buffer,*options,ether,vlan,ip,tcp,gopacket.Payload(rawBytes[:payloadSize]))
 			if err!=nil{
 				return err
 			}
@@ -142,7 +147,7 @@ func send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP
 				return err
 			}
 		}else{
-			err=gopacket.SerializeLayers(buffer,*options,ether,ip,udp,gopacket.Payload(rawBytes[:payloadSize]))
+			err=gopacket.SerializeLayers(buffer,*options,ether,vlan,ip,udp,gopacket.Payload(rawBytes[:payloadSize]))
 			if err!=nil{
 				return err
 			}

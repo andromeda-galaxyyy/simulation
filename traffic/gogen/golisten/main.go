@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"strconv"
 	"strings"
@@ -13,6 +14,11 @@ var (
 )
 
 func main()  {
+	debug:=flag.Bool("debug",true,"enable debug mode")
+	if !(*debug){
+		log.SetOutput(ioutil.Discard)
+	}
+
 	intf:=flag.String("intf","ens33","Interface to listen")
 	nworker:=flag.Int("worker",8,"Number of listener workers")
 	enableWorkers:=flag.Bool("enable_workers",true,"Whether enable multiple workers")
