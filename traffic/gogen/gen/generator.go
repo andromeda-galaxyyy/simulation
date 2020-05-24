@@ -92,9 +92,13 @@ func init()  {
 func processStats(nums []float64) (min,max,mean float64)  {
 	min=math.MaxFloat64
 	max=-1
-
+	validCount:=0
 	sum:=float64(0)
 	for _,v:=range nums{
+		if v<=0{
+			continue
+		}
+		validCount++
 		sum+=v
 		if v>max{
 			max=v
@@ -103,7 +107,7 @@ func processStats(nums []float64) (min,max,mean float64)  {
 			min=v
 		}
 	}
-	return min,max, sum/float64(len(nums))
+	return min,max, sum/float64(validCount)
 }
 
 
