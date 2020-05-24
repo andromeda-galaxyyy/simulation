@@ -33,6 +33,7 @@ func main(){
 	sleep:=flag.Bool("sleep",true,"whether sleep between packets")
 	report:=flag.Bool("report",true,"whether report between packets")
 	delay:=flag.Bool("delay",true,"whether delay before packet injection")
+	delayTime:=flag.Int("delaytime",30,"delay time")
 
 
 
@@ -105,6 +106,7 @@ func main(){
 			Sleep: *sleep,
 			Report: *report,
 			Delay: *delay,
+			DelayTime: *delayTime,
 		}
 		generator.Init()
 		err=generator.Start()

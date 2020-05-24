@@ -32,6 +32,7 @@ type Generator struct {
 	Sleep bool
 	Report bool
 	Delay bool
+	DelayTime int
 
 	//whether add timestamp to transport layer payload
 	addTimeStamp bool
@@ -163,6 +164,7 @@ func randomFlowIdToPort(flowId int) (sport,dport int){
 func (g *Generator)Start() (err error) {
 	if g.Delay{
 		time.Sleep(time.Millisecond*time.Duration(rand.Intn(10000)))
+		time.Sleep(time.Second*time.Duration(g.DelayTime))
 	}
 	log.Printf("Start to generate")
 	nDsts:=len(g.DestinationIDs)
