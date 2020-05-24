@@ -186,7 +186,7 @@ class TopoManager:
 			dstIdFn=os.path.join(topo_dir,"{}.hostids".format(idx))
 			# pkt_dir="/home/stack/code/graduate/sim/system/traffic/gogen/pkts"
 			pkt_dir=os.path.join(get_prj_root(),"../traffic/gogen/pkts")
-			comands="nohup {} {} --id {} --dst_id {} --pkts {} --mtu 1500 -emppkt 60 --int h{}-eth0 " \
+			comands="nohup {} {} --id {} --dst_id {} --pkts {} --mtu 1500 -emppkt 64 --int h{}-eth0 " \
 			        "--ws {} --cip {} --cport {} >/tmp/{}.gen.log 2>&1 &".format(
 				script,
 				generator,
