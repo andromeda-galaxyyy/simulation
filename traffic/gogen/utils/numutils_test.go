@@ -16,3 +16,20 @@ func TestInt64ToBytes(t *testing.T) {
 	fmt.Println(n)
 }
 
+func TestSetBit(t *testing.T) {
+	b:=byte(0)
+	b=SetBit(b,7)
+	fmt.Println(b)
+	fmt.Println(GetBit(b,7)==1)
+	b=UnsetBit(b,7)
+	fmt.Println(b)
+	fmt.Println(GetBit(b,7))
+}
+
+func TestGetBit(t *testing.T) {
+	b:=byte(128)
+	fmt.Println(GetBit(b,7)==1)
+	b=byte(127)
+	fmt.Println(GetBit(b,7)==0)
+}
+

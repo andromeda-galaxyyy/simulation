@@ -26,6 +26,7 @@ topo_dir = os.path.join(get_prj_root(), "files")
 
 generator = os.path.join(get_prj_root(), "../traffic/gogen/gen/gen")
 script=os.path.join(get_prj_root(),"../traffic/never.stop.sh")
+listener=os.path.join(get_prj_root(),"../traffic/gogen/golisten/golisten")
 
 def generate_ip(id):
 	id = int(id) + 1
@@ -175,6 +176,10 @@ class TopoManager:
 		for host in self.hosts:
 			pass
 			host.cmd("route add default gw 10.0.255.254")
+		for idx,host in enumerate(self.hosts):
+			commands="nohup {} --intf h{}-eth0 --src 10.0.0.0/8 --dst 10.0.0.0/8 >/tmp/{}.listener.log 2>&1 &".format(listener,idx,idx)
+			host.cmd(commands)
+		time.sleep(3)
 
 		for idx, host in enumerate(self.hosts):
 			# dstIdFn="/home/stack/code/graduate/sim/system/topo/files/{}.hostids".format(idx)
@@ -201,6 +206,7 @@ class TopoManager:
 		CLI(net)
 		for idx, host in enumerate(self.hosts):
 			host.cmd("pkill -f gogen")
+			host.cmd("pkill -f golisten")
 
 		net.stop()
 

@@ -77,7 +77,7 @@ func NewSpecifierSet() *SpecifierSet{
 	return &SpecifierSet{content: make(map[[5]string]void)}
 }
 
-func CopySlice(src []float64) (dst []float64)  {
+func CopyFloatSlice(src []float64) (dst []float64)  {
 	dst=make([]float64,len(src))
 	for idx,v:=range src{
 		dst[idx]=v
@@ -88,7 +88,7 @@ func CopySlice(src []float64) (dst []float64)  {
 func CopyMap(m map[string][]float64) (dst map[string][]float64)  {
 	dst=make(map[string][]float64)
 	for k,v:=range m{
-		dst[k]= CopySlice(v)
+		dst[k]= CopyFloatSlice(v)
 	}
 	return dst
 }
@@ -109,6 +109,14 @@ func ShuffleStrings(strs []string){
 		strs[i],strs[j]=strs[j],strs[i]
 	})
 }
+
+func CopyInt64Slice(src []int64)(dst []int64)  {
+	for _,v:=range src{
+		dst=append(dst,v)
+	}
+	return
+}
+
 
 func ShuffleFloats(fs []float64)  {
 	rand.Shuffle(len(fs), func(i, j int) {

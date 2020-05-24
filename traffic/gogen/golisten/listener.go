@@ -19,7 +19,6 @@ var (
 	snapshot_len int32 =1024
 	promiscuous          = false
 	timeout      =30*time.Second
-	specifier    =[5]string{}
 	sport,dport,sip,dip,proto string
 )
 
@@ -36,6 +35,8 @@ type Listener struct {
 
 	workers []*Worker
 	packetChannels []chan gopacket.Packet
+	//TODO export this field
+	channelSize int64
 
 	//delay sample size
 	//延迟采样大小
@@ -45,21 +46,23 @@ type Listener struct {
 
 type Worker struct {
 	//观测窗口大小
-	WinSize int
+	delaySampleSize int
 	//some private fields
-	flowDelay map[[5]string] int64
+	flowDelay map[[5]string] []int64
 	flowDelayFinished *utils.SpecifierSet
-
 }
 
-
+func printSpecifier(specifier [5]string)  {
+	fmt.Printf("sport %s,dport %s,sip %s,dip %s,proto %s\n",specifier[0],specifier[1],specifier[2],specifier[3],specifier[4])
+}
 
 func (worker *Worker)processPacket(packet *gopacket.Packet)  {
 	//sport,dport,sip,dip,proto
+	specifier:=[5]string{}
 	ipLayer:=(*packet).Layer(layers.LayerTypeIPv4)
-	//meta:=(*packet).Metadata()
-	//captureInfo:=meta.CaptureInfo
-	//log.Println(captureInfo.Timestamp.UnixNano()/1e6)
+	meta:=(*packet).Metadata()
+	captureInfo:=meta.CaptureInfo
+	captureTime:=captureInfo.Timestamp.UnixNano()/1e6
 	if ipLayer ==nil{
 		return
 	}
@@ -68,6 +71,7 @@ func (worker *Worker)processPacket(packet *gopacket.Packet)  {
 
 	sip=ip.SrcIP.String()
 	dip=ip.DstIP.String()
+	l4Payload:=(*packet).TransportLayer().LayerPayload()
 
 	tcpLayer :=(*packet).Layer(layers.LayerTypeTCP)
 	if tcpLayer !=nil{
@@ -80,27 +84,39 @@ func (worker *Worker)processPacket(packet *gopacket.Packet)  {
 		specifier[3]=dip
 		specifier[4]="TCP"
 
-		processStats(specifier,0)
-		payload:=tcp.LayerPayload()
-		sendTime:=utils.BytesToInt64(payload[:8])
-		if sendTime!=0{
-			fmt.Printf("Packet send time: %d\n",sendTime)
+
+	}else{
+		udpLayer:=(*packet).Layer(layers.LayerTypeUDP)
+		if udpLayer!=nil{
+			udp,_:= udpLayer.(*layers.UDP)
+			sport=strconv.Itoa(int(udp.SrcPort))
+			dport=strconv.Itoa(int(udp.DstPort))
+			specifier[0]=sport
+			specifier[1]=dport
+			specifier[2]=sip
+			specifier[3]=dip
+			specifier[4]="UDP"
 		}
+	}
+	if len(l4Payload)<9{
 		return
 	}
-	udpLayer:=(*packet).Layer(layers.LayerTypeUDP)
-	if udpLayer!=nil{
-		udp,_:= udpLayer.(*layers.UDP)
-		sport=strconv.Itoa(int(udp.SrcPort))
-		dport=strconv.Itoa(int(udp.DstPort))
-		specifier[0]=sport
-		specifier[1]=dport
-		specifier[2]=sip
-		specifier[3]=dip
-		specifier[4]="UDP"
-		//copied
-		processStats(specifier,0)
+	sendTime:=utils.BytesToInt64(l4Payload[:8])
+	if sendTime!=0{
+		worker.flowDelay[specifier]=append(worker.flowDelay[specifier],captureTime-sendTime)
+		//log.Printf("capture time %d\n",captureTime)
+		//log.Printf("Delay: %d\n",captureTime-sendTime)
 	}
+	//log.Printf("8th byte %d\n",l4Payload[8])
+
+	flowFinished:= utils.GetBit(l4Payload[8],7)==1
+	if flowFinished {
+		//must copied
+		go processPktDelays(specifier,utils.CopyInt64Slice(worker.flowDelay[specifier]))
+		//delete
+		delete(worker.flowDelay,specifier)
+	}
+
 }
 
 func (w *Worker)start(packetChannel chan gopacket.Packet)  {
@@ -109,12 +125,13 @@ func (w *Worker)start(packetChannel chan gopacket.Packet)  {
 	}
 }
 
-func processStats(specifier [5]string,time int64)  {
-	fmt.Printf("sport %s,dport %s,sip %s,dip %s,proto %s\n",specifier[0],specifier[1],specifier[2],specifier[3],specifier[4])
+func processPktDelays(specifier [5]string,delays []int64)  {
+	//fmt.Printf("sport %s,dport %s,sip %s,dip %s,proto %s\n",specifier[0],specifier[1],specifier[2],specifier[3],specifier[4])
+	//TODO process delay
 }
 
 func (l *Listener)getFilter() (filter string){
-	filter=fmt.Sprintf("src net %s && dst net %s && src portrange %d-%d && dst portrange %d-%d && ! ip broadcast && ! ether broadcast",
+	filter=fmt.Sprintf("inbound && src net %s && dst net %s && src portrange %d-%d && dst portrange %d-%d && ! ip broadcast && ! ether broadcast",
 	l.SrcSubnet,
 	l.DstSubnet,
 	l.SrcPortLower,
@@ -166,6 +183,9 @@ func (l *Listener)Init()  {
 		}
 		return n*2
 	}
+
+	l.delaySampleSize=5
+	l.channelSize=2048
 	//init channel
 	if l.EnableWorkers{
 
@@ -175,16 +195,15 @@ func (l *Listener)Init()  {
 		l.packetChannels=make([]chan gopacket.Packet,l.NWorker)
 		//TODO win size
 		for i:=0;i<l.NWorker;i++{
-			l.workers=append(l.workers,&Worker{WinSize: 8})
-			l.packetChannels[i]=make(chan gopacket.Packet,1024)
-			l.workers[i].flowDelay=make(map[[5]string]int64)
+			l.workers=append(l.workers,&Worker{delaySampleSize: l.delaySampleSize})
+			l.packetChannels[i]=make(chan gopacket.Packet,l.channelSize)
+			l.workers[i].flowDelay=make(map[[5]string][]int64)
 			l.workers[i].flowDelayFinished=utils.NewSpecifierSet()
 		}
 		for i:=0;i<l.NWorker;i++{
 			go l.workers[i].start(l.packetChannels[i])
 		}
 	}
-	l.delaySampleSize=5
 
 
 }

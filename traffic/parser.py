@@ -133,10 +133,13 @@ class Parser:
 		#in nano seconds
 		timestamps = [(pkt[1][0])*1e9 for pkt in raw_pkts]
 		time_diffs = [y - x for x, y in zip(timestamps, timestamps[1:])]
+		# set
+		recorded_pkts=defaultdict(lambda :0)
 		with open(self.out_fn, 'w') as fp:
 			for idx, pkt in enumerate(raw_pkts):
 				# pkt =(specifier,(ts,size))
 				specifier=pkt[0]
+				recorded_pkts[specifier]+=1
 
 				flow_id = filtered_flow[specifier]
 				# 跟同一个流中 上一个包的时间差
@@ -159,7 +162,12 @@ class Parser:
 					ts_diff = time_diffs[idx]
 
 				size = pkt[1][1]
-				fp.write("{} {} {} {} {} {}\n".format(ts_diff, size, proto, flow_id, diff_two_pkt_in_same_flow,num_pkts[specifier]))
+				# finished=(recorded_pkts[specifier]==num_pkts[specifier])
+				if recorded_pkts[specifier]==num_pkts[specifier]:
+					finished=1
+				else:
+					finished=0
+				fp.write("{} {} {} {} {} {}\n".format(ts_diff, size, proto, flow_id, diff_two_pkt_in_same_flow,finished))
 			fp.flush()
 			fp.close()
 

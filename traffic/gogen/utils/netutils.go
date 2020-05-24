@@ -126,6 +126,8 @@ func send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP
 	nowInMilli:=Int64ToBytes(time.Now().UnixNano()/1e6)
 	log.Println(nowInMilli)
 	Copy(rawBytes,0,nowInMilli,0,8)
+	rawBytes[8]=SetBit(byte(0),7)
+	rawBytes[8]=UnsetBit(byte(0),7)
 
 	//log.Println(rawBytes[:payloadSize])
 

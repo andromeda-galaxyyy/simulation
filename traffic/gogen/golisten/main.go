@@ -15,11 +15,13 @@ var (
 func main()  {
 	intf:=flag.String("intf","ens33","Interface to listen")
 	nworker:=flag.Int("worker",8,"Number of listener workers")
-	enableWorkers:=flag.Bool("enable_workers",false,"Whether enable multiple workers")
+	enableWorkers:=flag.Bool("enable_workers",true,"Whether enable multiple workers")
 	srcSubnet:=flag.String("src","172.16.181.0/24","Source host subnet")
 	dstSubnet:=flag.String("dst","172.16.181.0/24","Destination host subnet")
 	sportRange:=flag.String("srange","1500-65535","Source port range")
 	dportRange:=flag.String("drange","1500-65535","Destination port range")
+
+
 	flag.Parse()
 	if *enableWorkers&&!(*nworker>0){
 		err=errors.New(fmt.Sprintf("Invalid number of worker: %d",*nworker))

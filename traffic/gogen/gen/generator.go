@@ -48,6 +48,7 @@ type Generator struct {
 	flowId2Port map[int][2]int
 
 	//TODO 设置没100个包，携带timestamp，防止长时间的流超过流表项的生存时间
+
 	// whether the flow has finish sent timestamps
 	flowTimestampAddRecord *utils.IntSet
 	// count times flow has send timestamp
@@ -241,7 +242,7 @@ func (g *Generator)Start() (err error) {
 		}
 		for _,line:=range lines{
 			content:=strings.Split(line," ")
-			if len(content)!=5{
+			if len(content)!=6{
 				log.Fatalf("Invalid pkt file %s\n",pktFile)
 			}
 			toSleep,err:=strconv.ParseFloat(content[0],64)
@@ -249,19 +250,16 @@ func (g *Generator)Start() (err error) {
 				log.Fatalln("Invalid sleep time")
 			}
 			if err!=nil{
-				log.Printf("Invalid idt time in pkt file %s\n\n", pktFile)
-				break
+				log.Fatalf("Invalid idt time in pkt file %s\n\n", pktFile)
 			}
 			size,err:=strconv.Atoi(content[1])
 			if err!=nil{
-				log.Printf("Invalid pkt size in pkt file %s\n\n", pktFile)
-				break
+				log.Fatalf("Invalid pkt size in pkt file %s\n\n", pktFile)
 			}
 			proto:=content[2]
 			flowId,err:=strconv.Atoi(content[3])
 			if err!=nil{
-				log.Printf("Invalid flow id in pkt file %s\n\n", pktFile)
-				break
+				log.Fatalf("Invalid flow id in pkt file %s\n\n", pktFile)
 			}
 			//todo tsDiffInFlow
 			tsDiffInFlow,err:=strconv.ParseFloat(content[4],64)
@@ -269,12 +267,20 @@ func (g *Generator)Start() (err error) {
 				log.Fatalln("Invalid ts diff in flow")
 			}
 			if err!=nil{
-				log.Printf("Invalid ts diff in flow in pkt file %s\n\n", pktFile)
-				break
+				log.Fatalf("Invalid ts diff in flow in pkt file %s\n", pktFile)
 			}
-			dstIPStr:=DstIPs[flowId%nDsts]
+			last,err:=strconv.ParseInt(content[5],10,64)
+			if err!=nil{
+				log.Fatalf("Invalid last payload indicator in pkt file %s\n",pktFile)
+			}
+			isLastL4Payload :=false
+			if last>0{
+				isLastL4Payload =true
+			}
+
+			dstIPStr:=DstIPs[(flowId+1)%nDsts]
 			dstIP:=net.ParseIP(dstIPStr)
-			dstMAC,_:=net.ParseMAC(DstMACs[flowId%nDsts])
+			dstMAC,_:=net.ParseMAC(DstMACs[(flowId+1)%nDsts])
 
 			//determine sport and dport
 			srcPort:=-1
@@ -290,30 +296,30 @@ func (g *Generator)Start() (err error) {
 			ether.DstMAC=dstMAC
 			ipv4.DstIP=dstIP
 
-			addTs:=false
-			if g.addTimeStamp{
-				// process flow timestamps
-				// 这条流没有完成打标签
-				if !g.flowTimestampAddRecord.Contains(flowId){
-					addTs=true
-					count:=size/payloadPerPacketSize
-					if size%payloadPerPacketSize>=8{
-						count++
-					}
-					g.flowTimestampCount[flowId]+=count
-				}
-				//这条流完成了打标签
-				if g.flowTimestampCount[flowId]>=g.WinSize{
-					g.flowTimestampAddRecord.Add(flowId)
-				}
-			}
+			addTs:=g.addTimeStamp
+			//if g.addTimeStamp{
+			//	// process flow timestamps
+			//	// 这条流没有完成打标签
+			//	if !g.flowTimestampAddRecord.Contains(flowId){
+			//		addTs=true
+			//		count:=size/payloadPerPacketSize
+			//		if size%payloadPerPacketSize>=8{
+			//			count++
+			//		}
+			//		g.flowTimestampCount[flowId]+=count
+			//	}
+			//	//这条流完成了打标签
+			//	if g.flowTimestampCount[flowId]>=g.WinSize{
+			//		g.flowTimestampAddRecord.Add(flowId)
+			//	}
+			//}
 
 
 			if proto=="TCP"{
 				tcp.SrcPort= layers.TCPPort(srcPort)
 				tcp.DstPort= layers.TCPPort(dstPort)
 				ipv4.Protocol=6
-				err=g.send(size,ether,ipv4,tcp,nil,true,addTs)
+				err=g.send(size,ether,ipv4,tcp,nil,true,addTs, isLastL4Payload)
 				if err!=nil{
 					log.Fatal(err)
 				}
@@ -321,7 +327,7 @@ func (g *Generator)Start() (err error) {
 				udp.SrcPort= layers.UDPPort(srcPort)
 				udp.DstPort= layers.UDPPort(dstPort)
 				ipv4.Protocol=17
-				err=g.send(size,ether,ipv4,nil,udp,false,addTs)
+				err=g.send(size,ether,ipv4,nil,udp,false,addTs, isLastL4Payload)
 				if err!=nil{
 					log.Fatal(err)
 				}
@@ -373,18 +379,32 @@ func (g *Generator)Start() (err error) {
 }
 
 //udp fragmentation
-func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP,udp *layers.UDP,isTCP bool,addTs bool) (err error){
+// 前8个byte记录时间戳，后一个byte最高位表示流是否结束，后几位表示流的种类，是否需要记录时间戳
+func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,tcp *layers.TCP,udp *layers.UDP,isTCP bool,addTs bool,lastPayload bool) (err error){
 	payloadPerPacketSize:=g.MTU-g.EmptySize
 	count:=payloadSize/payloadPerPacketSize
 
+	payloadSizeBk:=payloadSize
+	for i:=0;i<9;i++{
+		g.rawData[i]=byte(0)
+	}
+
 	buffer:=g.buffer
 	for ;count>0;count--{
-		_ = buffer.Clear()
-		//assume payload per packet is larger than 8
+		//_ = buffer.Clear()
 		payLoadPerPacket:=g.rawData[:payloadPerPacketSize]
-		if g.addTimeStamp&& payloadPerPacketSize>=8 &&addTs{
+		if addTs{
 			nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
 			utils.Copy(payLoadPerPacket,0,nowMilliSeconds,0,8)
+		}
+		//如果是整数倍,而且这是最后一个
+		if payloadSizeBk%payloadPerPacketSize==0&&count==1{
+			if lastPayload{
+				payLoadPerPacket[8]=utils.SetBit(payLoadPerPacket[8],7)
+			}else{
+				//log.Println("Unset bit")
+				payLoadPerPacket[8]=utils.UnsetBit(payLoadPerPacket[8],7)
+			}
 		}
 
 		payloadSize-=payloadPerPacketSize
@@ -409,17 +429,27 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 		}
 	}
 
-	_=buffer.Clear()
-	payload:=g.rawData[:payloadSize]
-	if g.addTimeStamp&&addTs{
-		if payloadSize>=8{
-			nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
-			utils.Copy(payload,0,nowMilliSeconds,0,8)
-		}
+
+	if payloadSize<9{
+		payloadSize=9
+	}
+
+	leftPayload :=g.rawData[:payloadSize]
+	if addTs{
+		nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
+		utils.Copy(leftPayload,0,nowMilliSeconds,0,8)
+	}
+
+	if lastPayload{
+		//log.Println("Last payload, Set bit")
+		leftPayload[8]=utils.SetBit(leftPayload[8],7)
+	}else{
+		//log.Println("Unset bit")
+		leftPayload[8]=utils.UnsetBit(leftPayload[8],7)
 	}
 
 	if isTCP{
-		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,tcp,gopacket.Payload(payload))
+		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,tcp,gopacket.Payload(leftPayload))
 		if err!=nil{
 			return err
 		}
@@ -428,7 +458,7 @@ func (g *Generator) send(payloadSize int,ether *layers.Ethernet,ip *layers.IPv4,
 			return err
 		}
 	}else{
-		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,udp,gopacket.Payload(payload))
+		err=gopacket.SerializeLayers(buffer,g.options,ether,ip,udp,gopacket.Payload(leftPayload))
 		if err!=nil{
 			return err
 		}
@@ -468,7 +498,7 @@ func (g *Generator)reset(){
 	g.sentRecord=&utils.IntSet{}
 	g.flowStats=make(map[int]map[string][]float64)
 	g.sentRecord.Init()
-	_=g.buffer.Clear()
+	//_=g.buffer.Clear()
 	g.flowId2Port=make(map[int][2]int)
 
 	g.flowTimestampAddRecord=&utils.IntSet{}
