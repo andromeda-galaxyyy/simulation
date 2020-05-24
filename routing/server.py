@@ -64,6 +64,6 @@ class DumbHandlerWithDumbModel(socketserver.BaseRequestHandler):
 		pass
 
 if __name__ == '__main__':
-	port = 10000
-	server = Server(10000, DumbHandler)
+	port = 1027
+	server = Server(port, DumbHandler)
 	server.start()

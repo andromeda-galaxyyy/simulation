@@ -44,9 +44,9 @@ def generate_ip(id):
 	raise Exception("Cannot support id address given a too large id")
 ```
 
-比如id=1---> '10.0.0.1'
+比如id=0---> '10.0.0.1'
 id=255--->'10.0.1.1'
-id=254--->'10.0.0.254'
+id=253--->'10.0.0.254'
 
 他们的mac地址由下面的函数产生
 ```python

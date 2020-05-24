@@ -59,6 +59,8 @@ def normalize(x):
     x=[(xx-mi)/diff for xx in x]
     return x
 
+def get_prj_root():
+    return os.path.dirname(os.path.abspath(__file__))
 
 if __name__ == "__main__":
     pass

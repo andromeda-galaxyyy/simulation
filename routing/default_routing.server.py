@@ -16,25 +16,22 @@ import os
 
 # todo topo json format
 # capacity,delay,loss,sc
-use_default_graph = False
-g: nx.Graph = None
-topo_file = os.path.join(get_prj_root(), "topo/files/topo.json")
-print(topo_file)
-if not file_exsit(topo_file):
-	topo_file = os.path.join(get_prj_root(), "routing/topo.json")
-	if not file_exsit(topo_file):
-		debug("use default topo")
-		use_default_graph = True
+use_default_graph = True
+# g: nx.Graph = None
+# topo_file = os.path.join(get_prj_root(), "topo/files/topo.json")
+# print(topo_file)
+# if not file_exsit(topo_file):
+# 	topo_file = os.path.join(get_prj_root(), "routing/topo.json")
+# 	if not file_exsit(topo_file):
+# 		debug("use default topo")
+# 		use_default_graph = True
 
 if use_default_graph:
 	nodes = 9
 	K = 3
 	g: nx.Graph = nx.grid_graph([3, 3])
 	g = nx.relabel_nodes(g, lambda x: x[0] * K + x[1])
-else:
-	topo = load_json(topo_file)
-	net = NetworkTopo(topo)
-	g = net.g
+
 
 
 def k_shortest_paths(G, source, target, k, weight=None):
@@ -61,6 +58,6 @@ class DumbHandler(socketserver.BaseRequestHandler):
 
 
 if __name__ == '__main__':
-	port = 10000
+	port = 1028
 	server = Server(port, DumbHandler)
 	server.start()

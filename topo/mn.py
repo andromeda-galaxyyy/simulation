@@ -65,6 +65,24 @@ def generate_mac(id):
 	mac_addr = mac_addr[::-1]
 	return mac_addr
 
+def gen_dpid(sid):
+	sid=int(sid)+1
+	def base_16(num):
+		res = []
+		num = int(num)
+		if num == 0:
+			return "0"
+		while num > 0:
+			left = num % 16
+			res.append(left if left < 10 else chr(ord('a') + (left - 10)))
+			num //= 16
+		res.reverse()
+		return "".join(map(str, res))
+	raw_str=base_16(sid)
+	zero_padding_len=16-len(raw_str)
+	if zero_padding_len<0:
+		raise Exception("Two large switch id")
+	return ("0"*zero_padding_len)+raw_str
 
 def read_topo(fn="topo.json"):
 	'''
@@ -98,7 +116,6 @@ class TopoManager:
 		self.host_macs = []
 		self.host_ips = []
 		self.n_hosts_per_switch = n_hosts_per_switch
-
 
 
 	def __write_id_file(self):
@@ -139,7 +156,7 @@ class TopoManager:
 		ips = []
 
 		for i in range(num_switches):
-			s = net.addSwitch("s{}".format(i), cls=OVSKernelSwitch, protocols=["OpenFlow13"])
+			s = net.addSwitch("s{}".format(i), cls=OVSKernelSwitch, protocols=["OpenFlow13"],dpid=gen_dpid(i))
 			self.switches.append(s)
 			for host_idx in range(self.n_hosts_per_switch):
 				host_id = i * self.n_hosts_per_switch + host_idx
@@ -159,14 +176,11 @@ class TopoManager:
 
 		for i in range(num_switches):
 			src = "s{}".format(i)
-			for j in range(i + 1, num_switches):
+			for j in range(i, num_switches):
 				dst = "s{}".format(j)
 				if -1 in topo[i][j]: continue
 				bw, delay, loss, sc = topo[i][j]
-				# bw="{}m".format(bw)
 				delay = "{}ms".format(delay)
-				# loss=str(loss)
-				# net.addLink(src,dst,cls=TCLink,bw=bw,delay=delay,loss=loss)
 				net.addLink(src, dst)
 		# set up nat
 		net.addNAT(ip="10.0.255.254/8").configDefault()
