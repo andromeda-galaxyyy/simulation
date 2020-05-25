@@ -9,6 +9,8 @@ from sockets.server import Server, recvall
 import random
 import networkx as nx
 from itertools import islice
+import time
+from datetime import datetime
 
 nodes = 9
 K = 3
@@ -52,6 +54,11 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		if vols == -1:
 			return
 		l = len(vols)
+		print(vols)
+		now = datetime.now()
+
+		current_time = now.strftime("%H:%M:%S")
+		print(current_time)
 		res = []
 		for i in range(l):
 			randidx = random.randint(0, K - 1)

@@ -107,6 +107,7 @@ func main(){
 			Report: *report,
 			Delay: *delay,
 			DelayTime: *delayTime,
+			Debug: *debug,
 		}
 		generator.Init()
 		err=generator.Start()

@@ -33,6 +33,7 @@ type Generator struct {
 	Report bool
 	Delay bool
 	DelayTime int
+	Debug bool
 
 	//whether add timestamp to transport layer payload
 	addTimeStamp bool
@@ -150,9 +151,8 @@ func processFlowStats(ip string,port int,specifier [5]string,stats map[string][]
 	}
 	err:= utils.SendMap(ip,port, report)
 	if err!=nil{
-		log.Fatalln(err)
+		log.Println(err)
 	}
-
 }
 
 func randomFlowIdToPort(flowId int) (sport,dport int){
@@ -162,10 +162,7 @@ func randomFlowIdToPort(flowId int) (sport,dport int){
 }
 
 func (g *Generator)Start() (err error) {
-	if g.Delay{
-		time.Sleep(time.Millisecond*time.Duration(rand.Intn(10000)))
-		time.Sleep(time.Second*time.Duration(g.DelayTime))
-	}
+
 	log.Printf("Start to generate")
 	nDsts:=len(g.DestinationIDs)
 	utils.ShuffleInts(g.DestinationIDs)
@@ -207,8 +204,8 @@ func (g *Generator)Start() (err error) {
 			log.Fatalf("Generator: %d Error when generate mac for %d",g.ID,dstId)
 		}
 		DstMACs=append(DstMACs,mac)
-
 	}
+	log.Println(DstMACs)
 	log.Printf("#Destination host %d, first %s,last %s",len(DstIPs),DstIPs[0],DstIPs[len(DstIPs)-1])
 	log.Printf("#Destination host mac %d, first %s,last %s",len(DstMACs),DstMACs[0],DstMACs[len(DstMACs)-1])
 
@@ -236,8 +233,17 @@ func (g *Generator)Start() (err error) {
 	utils.ShuffleStrings(pktFns)
 
 	pktFileIdx:=0
+	if g.Delay{
+		time.Sleep(time.Millisecond*time.Duration(rand.Intn(10000)))
+		time.Sleep(time.Second*time.Duration(g.DelayTime))
+	}
 
 	for{
+		//shuffle dst ips and dstmacs
+		rand.Shuffle(len(DstIPs), func(i, j int) {
+			DstIPs[i],DstIPs[j]=DstIPs[j],DstIPs[i]
+			DstMACs[i],DstMACs[j]=DstMACs[j],DstMACs[i]
+		})
 		g.reset()
 		//#read pkt file
 		pktFile:=path.Join(g.PktsDir,pktFns[pktFileIdx])
@@ -376,6 +382,9 @@ func (g *Generator)Start() (err error) {
 
 			if toSleep > 0 && g.Sleep {
 				nano := int(toSleep)
+				if g.Debug{
+					nano*=2
+				}
 				time.Sleep(time.Duration(nano) * time.Nanosecond)
 			}
 		}
