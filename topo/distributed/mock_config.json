@@ -9,11 +9,10 @@
 
   ],
   "workers_ip": [
-    "192.168.64.5",
-    "192.168.64.2"
+    "172.16.181.151",
+    "172.16.181.152"
   ],
-  "controller": "192.168.64.1:6633",
-  "id": "0",
+  "controller": "172.16.181.1:6653",
   "host_per_switch": 1,
   "scripts_dir": "/home/ubuntu/code/graduate/satellite_topo/scripts",
   "traffic_dir":"/home/ubuntu/code/graduate/traffic_ditg",
