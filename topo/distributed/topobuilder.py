@@ -7,173 +7,6 @@ from path_utils import get_prj_root
 
 #todo mtu size
 
-def add_veth(p1, p2):
-	os.system("ip link add {} type veth peer name {}".format(p1, p2))
-
-
-def attach_interface_to_sw(s: str, port: str):
-	os.system("ovs-vsctl add-port {} {}".format(s, port))
-
-
-def detach_interface_from_sw(s: str, port: str):
-	os.system("ovs-vsctl del-port {} {}".format(s, port))
-
-
-def del_interface(port: str):
-	os.system("ip link del dev {}".format(port))
-
-
-def down_interface(port: str):
-	subprocess.run(["ifconfig", port, "down"])
-
-
-def up_interface(port: str):
-	subprocess.run(["ifconfig", port, "up"])
-
-
-def del_tc(interface: str):
-	os.system("tc qdisc del dev {} root netem".format(interface))
-
-
-def add_tc(interface: str, delay, bandwidth, loss):
-	os.system(
-		"tc qdisc add dev {} root netem latency {}ms rate {}mbit".format(interface, delay, bandwidth))
-
-
-def set_dpid(sw_id, dpid):
-	sname = "s{}".format(sw_id)
-	os.system("ovs-vsctl set bridge {} other-config:datapath-id={}".format(sname, dpid))
-
-
-def run_command_in_namespace(namespace, commands):
-	os.system("ip netns exec {} {}".format(namespace, commands))
-
-def del_ns(namespace):
-	os.system("ip netns del {}".format(namespace))
-
-def set_mtu(intf:str,mtu:int):
-	mtu=int(mtu)
-	os.system("ifconfig {} mtu {}".format(intf,mtu))
-
-def set_ns_mtu(ns:str,intf:str,mtu:int):
-	mtu=int(mtu)
-	os.system("ip netns exec {} ifconfig {} mtu {}".format(ns,intf,mtu))
-
-
-def connect_local_switches(sa_id, sb_id, rate, delay, loss):
-	sa_name = "s{}".format(sa_id)
-	sb_name = "s{}".format(sb_id)
-	saport = "{}-{}".format(sa_name, sb_name)
-	sbport = "{}-{}".format(sb_name, sa_name)
-
-	os.system("ip link add {} type veth peer name {}".format(saport, sbport))
-	os.system("ifconfig {} up".format(saport))
-	os.system("ifconfig {} up".format(sbport))
-	os.system("ovs-vsctl add-port {} {}".format(sa_name, saport))
-	os.system("ovs-vsctl add-port {} {}".format(sb_name, sbport))
-	add_tc(saport, delay, rate, loss)
-	add_tc(sbport, delay, rate, loss)
-	# os.system("tc qdisc add dev {} root netem rate {} latency {}".format(saport, rate, delay))
-	# os.system("tc qdisc add dev {} root netem rate {} latency {}".format(sbport, rate, delay))
-	# todo loss
-
-	return saport, sbport
-
-
-def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, delay, loss):
-	local_sw = "s{}".format(sa_id)
-	remote_sw = "s{}".format(sb_id)
-	grename = "gre{}-{}".format(local_sw, remote_sw)
-	# delete exists gre links
-	# os.system("ip link del {}".format(grename))
-	del_interface(grename)
-	os.system("ip link add {} type gretap local {} remote {} ttl 64 key {}".format(
-		grename,
-		local_ip,
-		remote_ip,
-		grekey
-	))
-	os.system("ip link set dev {} up".format(grename))
-	# set_mtu(grename)
-	for x in ["gro", "tso", "gso"]:
-		os.system("ethtool -K {} {} off".format(grename, x))
-		# pass
-	add_tc(grename, delay, rate, loss)
-	attach_interface_to_sw(local_sw,grename)
-	return grename
-
-
-# todo mtu
-def add_hosts_to_switches(switch_id, k):
-	ovsname = "s{}".format(switch_id)
-	for idx in range(k):
-		host_id = switch_id * k + idx
-		hostname = "h{}".format(host_id)
-		host_port = "{}-eth0".format(hostname)
-		ovs_port = "{}-{}".format(ovsname, hostname)
-
-		os.system("ip netns add {}".format(hostname))
-		os.system("ip link add {} type veth peer name {}".format(host_port, ovs_port))
-		os.system("ip link set {} netns {}".format(host_port, hostname))
-
-		# up host interface
-		# 10.0.0.1/16
-		# 修改子网为10.0.0.1/16
-		os.system(
-			"ip netns exec {} ifconfig {} {}/16".format(hostname, host_port, generate_ip(host_id)))
-		os.system("ip netns exec {} ifconfig lo up".format(hostname))
-		set_ns_mtu(hostname,host_port,1416)
-
-
-		# attach ovs port
-		attach_interface_to_sw(ovsname, ovs_port)
-		up_interface(ovs_port)
-
-
-def add_ovs(switch_id, controller: str):
-	ovs_name = "s{}".format(switch_id)
-	logger.debug("set up switch {}".format(ovs_name))
-	os.system("ovs-vsctl add-br {}".format(ovs_name))
-	os.system("ovs-vsctl set-controller {} tcp:{}".format(ovs_name, controller))
-	logger.debug("set up switch {} done".format(ovs_name))
-
-
-def del_ovs(ovs):
-	if "s" not in ovs:
-		ovs = "s{}".format(ovs)
-	os.system("ovs-vsctl del-br {}".format(ovs))
-
-
-def del_hosts(ovs, k):
-	if "s" not in ovs:
-		ovs = "s{}".format(ovs)
-
-	for idx in range(k):
-		host_id = ovs * k + idx
-		host_port = "{}-eth0".format(host_id)
-		hostname = "h{}".format(host_id)
-		ovs_port = "{}-{}".format(hostname, ovs)
-		os.system("ip netns del {}".format(hostname))
-		os.system("ip link del {}".format(host_port))
-
-
-def del_local_link(link_name):
-	del_interface(link_name)
-	del_tc(link_name)
-
-
-def get_swid_from_link(link: str):
-	'''
-	split switch from link name
-	:param link: like gres1-s2 or s1-s2
-	:return:
-	'''
-	if "gre" in link:
-		link = link[3:]
-	sa_name, sb_name = link.split("-")
-	# return link.split("s")[1], link.split("s")[2]
-	return int(sa_name[1:]), int(sb_name[1:])
-
 
 def generate_ip(id):
 	id = int(id) + 1
@@ -239,6 +72,183 @@ def gen_dpid(sid):
 	if zero_padding_len<0:
 		raise Exception("Two large switch id")
 	return ("0"*zero_padding_len)+raw_str
+
+def add_veth(p1, p2):
+	os.system("ip link add {} type veth peer name {}".format(p1, p2))
+
+
+def attach_interface_to_sw(s: str, port: str):
+	os.system("ovs-vsctl add-port {} {}".format(s, port))
+
+
+def detach_interface_from_sw(s: str, port: str):
+	os.system("ovs-vsctl del-port {} {}".format(s, port))
+
+
+def del_interface(port: str):
+	os.system("ip link del dev {}".format(port))
+
+
+def down_interface(port: str):
+	subprocess.run(["ifconfig", port, "down"])
+
+
+def up_interface(port: str):
+	subprocess.run(["ifconfig", port, "up"])
+
+
+def del_tc(interface: str):
+	os.system("tc qdisc del dev {} root netem".format(interface))
+
+
+def add_tc(interface: str, delay, bandwidth, loss):
+	os.system(
+		"tc qdisc add dev {} root netem latency {}ms rate {}mbit".format(interface, delay, bandwidth))
+
+
+def set_dpid(sw_id, dpid):
+	sname = "s{}".format(sw_id)
+	os.system("ovs-vsctl set bridge {} other-config:datapath-id={}".format(sname, dpid))
+
+
+def run_command_in_namespace(namespace, commands):
+	os.system("ip netns exec {} {}".format(namespace, commands))
+
+def del_ns(namespace):
+	os.system("ip netns del {}".format(namespace))
+
+def set_mtu(intf:str,mtu:int):
+	mtu=int(mtu)
+	os.system("ifconfig {} mtu {}".format(intf,mtu))
+
+def set_ns_mtu(ns:str,intf:str,mtu:int):
+	mtu=int(mtu)
+	os.system("ip netns exec {} ifconfig {} mtu {}".format(ns,intf,mtu))
+
+def set_mac_addr(intf:str,mac):
+	os.system("ip link set {} address {}".format(intf,mac))
+
+def set_ns_mac_addr(ns:str,intf:str,mac:str):
+	os.system("ip netns exec {} ip link set {} address {}".format(ns,intf,mac))
+
+def connect_local_switches(sa_id, sb_id, rate, delay, loss):
+	sa_name = "s{}".format(sa_id)
+	sb_name = "s{}".format(sb_id)
+	saport = "{}-{}".format(sa_name, sb_name)
+	sbport = "{}-{}".format(sb_name, sa_name)
+
+	os.system("ip link add {} type veth peer name {}".format(saport, sbport))
+	os.system("ifconfig {} up".format(saport))
+	os.system("ifconfig {} up".format(sbport))
+	os.system("ovs-vsctl add-port {} {}".format(sa_name, saport))
+	os.system("ovs-vsctl add-port {} {}".format(sb_name, sbport))
+	add_tc(saport, delay, rate, loss)
+	add_tc(sbport, delay, rate, loss)
+	# os.system("tc qdisc add dev {} root netem rate {} latency {}".format(saport, rate, delay))
+	# os.system("tc qdisc add dev {} root netem rate {} latency {}".format(sbport, rate, delay))
+	# todo loss
+
+	return saport, sbport
+
+
+def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, delay, loss):
+	local_sw = "s{}".format(sa_id)
+	remote_sw = "s{}".format(sb_id)
+	grename = "gre{}-{}".format(local_sw, remote_sw)
+	# delete exists gre links
+	# os.system("ip link del {}".format(grename))
+	del_interface(grename)
+	os.system("ip link add {} type gretap local {} remote {} ttl 64 key {}".format(
+		grename,
+		local_ip,
+		remote_ip,
+		grekey
+	))
+	os.system("ip link set dev {} up".format(grename))
+	# set_mtu(grename)
+	for x in ["gro", "tso", "gso"]:
+		os.system("ethtool -K {} {} off".format(grename, x))
+		# pass
+	add_tc(grename, delay, rate, loss)
+	attach_interface_to_sw(local_sw,grename)
+	return grename
+
+
+# todo mtu
+def add_hosts_to_switches(switch_id, k):
+	ovsname = "s{}".format(switch_id)
+	for idx in range(k):
+		host_id = switch_id * k + idx
+		hostname = "h{}".format(host_id)
+		host_port = "{}-eth0".format(hostname)
+		ovs_port = "{}-{}".format(ovsname, hostname)
+
+		os.system("ip netns add {}".format(hostname))
+		os.system("ip link add {} type veth peer name {}".format(host_port, ovs_port))
+		os.system("ip link set {} netns {}".format(host_port, hostname))
+
+		# up host interface
+		# 10.0.0.1/16
+		# 修改子网为10.0.0.1/16
+		os.system(
+			"ip netns exec {} ifconfig {} {}/16".format(hostname, host_port, generate_ip(host_id)))
+
+		os.system("ip netns exec {} ifconfig lo up".format(hostname))
+		set_ns_mac_addr(hostname,host_port,generate_mac(host_id))
+		#todo mtu size
+		set_ns_mtu(hostname,host_port,1416)
+
+
+		# attach ovs port
+		attach_interface_to_sw(ovsname, ovs_port)
+		up_interface(ovs_port)
+
+
+def add_ovs(switch_id, controller: str):
+	ovs_name = "s{}".format(switch_id)
+	logger.debug("set up switch {}".format(ovs_name))
+	os.system("ovs-vsctl add-br {}".format(ovs_name))
+	os.system("ovs-vsctl set-controller {} tcp:{}".format(ovs_name, controller))
+	logger.debug("set up switch {} done".format(ovs_name))
+
+
+def del_ovs(ovs):
+	if "s" not in ovs:
+		ovs = "s{}".format(ovs)
+	os.system("ovs-vsctl del-br {}".format(ovs))
+
+
+def del_hosts(ovs, k):
+	if "s" not in ovs:
+		ovs = "s{}".format(ovs)
+
+	for idx in range(k):
+		host_id = ovs * k + idx
+		host_port = "{}-eth0".format(host_id)
+		hostname = "h{}".format(host_id)
+		ovs_port = "{}-{}".format(hostname, ovs)
+		os.system("ip netns del {}".format(hostname))
+		os.system("ip link del {}".format(host_port))
+
+
+def del_local_link(link_name):
+	del_interface(link_name)
+	del_tc(link_name)
+
+
+def get_swid_from_link(link: str):
+	'''
+	split switch from link name
+	:param link: like gres1-s2 or s1-s2
+	:return:
+	'''
+	if "gre" in link:
+		link = link[3:]
+	sa_name, sb_name = link.split("-")
+	# return link.split("s")[1], link.split("s")[2]
+	return int(sa_name[1:]), int(sb_name[1:])
+
+
 
 class TopoManager:
 
