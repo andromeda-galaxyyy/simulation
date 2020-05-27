@@ -37,15 +37,18 @@ if __name__ == '__main__':
 	parser=ArgumentParser()
 	parser.add_argument("--id",required=True,type=int)
 	parser.add_argument("--intf",required=True,type=str,default="ens33")
+	# parser.add_argument("--down",dest="down",action="store_true")
 	args=parser.parse_args()
 	id_=int(args.id)
 	intf=args.intf
 
-	manager=None
 	manager=TopoManager(config,id_,intf)
-
+	# if args.down:
+	# 	logger.debug("Tearing down")
+	# 	manager.tear_down()
+	# else:
 	manager.diff_topo(topo)
-	manager.tear_down()
+	# manager.tear_down()
 
 
 	

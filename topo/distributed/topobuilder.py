@@ -51,6 +51,15 @@ def run_command_in_namespace(namespace, commands):
 def del_ns(namespace):
 	os.system("ip netns del {}".format(namespace))
 
+def set_mtu(intf:str,mtu:int):
+	mtu=int(mtu)
+	os.system("ifconfig {} mtu {}".format(intf,mtu))
+
+def set_ns_mtu(ns:str,intf:str,mtu:int):
+	mtu=int(mtu)
+	os.system("ip netns exec {} ifconfig {} mtu {}".format(ns,intf,mtu))
+
+
 def connect_local_switches(sa_id, sb_id, rate, delay, loss):
 	sa_name = "s{}".format(sa_id)
 	sb_name = "s{}".format(sb_id)
@@ -85,8 +94,10 @@ def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, 
 		grekey
 	))
 	os.system("ip link set dev {} up".format(grename))
+	# set_mtu(grename)
 	for x in ["gro", "tso", "gso"]:
 		os.system("ethtool -K {} {} off".format(grename, x))
+		# pass
 	add_tc(grename, delay, rate, loss)
 	attach_interface_to_sw(local_sw,grename)
 	return grename
@@ -111,6 +122,8 @@ def add_hosts_to_switches(switch_id, k):
 		os.system(
 			"ip netns exec {} ifconfig {} {}/16".format(hostname, host_port, generate_ip(host_id)))
 		os.system("ip netns exec {} ifconfig lo up".format(hostname))
+		set_ns_mtu(hostname,host_port,1416)
+
 
 		# attach ovs port
 		attach_interface_to_sw(ovsname, ovs_port)
