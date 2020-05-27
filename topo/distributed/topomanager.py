@@ -204,9 +204,10 @@ class TopoManager:
 		k = int(k)
 		controller = self.config["controller"]
 		# set up local switch
+		vhost_mtu=self.config["vhost_mtu"]
 		for sw_id in self.config["workers"][int(self.id)]:
 			add_ovs(sw_id, controller)
-			add_hosts_to_switches(sw_id, k)
+			add_hosts_to_switches(sw_id, k,vhost_mtu)
 
 	@staticmethod
 	def _gre_key(sa_id, sb_id):

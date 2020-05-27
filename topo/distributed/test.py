@@ -20,8 +20,8 @@ def load_json(filename):
     raise FileNotFoundError
 
 def add(idx1,idx2,topo:List):
-	topo[idx1][idx2]=(1000,20,0,0)
-	topo[idx2][idx1]=(1000,20,0,0)
+	topo[idx1][idx2]=(100,20,0,0)
+	topo[idx2][idx1]=(100,20,0,0)
 
 
 if __name__ == '__main__':
