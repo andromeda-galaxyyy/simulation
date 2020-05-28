@@ -291,9 +291,9 @@ func (g *Generator)Start() (err error) {
 				isLastL4Payload =true
 			}
 
-			dstIPStr:=DstIPs[(flowId+1)%nDsts]
+			dstIPStr:=DstIPs[flowId%nDsts]
 			dstIP:=net.ParseIP(dstIPStr)
-			dstMAC,_:=net.ParseMAC(DstMACs[(flowId+1)%nDsts])
+			dstMAC,_:=net.ParseMAC(DstMACs[flowId%nDsts])
 
 			//determine sport and dport
 			srcPort:=-1
