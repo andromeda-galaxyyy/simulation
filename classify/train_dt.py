@@ -15,16 +15,17 @@ win_size = 10
 limit = 100000
 
 dirs = {
-	"iot": "/tmp/flow_pkts",
-	"video": "/tmp/video"
+	"iot": "/tmp/classify/iot",
+	"video": "/tmp/classify/video"
 }
 instances_dir = os.path.join(get_prj_root(), "classify/instances")
 
 
 def gen_single_instance(dirname, flow, flow_type):
+	# debug("generate {}".format(flow["file"]))
 	def extract_features(raw_features: List[float]):
 		extracted_features = []
-		raw_features = [r for r in raw_features if int(r) != 0]
+		raw_features = [r for r in raw_features if int(r) >= 0]
 
 		extracted_features.append(min(raw_features))
 		extracted_features.append(max(raw_features))
@@ -41,33 +42,34 @@ def gen_single_instance(dirname, flow, flow_type):
 		lines = fp.readlines()
 		fp.close()
 	lines = [l.strip() for l in lines]
-	lines = [l for l in lines if l != "" and l != "\n"]
-	if len(lines) < win_size:
-		return None
-	lines = lines[:win_size]
+	# lines = [l for l in lines if l != "" and l != "\n"]
+	lines = [l for l in lines if len(l) > 0]
+	if len(lines) > win_size:
+		lines = lines[:win_size]
 	for l in lines:
 		idts.append(float(l))
 
 	with open(ps_file, "r") as fp:
 		lines = fp.readlines()
 		fp.close()
-	if len(lines) < win_size:
-		return None
+
 	lines = [l.strip() for l in lines]
-	lines = [l for l in lines if l != "" and l != "\n"]
-	lines = lines[:win_size]
+	lines = [l for l in lines if len(l) > 0]
+	if len(lines) > win_size:
+		lines = lines[:win_size]
+
 	for l in lines:
 		ps.append(float(l))
 
 	# 有很奇怪的现象
-	ps = [p for p in ps if p != 0]
+	ps = [p for p in ps if p > 0]
 	if len(ps) == 0:
 		print(flow["ps"])
+		# print(flow["ps"])
 		return None
 	# assert len(ps)!=0
-	idts = [i for i in idts if int(i) != 0]
+	idts = [i for i in idts if i >= 0]
 	if len(idts) == 0:
-		print(flow["idt"])
 		return None
 
 	features.extend(extract_features(ps))
@@ -83,13 +85,15 @@ def generate():
 	instances_dir = os.path.join(get_prj_root(), "classify/instances")
 	for flow_type, dirname in dirs.items():
 		statistics = load_json(os.path.join(dirname, "statistics.json"))
+		debug("#flows {}".format(statistics["count"]))
 		flows: List = statistics["flows"]
 		sorted(flows, key=lambda f: -f["num_pkt"])
 		if len(flows) > limit:
 			flows = flows[:limit]
 		instances = [gen_single_instance(dirname, f, flow_type) for f in flows]
 		instances = [i for i in instances if i is not None]
-		print(len(instances))
+		debug("#{} instances {}".format(flow_type, len(instances)))
+		# print(len(instances))
 		save_pkl(os.path.join(instances_dir, "{}.pkl".format(flow_type)), instances)
 
 
@@ -104,11 +108,17 @@ def train_and_predict():
 	debug("# video instances {}".format(len(videos)))
 	random.shuffle(iot)
 	random.shuffle(videos)
-	# train 3:1
-	iot_train = iot[:20000]
-	info("#iot train {}".format(len(iot_train)))
-	video_train = videos[:300]
+
+	n_video_train = int(len(videos) * 0.7)
+
+	video_train = videos[:n_video_train]
+	video_test = videos[n_video_train:]
+
+	iot_train = iot[:n_video_train]
+	iot_test = iot[len(iot) - len(video_test):]
+
 	info("#video train {}".format(len(video_train)))
+	info("#iot train {}".format(len(iot_train)))
 
 	train = []
 	train.extend(iot_train)
@@ -118,9 +128,8 @@ def train_and_predict():
 
 	# test 1:1
 	test = []
-	iot_test = iot[20000:20086]
 	info("#iot test {}".format(len(iot_test)))
-	video_test = videos[300:]
+	video_test = videos[n_video_train:]
 	info("#video test {}".format(len(video_test)))
 
 	test.extend(iot_test)

@@ -41,13 +41,14 @@ def inet_to_str(inet):
 
 
 class Parser:
-	def __init__(self, pcap_file: str, out_fn:str):
+	def __init__(self, pcap_file: str, out_fn: str, limit=True):
 		check_file(pcap_file)
 		self.file = pcap_file
 		# if dir_exsit(out_dir):
 		# 	os.rmdir(out_dir)
 		# os.mkdir(out_dir)
-		self.out_fn=out_fn
+		self.out_fn = out_fn
+		self.limit = limit
 
 	def parse(self):
 		fp = open(self.file, 'rb')
@@ -57,10 +58,10 @@ class Parser:
 		udp_proto = dpkt.ip.IP_PROTO_UDP
 		last_ts_in_flow = {}
 
-		flow_idx = 1
+		flow_idx = 0
 		flow_sizes = defaultdict(lambda: 0)
-		num_pkts=defaultdict(lambda :0)
-		# 删除反向的流
+		num_pkts = defaultdict(lambda: 0)
+
 		for ts, buf in pcap:
 			try:
 				eth = dpkt.ethernet.Ethernet(buf)
@@ -70,39 +71,53 @@ class Parser:
 				continue
 
 			ip = eth.data
-			if not hasattr(ip, "p"): continue
-			if ip.p != udp_proto and ip.p != tcp_proto:
+			if not hasattr(ip, "p"):
 				continue
-			ip = eth.data
-			if not hasattr(ip, "p"): continue
 			if ip.p != udp_proto and ip.p != tcp_proto:
 				continue
 
 			sip = inet_to_str(ip.src)
 			dip = inet_to_str(ip.dst)
 			l4 = ip.data
-			if not hasattr(l4, "sport"): continue
-			if not hasattr(l4, "dport"): continue
+			if not hasattr(l4, "sport"):
+				continue
+			if not hasattr(l4, "dport"):
+				continue
+
 			sport = l4.sport
 			dport = l4.dport
-			#drop dhcp and dns packet
-			if dport==53:continue
-			if sport==68:continue
-			if dport==67:continue
+			# drop dhcp and dns packet
+			if dport == 53: continue
+			if sport == 53: continue
+			if sport == 68: continue
+			if dport == 67: continue
+
 			proto = ip.p
 			specifier = (sip, sport, dip, dport, proto)
-			if len(l4.data)==0:continue
-			flow_sizes[specifier] + len(l4.data)
-			num_pkts[specifier]+=1
+			if len(l4.data) == 0:
+				continue
+			flow_sizes[specifier] += len(l4.data)
+			num_pkts[specifier] += 1
 			raw_pkts.append((specifier, (ts, len(l4.data))))
 
 		# flow_id
 		filtered_flow = {}
+		# ratio=0.01 if self.limit else 1
+		ratio = 1
+		# 取前百分之10
+		selected_specifiers = [s for s, num in sorted(num_pkts.items(), key=lambda item: -item[1])]
+		# debug(selected_specifiers[0])
+		selected_specifiers = selected_specifiers[:int(len(selected_specifiers) * ratio)]
+		# selected_specifiers = [s for s in selected_specifiers if num_pkts[s] >= 5]
 
+		debug("#selected specifier {}".format(len(selected_specifiers)))
 		# 查找业务流
-		keys = list(flow_sizes)
+		keys = list(flow_sizes.keys())
 		debug("#bidiretional flows: {}".format(len(keys)))
-		for specifier in keys:
+
+		for specifier in selected_specifiers:
+			# if specifier not in selected_specifiers:
+			# 	continue
 			sip = specifier[0]
 			sport = specifier[1]
 			dip = specifier[2]
@@ -113,9 +128,15 @@ class Parser:
 			if specifier in filtered_flow or reverse_specifier in filtered_flow:
 				continue
 
-			flow_size = flow_sizes[specifier]
-			reverse_flow_size = flow_sizes[reverse_specifier]
+			flow_size = 0
+			reverse_flow_size = 0
+			if specifier in flow_sizes:
+				flow_size = flow_sizes[specifier]
+			if reverse_specifier in flow_sizes:
+				reverse_flow_size = flow_sizes[reverse_specifier]
 
+			if flow_size == 0 and reverse_flow_size == 0:
+				continue
 			if flow_size >= reverse_flow_size:
 				flow_specifier = specifier
 			else:
@@ -125,21 +146,23 @@ class Parser:
 			flow_idx += 1
 		debug("#flows {}".format(len(filtered_flow)))
 
+		# debug("#raw valid pkts {}".format(len(raw_pkts)))
 		raw_pkts = list(filter(lambda x: x[0] in filtered_flow, raw_pkts))
-		debug("#raw valid pkts {}".format(len(raw_pkts)))
-		# filter packet with zero size
-		raw_pkts=list(filter(lambda pkt:pkt[1][1]!=0,raw_pkts))
 
-		#in nano seconds
-		timestamps = [(pkt[1][0])*1e9 for pkt in raw_pkts]
+		raw_pkts = list(filter(lambda pkt: pkt[1][1] != 0, raw_pkts))
+
+		# in nano seconds
+		timestamps = [(pkt[1][0]) * 1e9 for pkt in raw_pkts]
 		time_diffs = [y - x for x, y in zip(timestamps, timestamps[1:])]
 		# set
-		recorded_pkts=defaultdict(lambda :0)
+		recorded_pkts = defaultdict(lambda: 0)
 		with open(self.out_fn, 'w') as fp:
 			for idx, pkt in enumerate(raw_pkts):
 				# pkt =(specifier,(ts,size))
-				specifier=pkt[0]
-				recorded_pkts[specifier]+=1
+				specifier = pkt[0]
+				if num_pkts[specifier] < 20:
+					continue
+				recorded_pkts[specifier] += 1
 
 				flow_id = filtered_flow[specifier]
 				# 跟同一个流中 上一个包的时间差
@@ -155,7 +178,7 @@ class Parser:
 					proto = "TCP"
 				else:
 					proto = "UDP"
-				#距离下一个包的时间
+				# 距离下一个包的时间
 				if idx == len(raw_pkts) - 1:
 					ts_diff = -1
 				else:
@@ -163,24 +186,33 @@ class Parser:
 
 				size = pkt[1][1]
 				# finished=(recorded_pkts[specifier]==num_pkts[specifier])
-				if recorded_pkts[specifier]==num_pkts[specifier]:
-					finished=1
+				if recorded_pkts[specifier] == num_pkts[specifier]:
+					finished = 1
 				else:
-					finished=0
-				fp.write("{} {} {} {} {} {}\n".format(ts_diff, size, proto, flow_id, diff_two_pkt_in_same_flow,finished))
+					finished = 0
+				fp.write("{} {} {} {} {} {}\n".format(ts_diff, size, proto, flow_id,
+				                                      diff_two_pkt_in_same_flow, finished))
 			fp.flush()
 			fp.close()
 
 
 if __name__ == '__main__':
-	parser=ArgumentParser()
-	parser.add_argument("--pcaps",help="pcap dir",default="/Volumes/DATA/dataset/converted_iot",type=str)
-	parser.add_argument("--output",help="output dir",default="/tmp/pkts",type=str)
-	args=parser.parse_args()
+	parser = ArgumentParser()
+	parser.add_argument("--pcaps", help="pcap dir", default="/Volumes/DATA/dataset/converted_iot",
+	                    type=str)
+	parser.add_argument("--output", help="output dir", default="/tmp/video", type=str)
+	parser.add_argument("--limit", dest="limit", action="store_true")
+	args = parser.parse_args()
+	shutil.rmtree(args.output, ignore_errors=True)
+	os.mkdir(args.output)
 
 	for file in os.listdir(args.pcaps):
-		if ".pcap" not in file:continue
-		fn=os.path.join(args.pcaps,file)
-		fname=file[:-5]
-		parser = Parser(fn, os.path.join(args.output,fname+".pkts"))
-		parser.parse()
+		if ".pcap" not in file: continue
+		fn = os.path.join(args.pcaps, file)
+		fname = file[:-5]
+		try:
+			debug("start parsing {}".format(fname))
+			parser = Parser(fn, os.path.join(args.output, fname + ".pkts"), limit=args.limit)
+			parser.parse()
+		except:
+			continue

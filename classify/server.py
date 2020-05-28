@@ -16,7 +16,7 @@ import os
 dt_model_dir= os.path.join(get_prj_root(),"classify/models")
 
 dt=DT()
-dt.load_model(os.path.join(dt_model_dir,"dt.pkl"))
+# dt.load_model(os.path.join(dt_model_dir,"dt.pkl"))
 
 def check(content: str):
 	try:
