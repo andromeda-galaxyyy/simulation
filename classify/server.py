@@ -4,8 +4,8 @@ import json
 from json import JSONDecodeError
 import threading
 import socketserver
-from utils.common_utils import is_digit, info,err
-from sockets.server import Server,recvall
+from utils.common_utils import is_digit, info, err, debug
+from sockets.server import Server, recvall
 # from classify.model import Dumb
 import random
 import numpy as np
@@ -13,9 +13,14 @@ import time
 from classify.model import DT
 from path_utils import get_prj_root
 import os
-dt_model_dir= os.path.join(get_prj_root(),"classify/models")
+from multiprocessing import Pool
+import asyncio, socket
 
-dt=DT()
+dt_model_dir = os.path.join(get_prj_root(), "classify/models")
+
+dt = DT()
+
+
 # dt.load_model(os.path.join(dt_model_dir,"dt.pkl"))
 
 def check(content: str):
@@ -33,24 +38,34 @@ def check(content: str):
 	return stats
 
 
+def dumb_calculate(stats):
+	debug(stats)
+	if random.random() > 0.5:
+		res = 1
+	else:
+		res = 0
+	return res
+
+
 class DumbHandler(socketserver.BaseRequestHandler):
+	pool = Pool(10)
+
 	def handle(self) -> None:
 		req_content = str(recvall(self.request), "ascii")
 		stats = check(req_content)
 		if stats == -1:
-			err("invalid")
+			err("Invalid request {}".format(req_content))
 			self.request.close()
 			return
 		obj = json.loads(req_content)
-		print(obj)
-		millis = int(round(time.time() * 1000))
+		debug(obj)
 
-		print("received ", millis)
-		if random.random()>0.5:
-			res= {"res":1 }
-		else:
-			res = {"res": 0}
-		self.request.sendall(bytes(json.dumps(res), "ascii"))
+		future = DumbHandler.pool.apply_async(dumb_calculate,
+		                                      args=(obj["stats"],),
+		                                      )
+
+		self.request.sendall(bytes(json.dumps({"res": future.get()}), "ascii"))
+
 
 class DTHandler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
@@ -60,15 +75,13 @@ class DTHandler(socketserver.BaseRequestHandler):
 			err("invalid")
 			self.request.close()
 			return
-		obj = json.loads(req_content)
-		stats=obj[stats]
-		resp={"res":0}
+		resp = {"res": 0}
 		try:
-			res=dt.predict([stats])
+			res = dt.predict([stats])
 		except:
 			pass
-		resp["res"]=res[0]
-		self.request.sendall(bytes(json.dumps(resp),"ascii"))
+		resp["res"] = res[0]
+		self.request.sendall(bytes(json.dumps(resp), "ascii"))
 
 
 if __name__ == '__main__':

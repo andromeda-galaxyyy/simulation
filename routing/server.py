@@ -54,6 +54,7 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		if vols == -1:
 			return
 		l = len(vols)
+
 		print(vols)
 		now = datetime.now()
 
@@ -66,9 +67,11 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		res = {"res": res}
 		self.request.sendall(bytes(json.dumps(res), "ascii"))
 
+
 class DumbHandlerWithDumbModel(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
 		pass
+
 
 if __name__ == '__main__':
 	port = 1027
