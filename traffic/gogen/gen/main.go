@@ -18,6 +18,7 @@ import (
 func main(){
 	debug:=flag.Bool("debug",true,"Enable debug mode")
 	if !(*debug){
+		fmt.Println("disable debug")
 		log.SetOutput(ioutil.Discard)
 	}
 

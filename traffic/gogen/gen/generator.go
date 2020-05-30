@@ -382,9 +382,9 @@ func (g *Generator)Start() (err error) {
 
 			if toSleep > 0 && g.Sleep {
 				nano := int(toSleep)
-				if g.Debug{
-					nano*=2
-				}
+				//if g.Debug{
+				//	nano*=2
+				//}
 				time.Sleep(time.Duration(nano) * time.Nanosecond)
 			}
 		}
