@@ -25,8 +25,9 @@ def get_prj_root():
 topo_dir = os.path.join(get_prj_root(), "files")
 
 generator = os.path.join(get_prj_root(), "../traffic/gogen/gen/gen")
-script=os.path.join(get_prj_root(),"../traffic/never.stop.sh")
-listener=os.path.join(get_prj_root(),"../traffic/gogen/golisten/golisten")
+script = os.path.join(get_prj_root(), "../traffic/never.stop.sh")
+listener = os.path.join(get_prj_root(), "../traffic/gogen/golisten/golisten")
+
 
 def generate_ip(id):
 	id = int(id) + 1
@@ -65,8 +66,10 @@ def generate_mac(id):
 	mac_addr = mac_addr[::-1]
 	return mac_addr
 
+
 def gen_dpid(sid):
-	sid=int(sid)+1
+	sid = int(sid) + 1
+
 	def base_16(num):
 		res = []
 		num = int(num)
@@ -78,11 +81,13 @@ def gen_dpid(sid):
 			num //= 16
 		res.reverse()
 		return "".join(map(str, res))
-	raw_str=base_16(sid)
-	zero_padding_len=16-len(raw_str)
-	if zero_padding_len<0:
+
+	raw_str = base_16(sid)
+	zero_padding_len = 16 - len(raw_str)
+	if zero_padding_len < 0:
 		raise Exception("Two large switch id")
-	return ("0"*zero_padding_len)+raw_str
+	return ("0" * zero_padding_len) + raw_str
+
 
 def read_topo(fn="topo.json"):
 	'''
@@ -117,7 +122,6 @@ class TopoManager:
 		self.host_ips = []
 		self.n_hosts_per_switch = n_hosts_per_switch
 
-
 	def __write_id_file(self):
 		for switch_id in range(self.num_switches):
 			other_switches = list(filter(lambda x: x != switch_id, list(range(self.num_switches))))
@@ -142,7 +146,7 @@ class TopoManager:
 		else:
 			controller_ip, controller_port = controller.split(":")
 			controller_port = int(controller_port)
-			print("Controller ip {} Controller port {}".format(controller_ip,controller_port))
+			print("Controller ip {} Controller port {}".format(controller_ip, controller_port))
 			net = Mininet(topo=None, controller=None, ipBase="10.0.0.0/8")
 			c = RemoteController('c', controller_ip, controller_port)
 			net.addController(c)
@@ -156,7 +160,8 @@ class TopoManager:
 		ips = []
 
 		for i in range(num_switches):
-			s = net.addSwitch("s{}".format(i), cls=OVSKernelSwitch, protocols=["OpenFlow13"],dpid=gen_dpid(i))
+			s = net.addSwitch("s{}".format(i), cls=OVSKernelSwitch, protocols=["OpenFlow13"],
+			                  dpid=gen_dpid(i))
 			self.switches.append(s)
 			for host_idx in range(self.n_hosts_per_switch):
 				host_id = i * self.n_hosts_per_switch + host_idx
@@ -184,24 +189,30 @@ class TopoManager:
 				net.addLink(src, dst)
 		# set up nat
 		net.addNAT(ip="10.0.255.254/8").configDefault()
+		net.build()
 		net.start()
-
-		# set nat
+		#
+		# # set nat
 		for host in self.hosts:
-			pass
+			# pass
 			host.cmd("route add default gw 10.0.255.254")
-		for idx,host in enumerate(self.hosts):
-			commands="nohup {} --intf h{}-eth0 --src 10.0.0.0/8 --dst 10.0.0.0/8 >/tmp/{}.listener.log 2>&1 &".format(listener,idx,idx)
+		for idx, host in enumerate(self.hosts):
+			continue
+			commands = "nohup {} --intf h{}-eth0 --src 10.0.0.0/8 --dst 10.0.0.0/8 >/tmp/{}.listener.log 2>&1 &".format(
+				listener, idx, idx)
 			host.cmd(commands)
-		time.sleep(3)
+		# time.sleep(3)
 
 		for idx, host in enumerate(self.hosts):
+			# continue
+			# if idx % 4 != 0: continue
 			# dstIdFn="/home/stack/code/graduate/sim/system/topo/files/{}.hostids".format(idx)
-			dstIdFn=os.path.join(topo_dir,"{}.hostids".format(idx))
+			dstIdFn = os.path.join(topo_dir, "{}.hostids".format(idx))
 			# pkt_dir="/home/stack/code/graduate/sim/system/traffic/gogen/pkts"
-			pkt_dir=os.path.join(get_prj_root(),"../traffic/gogen/pkts")
-			comands="nohup {} {} --id {} --dst_id {} --pkts {} --mtu 1500 -emppkt 64 --int h{}-eth0 " \
-			        "--ws {} --cip {} --cport {} >/tmp/{}.gen.log 2>&1 &".format(
+			pkt_dir = os.path.join(get_prj_root(), "../traffic/gogen/pkts")
+			# pkt_dir="/tmp/video"
+			comands = "nohup {} {} --id {} --dst_id {} --pkts {} --mtu 1500 -emppkt 64 --int h{}-eth0 " \
+			          "--ws {} --cip {} --debug=false --cport {} >/tmp/{}.gen.log 2>&1 &".format(
 				script,
 				generator,
 				idx,
@@ -213,13 +224,14 @@ class TopoManager:
 				socket_port,
 				idx
 			)
+			# for _ in range(20):
 			host.cmd(comands)
-
-
+		# host.cmd(comands)
+		# host.cmd(comands)
 
 		CLI(net)
 		for idx, host in enumerate(self.hosts):
-			host.cmd("pkill -f gogen")
+			host.cmd("pkill -f gen")
 			host.cmd("pkill -f golisten")
 
 		net.stop()
@@ -234,12 +246,12 @@ if __name__ == '__main__':
 	parser.add_argument("--controller_port", type=int, default=6633)
 	parser.add_argument("--controller_socket_port", type=int, default=1026)
 	parser.add_argument("--n", type=int, default=1, help="number of hosts per switch")
-	parser.add_argument("--topo",type=str,default="topo.json",help="Path to topo json")
+	parser.add_argument("--topo", type=str, default="topo.json", help="Path to topo json")
 	args = parser.parse_args()
 	if args.controller_ip == "127.0.0.1" or args.controller_ip == "localhost":
 		print("Ryu controller ip cannot be localhost or 127.0.0.1!")
 		exit(-1)
 
-	manager = TopoManager(fn=args.topo,n_hosts_per_switch=int(args.n))
+	manager = TopoManager(fn=args.topo, n_hosts_per_switch=int(args.n))
 
 	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1026)

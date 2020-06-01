@@ -50,7 +50,7 @@ class Parser:
 		self.out_fn = out_fn
 		self.limit = limit
 
-	def parse(self):
+	def parse(self,stats):
 		fp = open(self.file, 'rb')
 		raw_pkts = []
 		pcap = list(dpkt.pcap.Reader(fp))
@@ -147,15 +147,27 @@ class Parser:
 		debug("#flows {}".format(len(filtered_flow)))
 
 		# debug("#raw valid pkts {}".format(len(raw_pkts)))
+		# pkt (specifier,(ts,size))
 		raw_pkts = list(filter(lambda x: x[0] in filtered_flow, raw_pkts))
 
 		raw_pkts = list(filter(lambda pkt: pkt[1][1] != 0, raw_pkts))
 
+		pkt_sizes=[pkt[1][1] for pkt in raw_pkts]
+		all_size=sum(pkt_sizes)
+
+
 		# in nano seconds
 		timestamps = [(pkt[1][0]) * 1e9 for pkt in raw_pkts]
+		duration= (timestamps[-1]-timestamps[0]) / 1e9
 		time_diffs = [y - x for x, y in zip(timestamps, timestamps[1:])]
 		# set
 		recorded_pkts = defaultdict(lambda: 0)
+
+		#
+		pcap_stats={
+			"duration":0,
+			"size":0,
+		}
 		with open(self.out_fn, 'w') as fp:
 			for idx, pkt in enumerate(raw_pkts):
 				# pkt =(specifier,(ts,size))
@@ -194,6 +206,9 @@ class Parser:
 				                                      diff_two_pkt_in_same_flow, finished))
 			fp.flush()
 			fp.close()
+		pcap_stats["duration"]=duration
+		pcap_stats["size"]=all_size
+		stats["pcaps"].append(pcap_stats)
 
 
 if __name__ == '__main__':
@@ -206,6 +221,7 @@ if __name__ == '__main__':
 	shutil.rmtree(args.output, ignore_errors=True)
 	os.mkdir(args.output)
 
+	statistics={"count":0,"pcaps":[]}
 	for file in os.listdir(args.pcaps):
 		if ".pcap" not in file: continue
 		fn = os.path.join(args.pcaps, file)
@@ -213,6 +229,7 @@ if __name__ == '__main__':
 		try:
 			debug("start parsing {}".format(fname))
 			parser = Parser(fn, os.path.join(args.output, fname + ".pkts"), limit=args.limit)
-			parser.parse()
+			parser.parse(statistics)
 		except:
 			continue
+		save_json(os.path.join(args.output,"statistics.json"),statistics)
