@@ -11,10 +11,6 @@ import (
 	"chandler.com/gogen/utils"
 )
 
-
-
-
-
 func main(){
 	debug:=flag.Bool("debug",true,"Enable debug mode")
 	if !(*debug){
