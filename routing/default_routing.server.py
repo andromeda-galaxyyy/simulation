@@ -8,7 +8,6 @@ from utils.common_utils import is_digit, info, debug, load_json, load_pkl
 from sockets.server import Server
 import random
 import networkx as nx
-from routing.ksp import NetworkTopo
 from itertools import islice
 from path_utils import get_prj_root
 from utils.common_utils import info, debug, err, file_exsit
@@ -54,6 +53,7 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		for i in range(nodes * (nodes - 1) * 2):
 			res.append(ksps[i][0])
 		res = {"res": res}
+		debug(res)
 		debug("sent")
 		self.request.sendall(bytes(json.dumps(res), "ascii"))
 

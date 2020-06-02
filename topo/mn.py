@@ -204,6 +204,7 @@ class TopoManager:
 		# time.sleep(3)
 
 		for idx, host in enumerate(self.hosts):
+			# if idx!=0:continue
 			# continue
 			# if idx % 4 != 0: continue
 			# dstIdFn="/home/stack/code/graduate/sim/system/topo/files/{}.hostids".format(idx)
@@ -224,10 +225,7 @@ class TopoManager:
 				socket_port,
 				idx
 			)
-			# for _ in range(20):
 			host.cmd(comands)
-		# host.cmd(comands)
-		# host.cmd(comands)
 
 		CLI(net)
 		for idx, host in enumerate(self.hosts):
@@ -239,7 +237,7 @@ class TopoManager:
 
 if __name__ == '__main__':
 	parser = ArgumentParser()
-	parser.add_argument("--controller_ip", type=str, default="172.16.181.1",
+	parser.add_argument("--controller_ip", type=str, default="192.168.1.90",
 	                    help="ryu ip,note that cannot "
 	                         "be be localhost or "
 	                         "127.0.0.1")
