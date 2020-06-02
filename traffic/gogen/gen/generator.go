@@ -170,6 +170,7 @@ func (g *Generator)Start() (err error) {
 
 	log.Printf("Start to generate")
 	nDsts:=len(g.DestinationIDs)
+	log.Printf("# dsts %d\n",nDsts)
 	utils.ShuffleInts(g.DestinationIDs)
 	//init handler
 	handle,err:=pcap.OpenLive(g.Int,1024,false,g.timeout)
@@ -231,17 +232,16 @@ func (g *Generator)Start() (err error) {
 		log.Fatalf("there is no pkt file in %s",g.PktsDir)
 	}
 	log.Printf("#pkt files %d\n",pktFileCount)
-	//shuffle
-	//rand.Shuffle(len(pktFns), func(i, j int) {
-	//	pktFns[i],pktFns[j]=pktFns[j],pktFns[i]
-	//})
+
 	utils.ShuffleStrings(pktFns)
 
 	pktFileIdx:=0
+	log.Println("Start to sleep for random time")
 	if g.Delay{
 		time.Sleep(time.Millisecond*time.Duration(rand.Intn(10000)))
-		time.Sleep(time.Second*time.Duration(rand.Intn(5)+g.DelayTime))
+		time.Sleep(time.Second*time.Duration(rand.Intn(66)+g.DelayTime))
 	}
+	log.Println("Sleep over.Start injection")
 
 	for{
 		//shuffle dst ips and dstmacs
@@ -296,9 +296,11 @@ func (g *Generator)Start() (err error) {
 				isLastL4Payload =true
 			}
 
+			//dstIPStr:=DstIPs[3]
 			dstIPStr:=DstIPs[flowId%nDsts]
 			dstIP:=net.ParseIP(dstIPStr)
 			dstMAC,_:=net.ParseMAC(DstMACs[flowId%nDsts])
+			//dstMAC,_:=net.ParseMAC(DstMACs[3])
 
 			//determine sport and dport
 			srcPort:=-1
@@ -372,7 +374,7 @@ func (g *Generator)Start() (err error) {
 
 			if toSleep > 0 && g.Sleep {
 				nano := int(toSleep)
-				nano*=5
+
 				//if g.Debug{
 				//	nano*=5
 				//}
@@ -386,11 +388,9 @@ func (g *Generator)Start() (err error) {
 }
 
 
-func init()  {
-	rand.Seed(time.Now().UnixNano())
-}
-
 func (g *Generator)Init()  {
+	rand.Seed(time.Now().UnixNano())
+
 	options.FixLengths=true
 	payloadPerPacketSize=g.MTU-g.EmptySize
 	g.flowStats=make(map[int]map[string][]float64)
