@@ -6,6 +6,7 @@ from pathlib import Path
 import json
 from topo.distributed.topobuilder import TopoManager
 from path_utils  import get_prj_root
+from utils.file_utils import save_json
 
 
 from typing import List
@@ -33,6 +34,9 @@ if __name__ == '__main__':
 	add(0,3,topo)
 	add(1,4,topo)
 	add(2,5,topo)
+	# save_json(get_prj_root(),"topo/distributed/demo.topo.json")
+	save_json(os.path.join(get_prj_root(),"topo/distributed/demo.topo.json"),{"topo":topo})
+
 
 	parser=ArgumentParser()
 	parser.add_argument("--id",required=True,type=int)
@@ -48,6 +52,9 @@ if __name__ == '__main__':
 	# 	manager.tear_down()
 	# else:
 	manager.diff_topo(topo)
+
+	manager.start_gen_traffic()
+
 	# manager.tear_down()
 
 

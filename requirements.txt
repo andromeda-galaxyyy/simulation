@@ -12,3 +12,4 @@ flask
 flask_rest
 tmgen
 tensorflow
+netifaces

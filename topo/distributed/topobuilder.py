@@ -2,8 +2,8 @@ import os
 import subprocess
 from typing import List, Set, Dict, Tuple, Optional
 import hashlib
-from loguru import logger
 from path_utils import get_prj_root
+from utils.log_utils import debug,info,err
 
 
 # todo mtu size
@@ -215,7 +215,6 @@ def add_hosts_to_switches(switch_id, k,vhost_mtu=1500):
 
 		os.system("ip netns exec {} ifconfig lo up".format(hostname))
 		set_ns_mac_addr(hostname, host_port, generate_mac(host_id))
-		# todo mtu size
 		set_ns_mtu(hostname, host_port, mtu)
 
 		# attach ovs port
@@ -225,10 +224,10 @@ def add_hosts_to_switches(switch_id, k,vhost_mtu=1500):
 
 def add_ovs(switch_id, controller: str):
 	ovs_name = "s{}".format(switch_id)
-	logger.debug("set up switch {}".format(ovs_name))
+	debug("set up switch {}".format(ovs_name))
 	os.system("ovs-vsctl add-br {}".format(ovs_name))
 	os.system("ovs-vsctl set-controller {} tcp:{}".format(ovs_name, controller))
-	logger.debug("set up switch {} done".format(ovs_name))
+	debug("set up switch {} done".format(ovs_name))
 
 
 def del_ovs(ovs):
@@ -269,7 +268,7 @@ def get_swid_from_link(link: str):
 
 
 def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
-	os.system("ip netns exec nohup {} {} {} >{} 2>&1 &".format(ns,bin,params,log_fn))
+	os.system("ip netns exec {} nohup {} {} >{} 2>&1 &".format(ns,bin,params,log_fn))
 
 
 class TopoManager:
@@ -291,8 +290,8 @@ class TopoManager:
 			for s in switches:
 				self.remote_switches[s] = idx
 
-		logger.debug(self.local_switch_ids)
-		logger.debug(self.remote_switches)
+		debug(self.local_switch_ids)
+		debug(self.remote_switches)
 
 		self.local_links: list[str] = []
 		self.nat_links: List[str] = []
@@ -339,7 +338,7 @@ class TopoManager:
 		k = int(k)
 		for sid in self.local_switch_ids:
 			sw_name = "s{}".format(sid)
-			logger.debug("Tearing down {}".format(sw_name))
+			debug("Tearing down {}".format(sw_name))
 			for idx in range(k):
 				hostid = sid * k + idx
 				hostname = "h{}".format(hostid)
@@ -351,7 +350,7 @@ class TopoManager:
 				detach_interface_from_sw(sw_name, ovs_port)
 				del_interface(ovs_port)
 			del_ovs(sw_name)
-			logger.debug("tear down {} done".format(sw_name))
+			debug("tear down {} done".format(sw_name))
 
 	def _tear_down_gres(self):
 		for gre in self.gres:
@@ -363,12 +362,11 @@ class TopoManager:
 			del_interface(gre)
 
 	def _tear_down_local_links(self):
-		logger.debug(self.local_links)
+		debug(self.local_links)
 		for link in self.local_links:
 			del_local_link(link)
 
 	def tear_down(self):
-		# todo log
 		self._tear_down_gres()
 		self._tear_down_local_links()
 		self._tear_down_switch()
@@ -382,7 +380,7 @@ class TopoManager:
 		self.nat_links = []
 
 	def _setup_local_links(self, new_topo: List[List[Tuple]]):
-		logger.debug("Setting up local links")
+		debug("Setting up local links")
 		new_links = []
 
 		local_switch_ids = [int(x) for x in self.local_switch_ids]
@@ -395,7 +393,7 @@ class TopoManager:
 				reverse_link = "s{}-s{}".format(sb_id, sa_id)
 
 				if -1 not in new_topo[sa_id][sb_id]:
-					logger.debug("set up link {}".format(link))
+					debug("set up link {}".format(link))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
 					new_links.append(link)
 					if link not in self.local_links:
@@ -416,7 +414,7 @@ class TopoManager:
 		self.local_links = new_links
 
 	def _diff_gre_links(self, new_topo: List[List[Tuple]]):
-		logger.debug("Setting up gre links")
+		debug("Setting up gre links")
 		new_gres = []
 		local_sw_ids = [int(x) for x in self.local_switch_ids]
 		remote_sw_ids = [int(x) for x in self.remote_switches.keys()]
@@ -440,7 +438,7 @@ class TopoManager:
 						del_tc(gretap)
 
 				else:
-					logger.debug("setting up gre {}".format(gretap))
+					debug("setting up gre {}".format(gretap))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
 					new_gres.append(gretap)
 					if gretap in self.gres:
@@ -462,12 +460,12 @@ class TopoManager:
 
 	# todo add nat
 	def set_up_nat(self):
-		logger.debug("Setting up nat")
+		debug("Setting up nat")
 		intf = self.inetintf
 
 		worker_id = self.id
 		nat2_ip = "10.1.0.254"
-		logger.debug("nat out ip {}/16".format(nat2_ip))
+		debug("nat out ip {}/16".format(nat2_ip))
 		os.system("ovs-vsctl add-br nat")
 		# os.system("ip link add nat1 type veth peer name nat2")
 		add_veth("nat1", "nat2")
@@ -507,10 +505,10 @@ class TopoManager:
 				# set default route
 				os.system(
 					"ip netns exec {} ip route add default via {}".format(hostname, nat2_ip))
-		logger.debug("Setting up nat done")
+		debug("Setting up nat done")
 
 	def _tear_down_nat(self):
-		logger.debug("Tearing down nat")
+		debug("Tearing down nat")
 		os.system("ovs-vsctl del-br nat")
 		del_interface("nat1")
 		del_interface("nat2")
@@ -524,4 +522,75 @@ class TopoManager:
         #              /COMMIT/ { print $0; }' | iptables-restore"""
 		commands="iptables -F"
 		os.system(commands)
-		logger.debug("Tearing down nat done")
+		debug("Tearing down nat done")
+
+
+	#todo
+	def start_gen_traffic(self):
+		#generate target id=
+		target_id_dir=os.path.join(get_prj_root(),"topo/distributed/targetids")
+		all_switches=[]
+		k = int(self.config["host_per_switch"])
+		worker_id = self.id
+		local_switches=self.config["workers"][worker_id]
+		for switches in self.config["workers"]:
+			all_switches.extend(switches)
+
+		for swid in local_switches:
+			target_switches=[x for x in all_switches if x!=swid]
+			target_host_ids=[]
+			for target_swid in target_switches:
+				for host_idx in range(k):
+					target_host_id=target_swid*k+host_idx
+					target_host_ids.append(target_host_id)
+
+			for host_idx in range(k):
+				host_id=swid*k+host_idx
+				hostname="h{}".format(host_id)
+				with open(os.path.join(target_id_dir,"{}.targetids".format(hostname)),'w') as fp:
+					for target_id in target_host_ids:
+						fp.write("{}\n".format(target_id))
+					fp.flush()
+					fp.close()
+
+		binary=self.config["traffic_generator"]
+
+		pkt_dir=self.config["traffic_dir"]["default"]
+		vhost_mtu=int(self.config["vhost_mtu"])
+		controller_ip=self.config["controller"].split(":")[0]
+		controller_socket_port=int(self.config["controller_socket_port"])
+
+		for swid in local_switches:
+			for host_idx in range(k):
+				hostid=swid*k+host_idx
+				hostname="h{}".format(hostid)
+				target_id_fn=os.path.join(target_id_dir,"{}.targetids".format(hostname))
+				hostname="h{}".format(hostid)
+				host_intf="h{}-eth0".format(hostid)
+				log_fn="/tmp/{}.gen.log".format(hostid)
+
+				params="--id {} " \
+				       "--dst_id {} " \
+				       "--pkts {} " \
+				       "--mtu {} " \
+				       "--int {} " \
+				       "--cip {} " \
+				       "--cport {}".format(
+					hostid,
+					target_id_fn,
+					pkt_dir,
+					vhost_mtu,
+					host_intf,
+					controller_ip,
+					controller_socket_port,
+				)
+				run_ns_binary(hostname,binary,params,log_fn)
+
+
+	def stop(self):
+		#kill generator
+		os.system("pkill -f '^gen$'")
+		#kill listener
+		os.system("pkill -f '^golistener$'")
+		#tear down topo
+		self.tear_down()

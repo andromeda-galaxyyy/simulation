@@ -2,8 +2,8 @@ import os
 import subprocess
 from typing import List, Set, Dict, Tuple, Optional
 import hashlib
-from loguru import logger
 from path_utils import get_prj_root
+from utils.common_utils import debug,info,err
 
 
 def attach_interface(s: str, port: str):
@@ -73,7 +73,7 @@ def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, 
 
 
 # todo mtu
-def add_hosts_to_switches(switch_id, k):
+def add_hosts_to_switches(switch_id, k,vhost_mtu):
 	ovsname = "s{}".format(switch_id)
 	for idx in range(k):
 		host_id = switch_id * k + idx
@@ -89,6 +89,7 @@ def add_hosts_to_switches(switch_id, k):
 		os.system(
 			"ip netns exec {} ifconfig {} {}/8".format(hostname, host_port, generate_ip(host_id)))
 		os.system("ip netns exec {} ifconfig lo up".format(hostname))
+		os.system("ip netns exec {} ifconfig {} mtu {}".format(hostname,host_port,vhost_mtu))
 
 		# attach ovs port
 		attach_interface(ovsname, ovs_port)
@@ -97,10 +98,10 @@ def add_hosts_to_switches(switch_id, k):
 
 def add_ovs(switch_id, controller: str):
 	ovs_name = "s{}".format(switch_id)
-	logger.debug("set up switch {}".format(ovs_name))
+	debug("set up switch {}".format(ovs_name))
 	os.system("ovs-vsctl add-br {}".format(ovs_name))
 	os.system("ovs-vsctl set-controller {} tcp: {}".format(ovs_name, controller))
-	logger.debug("set up switch {} done".format(ovs_name))
+	debug("set up switch {} done".format(ovs_name))
 
 
 def del_ovs(switch_id):
@@ -189,8 +190,8 @@ class TopoManager:
 			for s in switches:
 				self.remote_switches[s] = idx
 
-		logger.debug(self.local_switch_ids)
-		logger.debug(self.remote_switches)
+		debug(self.local_switch_ids)
+		debug(self.remote_switches)
 
 		self.local_links: list[str] = []
 
@@ -204,7 +205,7 @@ class TopoManager:
 		k = int(k)
 		controller = self.config["controller"]
 		# set up local switch
-		vhost_mtu=self.config["vhost_mtu"]
+		vhost_mtu =self.config["vhost_mtu"]
 		for sw_id in self.config["workers"][int(self.id)]:
 			add_ovs(sw_id, controller)
 			add_hosts_to_switches(sw_id, k,vhost_mtu)
@@ -231,7 +232,7 @@ class TopoManager:
 		k = int(k)
 		for sid in self.local_switch_ids:
 			sw_name = "s{}".format(sid)
-			logger.debug("Tearing down {}".format(sw_name))
+			debug("Tearing down {}".format(sw_name))
 			for idx in range(k):
 				hostid = sid * k + idx
 				hostname = "h{}".format(hostid)
@@ -242,7 +243,7 @@ class TopoManager:
 				os.system("ovs-vsctl del-port {} {}".format(sw_name, ovs_port))
 				os.system("ovs-vsctl del-br {}".format(sw_name))
 				os.system("ip link del {}".format(host_port))
-			logger.debug("tear down {} done".format(sw_name))
+			debug("tear down {} done".format(sw_name))
 
 	def _tear_down_gres(self):
 		for gre in self.gres:
@@ -372,7 +373,7 @@ class TopoManager:
 				hostid = swid * k + hostidx
 				hostname = "h{}".format(hostid)
 				os.system("ip netns exec {} route add default gw {}".format(hostname, nat_addr))
-		logger.debug("NAT set done")
+		debug("NAT set done")
 
 	def diff_topo(self, new_topo: List[List[Tuple]]):
 		self._diff_local_links(new_topo)
