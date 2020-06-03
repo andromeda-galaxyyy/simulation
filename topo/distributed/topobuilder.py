@@ -272,12 +272,14 @@ def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
 
 
 class TopoManager:
-
 	def __init__(self, config: dict, id_, inetintf: str):
 		self.config: dict = config
 		self.id = id_
 		self.gres: List[str] = []
+		self.gre_keys={}
 		self.inetintf = inetintf
+
+		
 
 		self.local_switch_ids: List[int] = config["workers"][self.id]
 
@@ -293,7 +295,7 @@ class TopoManager:
 		debug(self.local_switch_ids)
 		debug(self.remote_switches)
 
-		self.local_links: list[str] = []
+		self.local_links: List[str] = []
 		self.nat_links: List[str] = []
 
 		self.hosts: List[tuple] = []
@@ -302,6 +304,7 @@ class TopoManager:
 		self._set_up_switches()
 		mtu=self.config["host_mtu"]
 		set_mtu(self.inetintf,mtu)
+		self._populate_gre_key()
 
 	def _set_up_switches(self):
 		k = self.config["host_per_switch"]
@@ -316,22 +319,30 @@ class TopoManager:
 			add_hosts_to_switches(sw_id, k,vhost_mtu)
 		self.set_up_nat()
 
-	@staticmethod
-	def _gre_key(sa_id, sb_id):
+	def _populate_gre_key(self):
+		gre_=1
+		n_switches=self.config["n_switches"]
+		n_switches=int(n_switches)
+		for src in range(n_switches):
+			for dst in range(n_switches):
+				if src>=dst:continue
+				key="s{}s{}".format(src,dst)
+				self.gre_keys[key]=gre_
+				gre_+=1
+
+	def _get_gre_key(self,sa_id,sb_id):
 		'''
-		return gre tunnel key,given two switch ids
-		:param sa_id: id of switch a
-		:param sb_id:  id of switch b
+		get gre key from sa_id to sb_id
+		:param sa_id: src_id
+		:param sb_id: dst_id
 		:return:
 		'''
-		sa_id = int(sa_id)
-		sb_id = int(sb_id)
-		if sa_id > sb_id:
-			return TopoManager._gre_key(sb_id, sa_id)
-		m = hashlib.sha256()
-
-		m.update(str.encode("s{}s{}".format(sa_id, sb_id)))
-		return int(m.hexdigest(), 16) % 10000000033
+		sa_id=int(sa_id)
+		sb_id=int(sb_id)
+		if sa_id>sb_id:
+			return self._get_gre_key(sb_id,sa_id)
+		key="s{}s{}".format(sa_id,sb_id)
+		return self.gre_keys[key]
 
 	def _tear_down_switch(self):
 		k = self.config["host_per_switch"]
@@ -422,7 +433,7 @@ class TopoManager:
 		for sa_id in local_sw_ids:
 			for sb_id in remote_sw_ids:
 
-				key = self._gre_key(sa_id, sb_id)
+				key = self._get_gre_key(sa_id, sb_id)
 				gretap = "gres{}-s{}".format(sa_id, sb_id)
 				local_ip = self.ip
 				# mapping from worker id to remote ip
