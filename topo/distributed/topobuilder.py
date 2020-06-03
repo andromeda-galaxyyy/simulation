@@ -329,9 +329,9 @@ class TopoManager:
 		if sa_id > sb_id:
 			return TopoManager._gre_key(sb_id, sa_id)
 		m = hashlib.sha256()
-		#对于卫星拓扑来说 足够了
+
 		m.update(str.encode("s{}s{}".format(sa_id, sb_id)))
-		return int(m.hexdigest(), 16) % 23197
+		return int(m.hexdigest(), 16) % 10000000033
 
 	def _tear_down_switch(self):
 		k = self.config["host_per_switch"]
