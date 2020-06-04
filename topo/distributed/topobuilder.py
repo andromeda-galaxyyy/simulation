@@ -107,6 +107,7 @@ def del_tc(interface: str):
 
 
 def add_tc(interface: str, delay, bandwidth, loss):
+	return
 	#add delay
 	# bandwidth=1000*int(bandwidth)
 	os.system("tc qdisc add dev {} root handle 1:0 netem delay {}ms".format(interface,delay))
@@ -225,7 +226,7 @@ def add_hosts_to_switches(switch_id, k,vhost_mtu=1500):
 def add_ovs(switch_id, controller: str):
 	ovs_name = "s{}".format(switch_id)
 	debug("set up switch {}".format(ovs_name))
-	os.system("ovs-vsctl add-br {}".format(ovs_name))
+	os.system("ovs-vsctl add-br {} -- set bridge {} protocols=OpenFlow10,OpenFlow11,OpenFlow12,OpenFlow13".format(ovs_name,ovs_name))
 	os.system("ovs-vsctl set-controller {} tcp:{}".format(ovs_name, controller))
 	debug("set up switch {} done".format(ovs_name))
 
@@ -440,6 +441,7 @@ class TopoManager:
 				remote_ip = self.remote_ips[int(self.remote_switches[sb_id])]
 
 				# if new_topo[sa_idx][sb_idx][0] == "None":
+				# debug("sa_id:{},sb_id:{}".format(sa_id,sb_id))
 				if -1 in new_topo[sa_id][sb_id]:
 					if gretap in self.gres:
 						# take down gre
@@ -598,10 +600,12 @@ class TopoManager:
 				run_ns_binary(hostname,binary,params,log_fn)
 
 
-	def stop(self):
+	def stop_traffic(self):
 		#kill generator
 		os.system("pkill -f '^gen$'")
 		#kill listener
 		os.system("pkill -f '^golistener$'")
-		#tear down topo
+
+	def stop(self):
+		self.stop_traffic()
 		self.tear_down()

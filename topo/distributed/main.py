@@ -13,9 +13,9 @@ import netifaces
 
 if __name__ == '__main__':
 	parser=ArgumentParser()
-	parser.add_argument("--config",required=True,type=str,help="config file name")
-	parser.add_argument("--intf",required=True,type=str,help="interface to access network")
-	parser.add_argument("--topo",required=True,type=str,help="Topo json file")
+	parser.add_argument("--config",type=str,help="config file name",default="/home/stack/code/simulation/topo/distributed/mock_config.json")
+	parser.add_argument("--intf",type=str,help="interface to access network",default="eno1")
+	parser.add_argument("--topo",type=str,help="Topo json file",default="/home/stack/code/simulation/topo/distributed/demo.topo.json")
 	parser.add_argument("--id",required=True,type=str,help="Worker id")
 	args=parser.parse_args()
 
@@ -51,15 +51,34 @@ if __name__ == '__main__':
 	traffic_started=False
 	while True:
 		try:
-			command=input("Input 'start' to start generate traffic or press Ctrl+C to quit")
-			if command=="start" and not traffic_started:
-				manager.start_gen_traffic()
-				traffic_started=True
-			else:
-				print("Wrong command")
+			print("available commands:\n"
+			      "1.start traffic\n"
+			      "2.stop traffic\n"
+			      "3.quit")
+			command=input("Input commands:\n").strip()
+			print("Your command:{}".format(command))
+			command=int(command)
+
+			if command==1:
+				if not traffic_started:
+					print("Starting ")
+					manager.start_gen_traffic()
+					traffic_started=True
+				else:
+					print("Traffic generator already started")
+					continue
 				continue
+			if command==2:
+				manager.stop_traffic()
+				traffic_started=False
+				continue
+			if command==3:
+				print("Preparing quit. Clean up")
+				manager.stop()
+				break
+
 		except KeyboardInterrupt:
-			info("Preparing quit. Clean up")
+			print("Preparing quit. Clean up")
 			manager.stop()
 			break
 
