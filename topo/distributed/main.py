@@ -7,6 +7,7 @@ from topo.distributed.topobuilder import TopoManager
 from path_utils import get_prj_root
 from utils.file_utils import check_dir, check_file, load_json
 from utils.log_utils import debug, info, err
+from utils.common_utils import is_digit
 from typing import List
 import netifaces
 
@@ -18,9 +19,13 @@ def cli(manager: TopoManager):
 			print(">Available commands:\n"
 			      ">1.start traffic\n"
 			      ">2.stop traffic\n"
-			      ">3.quit")
+			      ">3.quit\n"
+			      ">Or any command which will be run in some namespace\n")
 			command = input(">Input commands:\n").strip()
-			print(">Your command:{}".format(command))
+			if not is_digit(command):
+				# todo support namespace command
+				continue
+
 			command = int(command)
 
 			if command == 1:
