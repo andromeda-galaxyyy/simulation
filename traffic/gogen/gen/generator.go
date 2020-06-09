@@ -239,7 +239,7 @@ func (g *Generator)Start() (err error) {
 	log.Println("Start to sleep for random time")
 	if g.Delay{
 		time.Sleep(time.Millisecond*time.Duration(rand.Intn(10000)))
-		time.Sleep(time.Second*time.Duration(rand.Intn(66)+g.DelayTime))
+		//time.Sleep(time.Second*time.Duration(rand.Intn(66)+g.DelayTime))
 	}
 	log.Println("Sleep over.Start injection")
 
@@ -299,7 +299,9 @@ func (g *Generator)Start() (err error) {
 			//dstIPStr:=DstIPs[3]
 			dstIPStr:=DstIPs[flowId%nDsts]
 			dstIP:=net.ParseIP(dstIPStr)
-			dstMAC,_:=net.ParseMAC(DstMACs[flowId%nDsts])
+			dstMACStr:=DstMACs[flowId%nDsts]
+			dstMAC,_:=net.ParseMAC(dstMACStr)
+			//log.Printf("target mac %s,target ip %s",dstIPStr,dstMACStr)
 			//dstMAC,_:=net.ParseMAC(DstMACs[3])
 
 			//determine sport and dport
