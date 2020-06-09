@@ -55,10 +55,10 @@ def cli(manager: TopoManager):
 if __name__ == '__main__':
 	parser = ArgumentParser()
 	parser.add_argument("--config", type=str, help="config file name",
-	                    default="/home/stack/code/simulation/topo/distributed/mock_config.json")
+	                    default="/home/stack/code/simulation/topo/distributed/satellite.config.json")
 	parser.add_argument("--intf", type=str, help="interface to access network", default="eno1")
 	parser.add_argument("--topo", type=str, help="Topo json file",
-	                    default="/home/stack/code/simulation/topo/distributed/demo.topo.json")
+	                    default="/home/stack/code/simulation/topo/distributed/satellite.json")
 	parser.add_argument("--id", required=True, type=str, help="Worker id")
 	args = parser.parse_args()
 
