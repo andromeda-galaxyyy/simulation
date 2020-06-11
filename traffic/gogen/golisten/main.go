@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chandler.com/gogen/utils"
 	"errors"
 	"flag"
 	"fmt"
@@ -27,7 +28,20 @@ func main()  {
 	sportRange:=flag.String("srange","1500-65535","Source port range")
 	dportRange:=flag.String("drange","1500-65535","Destination port range")
 
+	//writer config
 	flowStatsBaseDir:=flag.String("dir","/tmp/log","Flow stats base dir")
+	//itemsPerFile:=flag.Int("ni",10240,"Number of flow desc per file")
+	//filesPerDir:=flag.Int("nf",1024,"Number of files per dir")
+	if utils.DirExists(*flowStatsBaseDir){
+		log.Printf("base dir %s exists\n",*flowStatsBaseDir)
+	}else{
+		err=utils.CreateDir(*flowStatsBaseDir)
+		if err!=nil{
+			log.Fatalf("Cannot create dir %s\n",*flowStatsBaseDir)
+		}
+	}
+
+
 
 
 	flag.Parse()

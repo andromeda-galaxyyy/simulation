@@ -34,6 +34,7 @@ type Generator struct {
 	Delay bool
 	DelayTime int
 	Debug bool
+	FlowType int
 
 	ipStr string
 	macStr string

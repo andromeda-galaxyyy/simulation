@@ -37,12 +37,10 @@ type Listener struct {
 
 	workers []*worker
 	packetChannels []chan gopacket.Packet
-	//TODO export this field
 	channelSize int64
 
 	//delay sample size
 	//延迟采样大小
-	//TODO export this field
 	delaySampleSize int
 }
 
@@ -88,7 +86,7 @@ func (l *Listener)startDispatcher(stop chan struct{},flush chan struct{})  {
 			for i:=0;i<l.NWorker;i++{
 				close(l.packetChannels[i])
 			}
-			break
+			return
 		//case <-flush:
 			//todo direct write to file
 		case packet:=<-packetSource.Packets():
@@ -152,11 +150,9 @@ func (l *Listener)Init()  {
 		log.Printf("Listener get workers enabled, #workers: %d\n",l.NWorker)
 		l.workers=make([]*worker,0)
 		l.packetChannels=make([]chan gopacket.Packet,l.NWorker)
-		//TODO win size
 		for i:=0;i<l.NWorker;i++{
-			//todo init flowWriter
 			worker :=&worker{
-				id:fmt.Sprintf("%d",i),
+				id:i,
 				delaySampleSize:   l.delaySampleSize,
 				flowDelay:         nil,
 				flowDelayFinished: nil,

@@ -12,13 +12,13 @@ import (
 )
 
 type worker struct {
-	id string
+	id int
 	//观测窗口大小
 	delaySampleSize int
 	//some private fields
 	flowDelay map[[5]string] []int64
 	flowDelayFinished *utils.SpecifierSet
-	flowWriter *Writer
+	flowWriter *writer
 
 	//writer channel
 	writerChannel chan *flowDesc
@@ -71,7 +71,6 @@ func (worker *worker)processPacket(packet *gopacket.Packet)  {
 	sendTime:=utils.BytesToInt64(l4Payload[:8])
 	if sendTime!=0{
 		worker.flowDelay[specifier]=append(worker.flowDelay[specifier],captureTime-sendTime)
-		log.Printf("Delay: %dms\n",captureTime-sendTime)
 	}
 	//todo flowType
 	flowFinished:= utils.GetBit(l4Payload[8],7)==1
@@ -89,7 +88,7 @@ func (w *worker)start(packetChannel chan gopacket.Packet,wg *sync.WaitGroup)  {
 	for packet:=range packetChannel{
 		w.processPacket(&packet)
 	}
-	log.Printf("worker %s flush cache...\n",w.id)
+	log.Printf("worker %d flush cache...\n",w.id)
 	w.flush()
 	time.Sleep(10*time.Second)
 	log.Printf("Shutting down worker %s...Closing writer channel...\n",w.id)

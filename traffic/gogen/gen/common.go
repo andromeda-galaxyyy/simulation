@@ -5,6 +5,7 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+	"log"
 	"time"
 )
 
@@ -16,6 +17,7 @@ var (
 	udp *layers.UDP
 	payloadPerPacketSize int
 	options gopacket.SerializeOptions
+	fType int
 )
 
 type payloadManipulator func([]byte)
@@ -51,6 +53,12 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 	for i:=0;i<9;i++{
 		rawData[i]=byte(0)
 	}
+	if fType>=4{
+		log.Fatalf("Unsupported flow type:%d\n",fType)
+	}
+
+	var b=byte(fType)
+	rawData[8]=b
 
 	//buffer:=g.buffer
 	for ;count>0;count--{

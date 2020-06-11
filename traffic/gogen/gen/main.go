@@ -31,6 +31,12 @@ func main(){
 	report:=flag.Bool("report",true,"whether report between packets")
 	delay:=flag.Bool("delay",true,"whether delay before packet injection")
 	delayTime:=flag.Int("delaytime",100,"delay time")
+	flowType:=flag.Int("ftype",0,"Flow Type")
+
+	if *flowType>=4{
+		log.Fatalf("Unsupported flow type %d\n",flowType)
+	}
+	fType=*flowType
 
 
 

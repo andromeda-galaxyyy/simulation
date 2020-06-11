@@ -8,7 +8,7 @@ import (
 
 func TestWriter_Accept(t *testing.T) {
 	channel:=make(chan *flowDesc,1024)
-	utils.RmDir("/tmp/hello")
+	utils.RMDir("/tmp/hello")
 	_ = utils.CreateDir("/tmp/hello")
 
 	w:=NewDefaultWriter(1,"/tmp/hello",channel)

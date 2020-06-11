@@ -15,7 +15,7 @@ func GenerateDirNameFromTime() string  {
 	return utils.NowInString()
 }
 
-type Writer struct {
+type writer struct {
 	id               int
 	baseDir          string
 	numItemsPerFile  int64
@@ -36,8 +36,9 @@ type Writer struct {
 
 
 
-func NewWriter(id int,base string,itemsPerFile int64,filesPerDir int64,dirnameGenerator DirNameGenerator,channel chan *flowDesc) *Writer  {
-	w:=&Writer{
+
+func NewWriter(id int,base string,itemsPerFile int64,filesPerDir int64,dirnameGenerator DirNameGenerator,channel chan *flowDesc) *writer {
+	w:=&writer{
 		id:               id,
 		baseDir:          base,
 		numItemsPerFile:  itemsPerFile,
@@ -52,13 +53,13 @@ func NewWriter(id int,base string,itemsPerFile int64,filesPerDir int64,dirnameGe
 	return w
 }
 
-func NewDefaultWriter(id int,base string,channel chan *flowDesc)*Writer  {
+func NewDefaultWriter(id int,base string,channel chan *flowDesc)*writer {
 	return NewWriter(id,base,10,10,GenerateDirNameFromTime,channel)
 }
 
-func (w *Writer)Flush()  {
+func (w *writer)Flush()  {
 	if len(w.cacheA)==0 && len(w.cacheB)==0{
-		log.Printf("Writer :%d,No need to flush\n",w.id)
+		log.Printf("writer :%d,No need to flush\n",w.id)
 		return
 	}
 	//
@@ -67,21 +68,20 @@ func (w *Writer)Flush()  {
 	_=utils.CreateDir(dirname)
 	if len(w.cacheB)>0{
 		fn1:=path.Join(dirname,utils.NowInString())
-		log.Printf("Writer %d flush cacheB to file :%s\n",w.id,fn1)
+		log.Printf("writer %d flush cacheB to file :%s\n",w.id,fn1)
 		w.write(w.cacheB,fn1,1)
 	}
 	if len(w.cacheA)>0{
 		fn2:=path.Join(dirname,utils.NowInString())
-		log.Printf("Writer %d flush cacheA to file :%s\n",w.id,fn2)
+		log.Printf("writer %d flush cacheA to file :%s\n",w.id,fn2)
 		w.write(w.cacheA,fn2,0)
 	}
 }
 
 
-func (w *Writer)Accept()  {
+func (w *writer)Accept()  {
 	defer w.Flush()
 	for f:=range w.flowChannel {
-		log.Println("new flow")
 		if w.current==0{
 			//A cache
 			w.cacheA=append(w.cacheA,f)
@@ -99,7 +99,6 @@ func (w *Writer)Accept()  {
 
 			if w.filesInDir>=w.numFilesPerDir ||w.currentDir==""{
 				dir:=path.Join(w.baseDir,w.dirnameGenerator())
-				utils.RmDir(dir)
 				err:=utils.CreateDir(dir)
 				if err!=nil{
 					log.Fatalf("Error Create dir %s\n",dir)
@@ -108,8 +107,8 @@ func (w *Writer)Accept()  {
 				w.filesInDir=0
 			}
 			fn:=path.Join(w.currentDir,utils.NowInString())
+			log.Printf("Write flows to file %s\n",fn)
 			if w.current==0{
-				log.Printf("Write flows to file %s\n",fn)
 				go w.write(w.cacheA,fn,w.current)
 			}else{
 				go w.write(w.cacheB,fn,w.current)
@@ -122,7 +121,7 @@ func (w *Writer)Accept()  {
 }
 
 //perform write=
-func (w *Writer)write(flows []*flowDesc,fn string,current int) {
+func (w *writer)write(flows []*flowDesc,fn string,current int) {
 	f, err := os.Create(fn)
 	errors := make([]error, 0)
 	if err != nil {

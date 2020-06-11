@@ -24,12 +24,33 @@ func SetBit(b byte,n int) byte{
 	return b|(1<<n)
 }
 
+func SetBits(b byte,poss []int) byte{
+	for pos:=range poss{
+		if pos>=8{
+			log.Fatalf("n cannot greater than 7, given %d\n",pos)
+		}
+		b=b|(1<<pos)
+	}
+	return b
+}
+
 func UnsetBit(b byte,n int)byte{
 	if n>=8{
 		log.Fatalf("n cannot greater than 7, given %d\n",n)
 	}
 	mask := ^(1 << n)
 	b &= byte(mask)
+	return b
+}
+
+func UnsetBits(b byte,poss []int)byte  {
+	for pos:=range poss{
+		if pos>=8{
+			log.Fatalf("n cannot greater than 7, given %d\n",pos)
+		}
+		mask := ^(1 << pos)
+		b&=byte(mask)
+	}
 	return b
 }
 
