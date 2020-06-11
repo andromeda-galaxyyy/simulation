@@ -62,38 +62,9 @@ type Generator struct {
 
 }
 
-var (
-	ether *layers.Ethernet
-	vlan *layers.Dot1Q
-	ipv4 *layers.IPv4
-	tcp *layers.TCP
-	udp *layers.UDP
-	payloadPerPacketSize int
-	options gopacket.SerializeOptions
-)
-
-
-
 
 func init()  {
-	vlan=&layers.Dot1Q{
-		VLANIdentifier: 3,
-		Type: layers.EthernetTypeIPv4,
-	}
-	ether= &layers.Ethernet{
-		EthernetType: layers.EthernetTypeDot1Q,
-	}
-	ipv4= &layers.IPv4{
-		Version:    4,   //uint8
-		IHL:        5,   //uint8
-		TOS:        0,   //uint8
-		Id:         0,   //uint16
-		Flags:      0,   //IPv4Flag
-		FragOffset: 0,   //uint16
-		TTL:        255, //uint8
-	}
-	tcp=&layers.TCP{}
-	udp=&layers.UDP{}
+
 }
 
 func processStats(nums []float64) (min,max,mean float64)  {
@@ -391,6 +362,25 @@ func (g *Generator)Start() (err error) {
 
 
 func (g *Generator)Init()  {
+	vlan=&layers.Dot1Q{
+		VLANIdentifier: 3,
+		Type: layers.EthernetTypeIPv4,
+	}
+	ether= &layers.Ethernet{
+		EthernetType: layers.EthernetTypeDot1Q,
+	}
+	ipv4= &layers.IPv4{
+		Version:    4,   //uint8
+		IHL:        5,   //uint8
+		TOS:        0,   //uint8
+		Id:         0,   //uint16
+		Flags:      0,   //IPv4Flag
+		FragOffset: 0,   //uint16
+		TTL:        255, //uint8
+	}
+	tcp=&layers.TCP{}
+	udp=&layers.UDP{}
+
 	rand.Seed(time.Now().UnixNano())
 
 	options.FixLengths=true

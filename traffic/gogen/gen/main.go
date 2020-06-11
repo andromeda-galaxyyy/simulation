@@ -38,7 +38,7 @@ func main(){
 	isDumb:=flag.Bool("dumb",false,"Whether use dumb generator")
 	ipFile:=flag.String("ips","","IP file")
 	macFile:=flag.String("macs","","MAC file")
-	nFlows:=flag.Int("flows",100,"Number of flow")
+	nFlows:=flag.Int("flows",10,"Number of flow")
 	selfIp:=flag.String("selfip","","Self ip")
 	selfMac:=flag.String("selfmac","","Self mac")
 
@@ -59,7 +59,7 @@ func main(){
 			SelfIP:           *selfIp,
 			SelfMAC:          *selfMac,
 			NFlows:           *nFlows,
-			FlowSizeInPacket: 1000,
+			FlowSizeInPacket: 10,
 			Intf:             *interf,
 		}
 		dumb.Init()

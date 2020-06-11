@@ -3,9 +3,13 @@ package main
 import (
 	"chandler.com/gogen/utils"
 	"fmt"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"log"
 	"math/rand"
+	"net"
+	"strconv"
 	"time"
 )
 
@@ -22,10 +26,33 @@ type DumbGenerator struct {
 	FlowSizeInPacket int64
 	Intf string
 	handle *pcap.Handle
+	buffer gopacket.SerializeBuffer
 }
 
 func (g *DumbGenerator)Init()  {
+	g.buffer=gopacket.NewSerializeBuffer()
+	g.rawBytes=make([]byte,1600)
 	rand.Seed(time.Now().UnixNano())
+	vlan=&layers.Dot1Q{
+		VLANIdentifier: 3,
+		Type: layers.EthernetTypeIPv4,
+	}
+	ether= &layers.Ethernet{
+		EthernetType: layers.EthernetTypeDot1Q,
+	}
+	ipv4= &layers.IPv4{
+		Version:    4,   //uint8
+		IHL:        5,   //uint8
+		TOS:        0,   //uint8
+		Id:         0,   //uint16
+		Flags:      0,   //IPv4Flag
+		FragOffset: 0,   //uint16
+		TTL:        255, //uint8
+	}
+	tcp=&layers.TCP{}
+	udp=&layers.UDP{}
+	options.FixLengths=true
+
 }
 
 func (g *DumbGenerator) Start(){
@@ -59,17 +86,40 @@ func (g *DumbGenerator) Start(){
 			for flowId:=0;flowId<g.NFlows;flowId++{
 				sport:=fmt.Sprintf("%d",flowId%(65535-1500)+1500)
 				dport:=fmt.Sprintf("%d",flowId%(65535-1500)+1500)
-				dmac:=macs[flowId%nTarget]
-				dip:=ips[flowId%nTarget]
-				specifier:=[5]string{
-					sport,dport,g.SelfIP,dip,"TCP",
+				sport_,err:=strconv.Atoi(sport)
+				if err!=nil{
+					log.Fatalf("Invalid source port %s\n",sport)
 				}
-				err:=utils.Send(specifier,g.SelfMAC,dmac,1000,g.handle)
+				dport_,err:=strconv.Atoi(dport)
+				if err!=nil{
+					log.Fatalf("Invalid dst port %s\n",dport)
+				}
+				tcp.DstPort=layers.TCPPort(dport_)
+				tcp.SrcPort=layers.TCPPort(sport_)
+
+				dmac:=macs[flowId%nTarget]
+				dmac_,_:=net.ParseMAC(dmac)
+				smac_,_:=net.ParseMAC(g.SelfMAC)
+				ether.DstMAC=dmac_
+				ether.SrcMAC=smac_
+
+
+				dip:=ips[flowId%nTarget]
+				ipv4.SrcIP=net.ParseIP(g.SelfIP)
+				ipv4.DstIP=net.ParseIP(dip)
+				ipv4.Protocol=6
+
+				lastPkt:=false
+				if i==g.FlowSizeInPacket-1{
+				 lastPkt=true
+				}
+
+				err=send(handle,g.buffer,g.rawBytes,1000,1200,ether,vlan,ipv4,tcp,udp,true,true,lastPkt)
 				if err!=nil{
 					log.Fatalln(err)
 				}
-				time.Sleep(100*time.Nanosecond)
-				time.Sleep(time.Nanosecond*time.Duration(sleepInNano))
+				time.Sleep(100*time.Millisecond)
+				//time.Sleep(time.Nanosecond*time.Duration(sleepInNano))
 			}
 		}
 		//all the flow has finished

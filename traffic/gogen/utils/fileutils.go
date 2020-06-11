@@ -34,3 +34,11 @@ func ReadLines(fpath string) (res []string,err error) {
 	}
 	return res,scanner.Err()
 }
+
+func RmDir(dir string)  {
+	_ = os.RemoveAll(dir)
+}
+
+func CreateDir(dir string) error {
+	return os.Mkdir(dir,os.ModePerm)
+}

@@ -22,10 +22,12 @@ func main()  {
 	intf:=flag.String("intf","ens33","Interface to listen")
 	nworker:=flag.Int("worker",8,"Number of listener workers")
 	enableWorkers:=flag.Bool("enable_workers",true,"Whether enable multiple workers")
-	srcSubnet:=flag.String("src","172.16.181.0/24","Source host subnet")
-	dstSubnet:=flag.String("dst","172.16.181.0/24","Destination host subnet")
+	srcSubnet:=flag.String("src","10.0.0.0/24","Source host subnet")
+	dstSubnet:=flag.String("dst","10.0.0.0/24","Destination host subnet")
 	sportRange:=flag.String("srange","1500-65535","Source port range")
 	dportRange:=flag.String("drange","1500-65535","Destination port range")
+
+	flowStatsBaseDir:=flag.String("dir","/tmp/log","Flow stats base dir")
 
 
 	flag.Parse()
@@ -70,15 +72,17 @@ func main()  {
 
 
 	l:=&Listener{
-		Intf: *intf,
-		NWorker: *nworker,
+		Intf:          *intf,
+		NWorker:       *nworker,
 		EnableWorkers: *enableWorkers,
-		SrcSubnet: *srcSubnet,
-		DstSubnet: *dstSubnet,
-		SrcPortUppper: sportUpper,
-		SrcPortLower: sportLower,
-		DstPortLower: dportLower,
-		DstPortUpper:dportUpper,
+		SrcSubnet:     *srcSubnet,
+		DstSubnet:     *dstSubnet,
+		SrcPortUpper:  sportUpper,
+		SrcPortLower:  sportLower,
+		DstPortLower:  dportLower,
+		DstPortUpper:  dportUpper,
+
+		WriterBaseDir: *flowStatsBaseDir,
 	}
 	l.Init()
 	l.Start()

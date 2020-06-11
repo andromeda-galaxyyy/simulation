@@ -8,6 +8,16 @@ import (
 	"time"
 )
 
+var (
+	ether *layers.Ethernet
+	vlan *layers.Dot1Q
+	ipv4 *layers.IPv4
+	tcp *layers.TCP
+	udp *layers.UDP
+	payloadPerPacketSize int
+	options gopacket.SerializeOptions
+)
+
 type payloadManipulator func([]byte)
 type payloadManipulators []payloadManipulator
 
