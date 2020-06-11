@@ -6,11 +6,14 @@ import json
 from topo.distributed.topobuilder import TopoManager
 from path_utils import get_prj_root
 from utils.file_utils import check_dir, check_file, load_json
+from path_utils import get_prj_root
 from utils.log_utils import debug, info, err
 from utils.common_utils import is_digit
 from typing import List
 import netifaces
 
+tmp_dir= os.path.join(get_prj_root(),"topo/distributed/tmp")
+iptables_bk=os.path.join(tmp_dir,"iptables.bk")
 
 def cli(manager: TopoManager):
 	traffic_started = False
@@ -23,6 +26,9 @@ def cli(manager: TopoManager):
 			      ">Or any command which will be run in some namespace\n")
 			command = input(">Input commands:\n").strip()
 			if not is_digit(command):
+				host=command.split(" ")[0]
+				commands=command.split(" ")[1:]
+				os.system("ip netns exec {}".format(command))
 				# todo support namespace command
 				continue
 
@@ -62,6 +68,7 @@ if __name__ == '__main__':
 	parser.add_argument("--id", required=True, type=str, help="Worker id")
 	args = parser.parse_args()
 
+
 	config_fn = args.config
 	topo_fn = args.topo
 	# check file
@@ -74,6 +81,8 @@ if __name__ == '__main__':
 
 	check_file(topo_fn)
 
+	#back up iptables
+	os.system("iptables-save > {}".format(iptables_bk))
 	worker_id = int(args.id)
 	info("Worker id:{}".format(worker_id))
 	# check intf

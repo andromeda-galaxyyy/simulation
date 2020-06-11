@@ -5,6 +5,8 @@ import hashlib
 from path_utils import get_prj_root
 from utils.log_utils import debug, info, err
 
+tmp_dir= os.path.join(get_prj_root(),"topo/distributed/tmp")
+iptables_bk=os.path.join(tmp_dir,"iptables.bk")
 
 # todo mtu size
 
@@ -131,10 +133,29 @@ def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
 		delay_loss += " loss {}".format(loss)
 	os.system(delay_loss)
 
+def change_tc(interface: str, delay=None, bandwidth=None, loss=None):
+	#todo delete this
+	return
+	if delay is None and bandwidth is None and loss is None:
+		return
+	# use hfsc
+	if bandwidth is not None:
+		os.system("tc class change dev {} parent 5:0 classid 5:1 hfsc sc rate {}Mbit ul rate {}Mbit".format(
+			interface,
+			bandwidth,
+			bandwidth)
+		)
 
-# os.system(
-# 	"tc qdisc add dev {} root netem delay {}ms rate {}mbit".format(interface, delay,
-# 	                                                                 bandwidth))
+	if delay is None and loss is None:
+		return
+
+	# delay and loss
+	delay_loss = "tc qdisc change dev {} parent 5:1 handle 10: netem".format(interface)
+	if delay is not None:
+		delay_loss += " delay {}ms".format(delay)
+	if loss is not None:
+		delay_loss += " loss {}".format(loss)
+	os.system(delay_loss)
 
 
 def set_dpid(sw_id, dpid):
@@ -590,10 +611,10 @@ class TopoManager:
 						fp.write("{}\n".format(target_id))
 					fp.flush()
 					fp.close()
-				# if host_id == 0 and worker_id==0:
-				for target_id in target_host_ids:
-					target_ip = generate_ip(target_id)
-					os.system("ip netns exec {} ping {} -c 1".format(hostname, target_ip))
+				if host_id == 0 and worker_id==0:
+					for target_id in target_host_ids:
+						target_ip = generate_ip(target_id)
+						os.system("ip netns exec {} ping {} -c 1".format(hostname, target_ip))
 
 		binary = self.config["traffic_generator"]
 
@@ -636,3 +657,4 @@ class TopoManager:
 	def stop(self):
 		self.stop_traffic()
 		self.tear_down()
+		os.system("iptables-restore < {}".format(iptables_bk))
