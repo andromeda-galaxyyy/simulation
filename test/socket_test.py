@@ -8,18 +8,16 @@ import time
 
 
 if __name__ == '__main__':
-	while True:
+	for idx in range(44):
 		with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sock:
-			sock.connect(("localhost",1027))
-			obj="{\"stats\":[15.88976642985235, 18.461668908702073, 10.919648905800928, 14.159993568835397, 19.103208307744154, 12.624529936756492, 17.360818844845653, 16.32638567869324]}"
-
-			sock.sendall(bytes(obj,"ascii"))
+			sock.connect(("localhost",1028))
+			req={"topo_idx":idx}
+			sock.send(bytes(json.dumps(req),"ascii"))
 			resp=str(recvall(sock),"ascii")
-			# res=json.loads(resp)
-			# print(len(res["res"]))
-			print(resp)
-			break
-			# sleep(0.001)
+			obj=json.loads(resp)["res"]
+			print(obj)
+			assert len(obj)==66*65*2
+
 
 
 

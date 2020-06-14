@@ -4,7 +4,7 @@ import argparse
 from argparse import ArgumentParser
 from pathlib import Path
 import json
-from topo.distributed.topobuilder import TopoManager
+from topo.distributed.topobuilder import TopoBuilder
 from path_utils  import get_prj_root
 from utils.file_utils import save_json
 
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 	id_=int(args.id)
 	intf=args.intf
 
-	manager=TopoManager(config,id_,intf)
+	manager=TopoBuilder(config, id_, intf)
 	# if args.down:
 	# 	logger.debug("Tearing down")
 	# 	manager.tear_down()

@@ -84,11 +84,17 @@
     "controller_socket_port": 1026,
     "host_per_switch": 1,
     "traffic_dir": {
-        "iot": "/home/ubuntu/code/iot",
-        "video": "/home/ubuntu/code/video",
-        "vr": "/home/ubuntu/code/vr",
+        "iot": "/home/stack/code/simulation/traffic/gogen/pkts",
+        "video": "/home/stack/code/simulation/traffic/gogen/pkts",
+        "voip": "/home/stack/code/simulation/traffic/gogen/pkts",
         "default": "/home/stack/code/simulation/traffic/gogen/pkts"
     },
     "traffic_generator": "/home/stack/code/simulation/traffic/gogen/gen/gen",
-    "listener": ""
+    "listener": "",
+    "num_process": {
+        "iot": [1,2,3],
+        "video": [1,2,3],
+        "voip": [1,2,3]
+    },
+    "topo_port": 1029
 }

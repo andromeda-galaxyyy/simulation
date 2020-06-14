@@ -4,9 +4,12 @@ from typing import List, Set, Dict, Tuple, Optional
 import hashlib
 from path_utils import get_prj_root
 from utils.log_utils import debug, info, err
+from topo.distributed.traffic_scheduler import TrafficScheduler, TrafficScheduler2
+import time
 
-tmp_dir= os.path.join(get_prj_root(),"topo/distributed/tmp")
-iptables_bk=os.path.join(tmp_dir,"iptables.bk")
+tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
+iptables_bk = os.path.join(tmp_dir, "iptables.bk")
+
 
 # todo mtu size
 
@@ -109,17 +112,18 @@ def del_tc(interface: str):
 
 
 def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
-	#todo delete this
+	# todo delete this
 	return
 	if delay is None and bandwidth is None and loss is None:
 		return
 	# use hfsc
 	if bandwidth is not None:
 		os.system("tc qdisc add dev {} root handle 5:0 hfsc default 1".format(interface))
-		os.system("tc class add dev {} parent 5:0 classid 5:1 hfsc sc rate {}Mbit ul rate {}Mbit".format(
-			interface,
-			bandwidth,
-			bandwidth)
+		os.system(
+			"tc class add dev {} parent 5:0 classid 5:1 hfsc sc rate {}Mbit ul rate {}Mbit".format(
+				interface,
+				bandwidth,
+				bandwidth)
 		)
 
 	if delay is None and loss is None:
@@ -133,17 +137,19 @@ def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
 		delay_loss += " loss {}".format(loss)
 	os.system(delay_loss)
 
+
 def change_tc(interface: str, delay=None, bandwidth=None, loss=None):
-	#todo delete this
+	# todo delete this
 	return
 	if delay is None and bandwidth is None and loss is None:
 		return
 	# use hfsc
 	if bandwidth is not None:
-		os.system("tc class change dev {} parent 5:0 classid 5:1 hfsc sc rate {}Mbit ul rate {}Mbit".format(
-			interface,
-			bandwidth,
-			bandwidth)
+		os.system(
+			"tc class change dev {} parent 5:0 classid 5:1 hfsc sc rate {}Mbit ul rate {}Mbit".format(
+				interface,
+				bandwidth,
+				bandwidth)
 		)
 
 	if delay is None and loss is None:
@@ -225,18 +231,11 @@ def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, 
 	os.system(gre_command)
 
 	attach_interface_to_sw(local_sw, grename)
-	# os.system("ip link add {} type gretap local {} remote {} ttl 64 key {}".format(
-	# 	grename,
-	# 	local_ip,
-	# 	remote_ip,
-	# 	grekey
-	# ))
+
 	gre_mtu = int(gre_mtu)
 	set_mtu(grename, gre_mtu)
 	for x in ["gro", "tso", "gso"]:
 		os.system("ethtool -K {} {} off".format(grename, x))
-	# pass
-	# set_mtu(grename,1560)
 	os.system("ip link set dev {} up".format(grename))
 	add_tc(grename, delay, rate, loss)
 	return grename
@@ -323,7 +322,7 @@ def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
 	os.system("ip netns exec {} nohup {} {} >{} 2>&1 &".format(ns, bin, params, log_fn))
 
 
-class TopoManager:
+class TopoBuilder:
 	def __init__(self, config: dict, id_, inetintf: str):
 		self.config: dict = config
 		self.id = id_
@@ -351,10 +350,16 @@ class TopoManager:
 		self.hosts: List[tuple] = []
 		self.remote_ips: List[str] = config["workers_ip"]
 		self.ip: str = config["workers_ip"][self.id]
+
+		self.hostids = []
 		self._set_up_switches()
 		mtu = self.config["host_mtu"]
 		set_mtu(self.inetintf, mtu)
 		self._populate_gre_key()
+		self._write_targetids()
+
+		self.traffic_scheduler = TrafficScheduler2(self.config, self.hostids)
+		self.enable_host_find = False
 
 	def _set_up_switches(self):
 		k = self.config["host_per_switch"]
@@ -365,6 +370,11 @@ class TopoManager:
 		for sw_id in self.config["workers"][int(self.id)]:
 			add_ovs(sw_id, controller)
 			add_hosts_to_switches(sw_id, k, vhost_mtu)
+			for hostidx in range(k):
+				hostid = sw_id * k + hostidx
+				self.hostids.append(hostid)
+		# 确保没有重复的hostid
+		assert len(set(self.hostids)) == len(self.hostids)
 		self.set_up_nat()
 
 	def _populate_gre_key(self):
@@ -438,8 +448,8 @@ class TopoManager:
 		self.hosts = []
 		self.nat_links = []
 
-	def _setup_local_links(self, new_topo: List[List[Tuple]]):
-		debug("Setting up local links")
+	def _diff_local_links(self, new_topo: List[List[Tuple]]):
+		debug("diff local links")
 		new_links = []
 
 		local_switch_ids = [int(x) for x in self.local_switch_ids]
@@ -455,19 +465,24 @@ class TopoManager:
 					debug("set up link {}".format(link))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
 					new_links.append(link)
+					new_links.append(reverse_link)
 					if link not in self.local_links:
 						connect_local_switches(sa_id, sb_id, rate, delay, loss)
 
 					else:
 						# exists in previous local links,
 						# change tc
-						del_tc(link)
-						del_tc(reverse_link)
-						add_tc(link, delay, rate, loss)
-						add_tc(reverse_link, delay, rate, loss)
+						# del_tc(link)
+						# del_tc(reverse_link)
+						change_tc(link, delay, rate, loss)
+						change_tc(reverse_link, delay, rate, loss)
 				else:
 					# link is None
 					if link in self.local_links:
+						del_tc(link)
+						del_tc(reverse_link)
+						detach_interface_from_sw("s{}".format(sa_id),link)
+						detach_interface_from_sw("s{}".format(sb_id),reverse_link)
 						del_interface(link)
 						del_interface(reverse_link)
 		self.local_links = new_links
@@ -494,8 +509,8 @@ class TopoManager:
 						# take down gre
 						down_interface(gretap)
 						detach_interface_from_sw("s{}".format(sa_id), gretap)
-						del_interface(gretap)
 						del_tc(gretap)
+						del_interface(gretap)
 
 				else:
 					debug("setting up gre {}".format(gretap))
@@ -503,22 +518,23 @@ class TopoManager:
 					new_gres.append(gretap)
 					if gretap in self.gres:
 						# del tc
-						del_tc(gretap)
-						add_tc(gretap, delay, rate, loss)
+						change_tc(gretap, delay, rate, loss)
 					else:
 						# set up gre
 						gre_mtu = self.config["gre_mtu"]
-
 						connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, key, rate,
 						                           delay, loss, gre_mtu)
 
 		self.gres = new_gres
 
 	def diff_topo(self, new_topo: List[List[Tuple]]):
-		self._setup_local_links(new_topo)
+		self._diff_local_links(new_topo)
 		self._diff_gre_links(new_topo)
+		time.sleep(5)
+		if not self.enable_host_find:
+			self._do_find_host()
+			self.enable_host_find = True
 
-	# todo add nat
 	def set_up_nat(self):
 		debug("Setting up nat")
 		intf = self.inetintf
@@ -586,43 +602,18 @@ class TopoManager:
 
 	# todo
 	def start_gen_traffic(self):
-		# generate target id=
-		target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
-		all_switches = []
-		k = int(self.config["host_per_switch"])
-		worker_id = self.id
-		local_switches = self.config["workers"][worker_id]
-		for switches in self.config["workers"]:
-			all_switches.extend(switches)
-
-		for swid in local_switches:
-			target_switches = [x for x in all_switches if x != swid]
-			target_host_ids = []
-			for target_swid in target_switches:
-				for host_idx in range(k):
-					target_host_id = target_swid * k + host_idx
-					target_host_ids.append(target_host_id)
-
-			for host_idx in range(k):
-				host_id = swid * k + host_idx
-				hostname = "h{}".format(host_id)
-				with open(os.path.join(target_id_dir, "{}.targetids".format(hostname)), 'w') as fp:
-					for target_id in target_host_ids:
-						fp.write("{}\n".format(target_id))
-					fp.flush()
-					fp.close()
-				if host_id == 0 and worker_id==0:
-					for target_id in target_host_ids:
-						target_ip = generate_ip(target_id)
-						os.system("ip netns exec {} ping {} -c 1".format(hostname, target_ip))
-
+		self._write_targetids()
 		binary = self.config["traffic_generator"]
 
 		pkt_dir = self.config["traffic_dir"]["default"]
 		vhost_mtu = int(self.config["vhost_mtu"])
 		controller_ip = self.config["controller"].split(":")[0]
 		controller_socket_port = int(self.config["controller_socket_port"])
+		target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
 
+		worker_id = self.id
+		k = int(self.config["host_per_switch"])
+		local_switches = self.config["workers"][worker_id]
 		for swid in local_switches:
 			for host_idx in range(k):
 				hostid = swid * k + host_idx
@@ -656,5 +647,51 @@ class TopoManager:
 
 	def stop(self):
 		self.stop_traffic()
+		self._stop_traffic_scheduler()
 		self.tear_down()
 		os.system("iptables-restore < {}".format(iptables_bk))
+
+	def _write_targetids(self):
+		target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
+		all_switches = []
+		k = int(self.config["host_per_switch"])
+		worker_id = self.id
+		local_switches = self.config["workers"][worker_id]
+		for switches in self.config["workers"]:
+			all_switches.extend(switches)
+
+		for swid in local_switches:
+			target_switches = [x for x in all_switches if x != swid]
+			target_host_ids = []
+			for target_swid in target_switches:
+				for host_idx in range(k):
+					target_host_id = target_swid * k + host_idx
+					target_host_ids.append(target_host_id)
+
+			for host_idx in range(k):
+				host_id = swid * k + host_idx
+				hostname = "h{}".format(host_id)
+				with open(os.path.join(target_id_dir, "{}.targetids".format(hostname)), 'w') as fp:
+					for target_id in target_host_ids:
+						fp.write("{}\n".format(target_id))
+					fp.flush()
+					fp.close()
+		debug("Write targetid done")
+
+	def _start_traffic_scheduler(self):
+		scheduler = self.traffic_scheduler
+		scheduler.start()
+
+	def _stop_traffic_scheduler(self):
+		self.traffic_scheduler.stop()
+
+	def start_gen_traffic_use_scheduler(self):
+		self._start_traffic_scheduler()
+
+	def stop_traffic_use_scheduler(self):
+		self._stop_traffic_scheduler()
+
+	def _do_find_host(self):
+		hostname = "h{}".format(self.hostids[0])
+		for targetid in self.hostids:
+			os.system("ip netns exec {} ping {} -c 1".format(hostname, generate_ip(targetid)))

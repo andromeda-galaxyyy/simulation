@@ -23,7 +23,7 @@ from tmgen.models import random_gravity_tm
 
 cache_dir = os.path.join(get_prj_root(), "cache")
 satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
-
+static_dir=os.path.join(get_prj_root(),"static")
 
 def is_connected(topo, i, j):
 	if not is_digit(topo[i][j]):
@@ -36,6 +36,7 @@ def link_switch_cost(inter: float):
 
 
 def read_statellite_topo():
+	satellite_topos=[]
 	fn = os.path.join(satellite_topo_dir, "delaygraph_py3_v2.txt")
 	old_topos = load_pkl(fn)
 	intervals = []
@@ -59,6 +60,7 @@ def read_statellite_topo():
 				links.add((i, j))
 				capacity = uniform(4000, 7000)
 				delay = float(old_topo[i][j])
+				delay*=1000
 
 				# 容量，延迟、loss,switch_cost
 				spec = [capacity, delay, 0,0]
@@ -88,11 +90,16 @@ def read_statellite_topo():
 				new_topo[j][i] = deepcopy(spec)
 		# print(len(links))
 		new_topos.append(deepcopy(new_topo))
-		if old_topo_idx==0:
-			save_json("/tmp/topo.json",{"topo":new_topo})
+		satellite_topos.append({
+			"topo":new_topo,
+			"duration":intervals[old_topo_idx]
+		})
+	assert len(satellite_topos)==44
 
 	topo_fn = os.path.join(cache_dir, "topo.pkl")
+
 	save_pkl(topo_fn, new_topos)
+	save_pkl(os.path.join(static_dir,"satellite_overall.pkl"),satellite_topos)
 	debug("satellite topo saved")
 
 

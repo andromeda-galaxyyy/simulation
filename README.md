@@ -69,25 +69,31 @@ def generate_mac(id):
 比如id=1 --->'00:00:00:00:00:02'
 id=257---> '00:00:00:00:01:02'
 
+## 关于分布式ovs
+原理是同一台worker上的ovs通信使用veth，不同worker上的ovs通信使用gre隧道
+关于qos设置，延迟，带宽，丢包率等，使用tc工具
+
+ovs上挂载的主机采用namespace技术进行虚拟化，理论上可以运行任何程序
+
+关于nat，ovs上的主机需要与外界通信，比如控制器，需要使用nat，nat的原理比较繁琐。
+
+每个主机上额外有一个网卡，不同的子网10.1.0.0/24，该网卡用于nat，并且已经配置了默认路由,该网卡通过veth接到一台隐藏的ovs上
+该ovs的名称为nat，该ovs对控制器透明，实际上，所有的nat功能都对控制器透明
+
+关于ovs拓扑切换问题，
 
 
-## 关于流量产生
-工具为DITG，但是有bug，目前的patch是使用脚本，进程crash之后重新运行
-ITGManager ips_file lambda duration controller_ip port
-
-### DITG工作原理
-DITG可以自定义流量特性，自定义包间隔、包长度，这两个量分别由两个文件控制idt、ps文件，这两个文件是由python分析pcap文件产生的
-DITG有潜在的问题，比如流的时间无法精确控制，例如（流的时间如果是10s，那么DITG运行时间可能超过10s）
-对源码进行了一些修改 放在traffic/ditg/下面
-
-[ DITG手册 ](http://www.grid.unina.it/software/ITG/manual/)
-
-DITG支持Daemon模式，项目采用ITGManager生成Possion到达的流，流根据idt和ps文件产生
+## 关于流量产生和监听
+使用gen和golisten，如果需要编译，需要配置golang环境，然后运行gogen文件夹下面的build.sh
 
 # routing
 这个模块主要用于决策路由,交互见json，
 routing模块的socket端口为1027
 默认路由的模块socket端口为1028
+
+考虑到topo需要切换，那么控制器应该在1029端口，设置一个socket服务器，具体流程如下
+
+data plane===1====>controller<====请求/返回默认路由===>算法1028
 
 
 
@@ -109,3 +115,5 @@ routing模块的socket端口为1027
 
 
 
+
+# 总结
