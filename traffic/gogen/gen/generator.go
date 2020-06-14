@@ -211,7 +211,6 @@ func (g *Generator)Start() (err error) {
 	log.Println("Start to sleep for random time")
 	if g.Delay{
 		time.Sleep(time.Millisecond*time.Duration(rand.Intn(10000)))
-		//time.Sleep(time.Second*time.Duration(rand.Intn(66)+g.DelayTime))
 	}
 	log.Println("Sleep over.Start injection")
 
