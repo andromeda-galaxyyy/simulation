@@ -250,6 +250,6 @@ if __name__ == '__main__':
 		print("Ryu controller ip cannot be localhost or 127.0.0.1!")
 		exit(-1)
 
-	manager = TopoManager(fn=args.topo, n_hosts_per_switch=int(args.n))
+	builder = TopoManager(fn=args.topo, n_hosts_per_switch=int(args.n))
 
-	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1026)
+	builder.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1026)

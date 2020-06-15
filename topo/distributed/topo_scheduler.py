@@ -46,6 +46,7 @@ class Scheduler:
 				continue
 			else:
 				debug("Exit scheduler")
+				self.cv.release()
 				break
 
 	def report_topo_idx(self, idx):
@@ -63,7 +64,6 @@ class Scheduler:
 		self.cv.acquire()
 		self.cv.notify()
 		self.cv.release()
-		self.cv = threading.Condition()
 
 
 if __name__ == '__main__':

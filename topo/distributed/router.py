@@ -1,13 +1,13 @@
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api, reqparse, abort
-from topo.distributed.topomanager import TopoManager
+from topo.distributed.topobuilder import TopoBuilder
 import atexit
 
 app = Flask(__name__)
 api = Api(app)
 import loguru
 
-manager: TopoManager = None
+builder: TopoBuilder = None
 import json
 
 logger = loguru.logger
@@ -15,34 +15,34 @@ logger = loguru.logger
 
 class Config(Resource):
 	def get(self):
-		global manager
-		if manager is None:
+		global builder
+		if builder is None:
 			return '', 404
-		return json.dumps(manager.config)
+		return json.dumps(builder.config)
 
 	def post(self):
-		global manager
+		global builder
 		config = request.get_json(force=True)
 		logger.debug(config)
-		manager = TopoManager(config)
+		builder = TopoManager(config)
 		return '', 200
 
 
 class Topo(Resource):
 	def post(self):
-		global manager
+		global builder
 		topo = request.get_json(force=True)
 		logger.debug(topo)
-		if manager is not None:
-			manager.diff_topo(topo["topo"])
+		if builder is not None:
+			builder.diff_topo(topo["topo"])
 			return '', 200
 		else:
 			return '', 404
 
 	def delete(self):
-		global manager
-		if manager is not None:
-			manager.tear_down()
+		global builder
+		if builder is not None:
+			builder.tear_down()
 			return '', 200
 		else:
 			return '', 404
@@ -61,9 +61,9 @@ api.add_resource(Traffic, "/traffic")
 
 @atexit.register
 def exit_handler():
-	global manager
-	if manager is not None:
-		manager.tear_down()
+	global builder
+	if builder is not None:
+		builder.tear_down()
 
 
 if __name__ == '__main__':

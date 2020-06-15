@@ -46,14 +46,14 @@ if __name__ == '__main__':
 	id_=int(args.id)
 	intf=args.intf
 
-	manager=TopoBuilder(config, id_, intf)
+	builder=TopoBuilder(config, id_, intf)
 	# if args.down:
 	# 	logger.debug("Tearing down")
 	# 	manager.tear_down()
 	# else:
-	manager.diff_topo(topo)
+	builder.diff_topo(topo)
 
-	manager.start_gen_traffic()
+	builder.start_gen_traffic()
 
 	# manager.tear_down()
 

@@ -123,9 +123,9 @@ if __name__ == '__main__':
 		err("Cannot find interfaces {}".format(intf))
 		exit(-1)
 
-	manager = TopoBuilder(load_json(config_fn), worker_id, args.intf)
-	scheduler = Scheduler(worker_id,config, topos, manager)
+	builder = TopoBuilder(load_json(config_fn), worker_id, args.intf)
+	scheduler = Scheduler(worker_id, config, topos, builder)
 
-	manager.diff_topo(topos[0]["topo"])
+	builder.diff_topo(topos[0]["topo"])
 	info("Topo set")
-	cli(manager, scheduler)
+	cli(builder, scheduler)

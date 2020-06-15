@@ -235,7 +235,7 @@ class TopoManager:
 
 
 if __name__ == '__main__':
-	manager = TopoManager()
+	builder = TopoManager()
 	parser = ArgumentParser()
 	parser.add_argument("--controller_ip", type=str, default="192.168.64.1", help="ryu ip,note that cannot "
 	                                                                     "be be localhost or "
@@ -248,4 +248,4 @@ if __name__ == '__main__':
 		print("Ryu controller ip cannot be localhost or 127.0.0.1!")
 		exit(-1)
 
-	manager.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1026)
+	builder.set_up_mininet("{}:{}".format(args.controller_ip, args.controller_port), 1026)

@@ -4,7 +4,7 @@ import json
 from json import JSONDecodeError
 import threading
 import socketserver
-from sockets.server import recvall
+from sockets.server import recvall,recvall2,sendall
 from utils.common_utils import is_digit, info, debug, load_json, load_pkl
 from sockets.server import Server
 import random
@@ -18,6 +18,9 @@ import os
 def k_shortest_paths(G, source, target, k, weight=None):
 	return list(islice(nx.shortest_simple_paths(G, source, target, weight=weight), k))
 
+
+ksps = [None for _ in range(44)]
+# ksps=[NH]
 
 static_dir = os.path.join(get_prj_root(), "static")
 topos_pkl = os.path.join(static_dir, "satellite_overall.pkl")
@@ -41,53 +44,24 @@ for topo_idx in range(44):
 		for j in range(66):
 			if i == j: continue
 			shortest_paths.append(nx.shortest_path(g, i, j))
+
 	shortest_paths.extend(shortest_paths)
+	assert len(shortest_paths) == 66 * 65 * 2
 	default_routing[topo_idx] = shortest_paths
+	debug("compute {} done".format(topo_idx))
 
 debug("shortest path computed done")
 
 
 class DumbHandler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
-		req_str = str(recvall(self.request), "ascii")
+		req_str=recvall2(self.request)
 		debug(req_str)
 		obj = json.loads(req_str)
-		topo_idx = obj["topo_idx"]
+		topo_idx = int(obj["topo_idx"])
 		res = {"res": default_routing[topo_idx]}
-		self.request.sendall(bytes(json.dumps(res),"ascii"))
+		sendall(self.request,json.dumps(res))
 
-
-# # todo topo json format
-# # capacity,delay,loss,sc
-# use_default_graph = True
-#
-# if use_default_graph:
-# 	nodes = 9
-# 	K = 3
-# 	g: nx.Graph = nx.grid_graph([3, 3])
-# 	g = nx.relabel_nodes(g, lambda x: x[0] * K + x[1])
-#
-
-
-# ksps = []
-# for i in range(g.number_of_nodes()):
-# 	for j in range(g.number_of_nodes()):
-# 		if i == j: continue
-# 		ksps.append(k_shortest_paths(g, i, j, K))
-#
-# ksps.extend(ksps)
-# debug("ksp calculated")
-
-
-# class DumbHandler(socketserver.BaseRequestHandler):
-# 	def handle(self) -> None:
-# 		res = []
-# 		for i in range(nodes * (nodes - 1) * 2):
-# 			res.append(ksps[i][0])
-# 		res = {"res": res}
-# 		debug(res)
-# 		debug("sent")
-# 		self.request.sendall(bytes(json.dumps(res), "ascii"))
 
 
 if __name__ == '__main__':

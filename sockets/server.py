@@ -16,11 +16,31 @@ def recvall(req):
 	data = b''
 	while True:
 		part = req.recv(BUFF_SIZE)
-		data += part
-		if len(part) < BUFF_SIZE:
-			# either 0 or end of data
+
+		if not part:
 			break
+		data += part
 	return data
+
+
+def recvall2(sock: socket):
+	data = b''
+	while True:
+		part = sock.recv(BUFF_SIZE)
+		piece = part.decode()
+		data += part
+		if len(piece) > 0 and piece[-1] == '*':
+			break
+
+	if len(data)==0:
+		return ""
+	else:
+		res=data.decode()
+		return res[:-1]
+
+
+def sendall(sock: socket, msg: str):
+	sock.sendall(bytes(msg + "*","ascii"))
 
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -38,13 +58,13 @@ class Server:
 		# server=ThreadedTCPServer(("0.0.0.0",self.port),self.handler)
 		server = socketserver.ThreadingTCPServer(("0.0.0.0", self.port), self.handler)
 		server.serve_forever()
-	# with server:
-	# 	# ip,port=server.server_address
-	# 	server_thread=threading.Thread(target=server.serve_forever)
-	# 	server_thread.daemon=True
-	# 	server_thread.start()
-	# 	server.serve_forever()
-	# server.shutdown()
+# with server:
+# 	# ip,port=server.server_address
+# 	server_thread=threading.Thread(target=server.serve_forever)
+# 	server_thread.daemon=True
+# 	server_thread.start()
+# 	server.serve_forever()
+# server.shutdown()
 
 
 class Handler(socketserver.BaseRequestHandler):

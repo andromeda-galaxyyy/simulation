@@ -9,6 +9,7 @@ from utils.log_utils import debug, info, err
 import signal
 from collections import defaultdict
 import math
+from subprocess import DEVNULL
 
 import random
 
@@ -33,7 +34,7 @@ class BasicTrafficScheduler:
 		self.pid2genid = {}
 		self.binary = self.config["traffic_generator"]
 
-		self.traffic_scales = ["small", "large", "medium", "small"]
+		self.traffic_scales = ["small", "small", "small", "small"]
 		self.durations = [60, 60, 60, 60]
 		self.flow_types = ["iot", "video", "voip"]
 
@@ -62,9 +63,10 @@ class BasicTrafficScheduler:
 			self.config["controller"],
 			self.config["controller_socket_port"],
 		)
-		fp = open(log_fn, "w")
+
+		# fp = open(log_fn, "w")
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
-		pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
+		pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
 		return pid, self.generator_id
 
 	def _do_traffic_schedule(self):
@@ -166,6 +168,7 @@ class TrafficScheduler(BasicTrafficScheduler):
 				continue
 			else:
 				debug("Exit traffic scheduler")
+				self.cv.release()
 				break
 
 	def _do_stop_traffic_schedule(self):
