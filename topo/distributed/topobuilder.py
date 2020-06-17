@@ -112,8 +112,6 @@ def del_tc(interface: str):
 
 
 def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
-	# todo delete this
-	return
 	if delay is None and bandwidth is None and loss is None:
 		return
 	# use hfsc
@@ -139,8 +137,6 @@ def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
 
 
 def change_tc(interface: str, delay=None, bandwidth=None, loss=None):
-	# todo delete this
-	return
 	if delay is None and bandwidth is None and loss is None:
 		return
 	# use hfsc
@@ -464,10 +460,11 @@ class TopoBuilder:
 				if -1 not in new_topo[sa_id][sb_id]:
 					debug("set up link {}".format(link))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
+					debug("bandwidth:{};delay:{}".format(rate,delay))
 					new_links.append(link)
 					new_links.append(reverse_link)
 					if link not in self.local_links:
-						connect_local_switches(sa_id, sb_id, rate, delay, loss)
+						connect_local_switches(sa_id, sb_id, rate, delay, None)
 
 					else:
 						# exists in previous local links,
@@ -515,15 +512,16 @@ class TopoBuilder:
 				else:
 					debug("setting up gre {}".format(gretap))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
+					debug("bandwidth:{};delay:{}".format(rate,delay))
 					new_gres.append(gretap)
 					if gretap in self.gres:
 						# del tc
-						change_tc(gretap, delay, rate, loss)
+						change_tc(gretap, delay, rate, None)
 					else:
 						# set up gre
 						gre_mtu = self.config["gre_mtu"]
 						connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, key, rate,
-						                           delay, loss, gre_mtu)
+						                           delay, None, gre_mtu)
 
 		self.gres = new_gres
 

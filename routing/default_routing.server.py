@@ -60,7 +60,8 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		obj = json.loads(req_str)
 		topo_idx = int(obj["topo_idx"])
 		res = {"res": default_routing[topo_idx]}
-		sendall(self.request,json.dumps(res))
+		self.request.sendall(bytes(json.dumps(res),"ascii"))
+		# sendall(self.request,json.dumps(res))
 
 
 

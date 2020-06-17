@@ -80,7 +80,7 @@
     "host_mtu": 1500,
     "gre_mtu": 1458,
     "vhost_mtu": 1420,
-    "controller": "192.168.1.90:6633",
+    "controller": "192.168.1.90:6653",
     "controller_socket_port": 1026,
     "host_per_switch": 1,
     "traffic_dir": {

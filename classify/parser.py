@@ -202,42 +202,45 @@ def generate_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict, p
 
 
 if __name__ == '__main__':
-	parser = ArgumentParser()
-	parser.add_argument("--pcaps", help="Directory where pcap files stay", default="/tmp/pcaps",
-	                    type=str)
-	parser.add_argument("--output", help="Directory where ditg script stay", default="/tmp/ditgs",
-	                    type=str)
-	parser.add_argument("--ftype", help="Flow type", required=True)
+	pcaps_fn={
+		"iot":["/Volumes/DATA/dataset/converted_iot","/tmp/dt/iot","iot"],
+		"video":["/Volumes/DATA/dataset/cicdataset/video","/tmp/dt/video","video"],
+		# "voip":[],
+	}
+	# parser = ArgumentParser()
+	# parser.add_argument("--pcaps", help="Directory where pcap files stay", default="/tmp/pcaps",
+	#                     type=str)
+	# parser.add_argument("--output", help="Directory where ditg script stay", default="/tmp/ditgs",
+	#                     type=str)
+	# parser.add_argument("--ftype", help="Flow type", required=True)
 
-	args = parser.parse_args()
-	pcaps_dir = args.pcaps
-	check_dir(pcaps_dir)
-	output_dir = args.output
+	# args = parser.parse_args()
+	for ftype in pcaps_fn.keys():
+		pcaps_dir,output_dir,ftype=pcaps_fn[ftype]
 
-	debug("remove ditg dir")
-	if pathlib.Path(output_dir).is_dir():
-		shutil.rmtree(output_dir, ignore_errors=True)
+		debug("remove ditg dir")
+		if pathlib.Path(output_dir).is_dir():
+			shutil.rmtree(output_dir, ignore_errors=True)
 
-	os.mkdir(output_dir)
+		os.mkdir(output_dir)
 
-	files = [f for f in listdir(pcaps_dir) if 'pcap' in f]
-	files = [os.path.join(pcaps_dir, f) for f in files]
+		files = [f for f in listdir(pcaps_dir) if 'pcap' in f]
+		files = [os.path.join(pcaps_dir, f) for f in files]
 
-	statistics = {"count": 0, "flows": []}
-	for file in files:
-		# debug("Parsing {}".format(file))
-		try:
-			p = FilteredParser(file)
-			tcp, udp = p.parse()
-			for f in list(tcp.keys()):
+		statistics = {"count": 0, "flows": []}
+		for file in files:
+			try:
+				p = FilteredParser(file)
+				tcp, udp = p.parse()
+				for f in list(tcp.keys()):
 				# remove tcp handshake and other packet in which data len=0
-				tcp[f] = list(filter(lambda x: x[1] != 0, tcp[f]))
-			for f in list(udp.keys()):
-				udp[f] = list(filter(lambda x: x[1] != 0, udp[f]))
-		except:
-			continue
+					tcp[f] = list(filter(lambda x: x[1] != 0, tcp[f]))
+				for f in list(udp.keys()):
+					udp[f] = list(filter(lambda x: x[1] != 0, udp[f]))
+			except:
+				continue
 
-		generate_files(tcp, output_dir, statistics, file, args.ftype)
-		generate_files(udp, output_dir, statistics, file, args.ftype)
+			generate_files(tcp, output_dir, statistics, file, ftype)
+			generate_files(udp, output_dir, statistics, file, ftype)
 
-	save_json(os.path.join(output_dir, "statistics.json"), statistics)
+		save_json(os.path.join(output_dir, "statistics.json"), statistics)

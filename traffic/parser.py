@@ -213,23 +213,27 @@ class Parser:
 
 if __name__ == '__main__':
 	parser = ArgumentParser()
-	parser.add_argument("--pcaps", help="pcap dir", default="/Volumes/DATA/dataset/converted_iot",
-	                    type=str)
-	parser.add_argument("--output", help="output dir", default="/tmp/video", type=str)
 	parser.add_argument("--limit", dest="limit", action="store_true")
 	args = parser.parse_args()
-	shutil.rmtree(args.output, ignore_errors=True)
-	os.mkdir(args.output)
+	pcaps_fns={
+		# "iot":["/Volumes/DATA/dataset/converted_iot","/tmp/pkts/iot"],
+		# "video":["/Volumes/DATA/dataset/cicdataset/video","/tmp/pkts/video"]
+		"voip":["/Volumes/DATA/dataset/voip","/tmp/pkts/voip"]
+	}
 
-	statistics={"count":0,"pcaps":[]}
-	for file in os.listdir(args.pcaps):
-		if ".pcap" not in file: continue
-		fn = os.path.join(args.pcaps, file)
-		fname = file[:-5]
-		try:
-			debug("start parsing {}".format(fname))
-			parser = Parser(fn, os.path.join(args.output, fname + ".pkts"), limit=args.limit)
-			parser.parse(statistics)
-		except:
-			continue
-		save_json(os.path.join(args.output,"statistics.json"),statistics)
+	for flow_type in pcaps_fns.keys():
+		statistics = {"count": 0, "pcaps": []}
+		pcaps,output=pcaps_fns[flow_type]
+		shutil.rmtree(output, ignore_errors=True)
+		os.mkdir(output)
+		for file in os.listdir(pcaps):
+			if ".pcap" not in file: continue
+			fn = os.path.join(pcaps, file)
+			fname = file[:-5]
+			try:
+				debug("start parsing {}".format(fname))
+				parser = Parser(fn, os.path.join(output, fname + ".pkts"), limit=args.limit)
+				parser.parse(statistics)
+			except:
+				continue
+		save_json(os.path.join(output,"statistics.json"),statistics)

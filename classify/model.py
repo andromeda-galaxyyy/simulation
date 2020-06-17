@@ -81,5 +81,5 @@ if __name__ == '__main__':
     x,y=load_iris(return_X_y=True)
     model=DT()
     model.fit((x,y))
-    # model.save_model("test.pkl")
+    model.save_model("test.pkl")
     model.load_model("test.pkl")

@@ -5,9 +5,12 @@ from typing import List, Dict
 from path_utils import get_prj_root
 from classify.model import DT
 from datetime import datetime
+from path_utils import get_prj_root
 import numpy as np
 
 random.seed(datetime.now())
+model_dir=os.path.join(get_prj_root(),"classify/models")
+dt_model_pkl=os.path.join(get_prj_root(),"dt.pkl")
 
 Instance = namedtuple("Instance", ["features", "label"])
 
@@ -147,6 +150,7 @@ def train_and_predict():
 		if int(predicts[idx]) == int(test_y[idx]):
 			count += 1
 	print(count / len(test_x))
+	dt.save_model(dt_model_pkl)
 
 
 if __name__ == '__main__':

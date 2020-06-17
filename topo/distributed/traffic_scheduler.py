@@ -46,7 +46,7 @@ class BasicTrafficScheduler:
 		self.generator_id += 1
 		log_fn = "/tmp/{}.{}.gen.log".format(hostname, gen_id)
 		pkt_dir = self.config["traffic_dir"][flow_type]
-		controller_ip=self.config["controller"].split(":")[0]
+		controller_ip = self.config["controller"].split(":")[0]
 
 		params = "--id {} " \
 		         "--dst_id {} " \
@@ -60,7 +60,7 @@ class BasicTrafficScheduler:
 			pkt_dir,
 			self.config["vhost_mtu"],
 			intf,
-			self.config["controller"],
+			controller_ip,
 			self.config["controller_socket_port"],
 		)
 
@@ -227,7 +227,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 	def _do_traffic_schedule(self):
 		debug("start traffic schedule in thread:#{}".format(threading.get_ident()))
 
-		flow_types=self.flow_types
+		flow_types = self.flow_types
 		for ft in flow_types:
 			for _ in range(self.config["num_process"][ft][0]):
 				for hid in self.hostids:
@@ -243,7 +243,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 			target_n_host = -1
 			n_host = len(self.hostids)
 			if scale == "small":
-				target_n_host=0
+				target_n_host = 0
 			elif scale == "medium":
 				target_n_host = math.ceil(n_host * 0.2)
 			elif scale == "large":
@@ -276,6 +276,17 @@ class TrafficScheduler2(BasicTrafficScheduler):
 				continue
 			else:
 				debug("Exit traffic scheduler")
+				self.cv.release()
+				for pid in self.pid2genid.keys():
+					kill_pid(pid)
+				self.genid2pid = {}
+				self.pid2genid = {}
+				self.processes = {
+					"iot": [],
+					"video": [],
+					"voip": [],
+				}
+				self.schedule_record = []
 				break
 
 	def _do_stop_traffic_schedule(self):

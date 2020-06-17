@@ -10,6 +10,7 @@ from utils.file_utils import load_pkl
 import signal
 from sockets.client import send
 import json
+import requests
 
 static_dir = os.path.join(get_prj_root(), "static")
 topos_pkl = os.path.join(static_dir, "satellite_overall.pkl")
@@ -50,6 +51,7 @@ class Scheduler:
 				break
 
 	def report_topo_idx(self, idx):
+		return
 		ip = self.config["controller"].split(":")[0]
 		port = self.config["topo_port"]
 		obj = {"topo_idx": idx}
@@ -61,6 +63,61 @@ class Scheduler:
 
 	def stop(self):
 		debug("Stop requested...")
+		self.cv.acquire()
+		self.cv.notify()
+		self.cv.release()
+
+
+class Scheduler2:
+	'''
+	这个topo scheduler需要配合router使用，是一个manager 和worker的关系
+	'''
+	def __init__(self, config: Dict, topos: List):
+		self.config = config
+		self.topos = [t["topo"] for t in topos]
+		self.durations = [t["duration"] for t in topos]
+		self.cv = threading.Condition()
+
+	def _do_diff_topo(self, topo):
+		def do_post(ip, port, obj):
+			requests.post("http://{}:{}/topo".format(ip, port), json=obj)
+
+		worker_ips = self.config["workers_ip"]
+		for wid in range(len(worker_ips)):
+			ip = worker_ips[wid]
+			port = 5000
+			threading.Thread(target=do_post, args=[ip, port, {"topo": topo}]).start()
+
+	def _report_topo_idx(self, idx):
+		# return
+		ip = self.config["controller"].split(":")[0]
+		port = self.config["topo_port"]
+		obj = {"topo_idx": idx}
+		threading.Thread(target=send, args=(ip, port, json.dumps(obj))).start()
+
+	def _do_start_scheduler(self):
+		ts_idx = 0
+		self.cv.acquire()
+		while True:
+			info("New topo index {}".format(ts_idx))
+			topo = self.topos[ts_idx]
+			duration = self.durations[ts_idx]
+			self._do_diff_topo(topo)
+			self._report_topo_idx(ts_idx)
+			if not self.cv.wait(duration):
+				ts_idx = (ts_idx + 1) % 44
+				continue
+			else:
+				debug("Exit scheduler")
+				self.cv.release()
+				break
+
+	def start(self):
+		debug("Topo scheduler2 started")
+		Thread(target=self._do_start_scheduler).start()
+
+	def stop(self):
+		debug("Topo scheduler2 stop requested")
 		self.cv.acquire()
 		self.cv.notify()
 		self.cv.release()

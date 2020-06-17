@@ -41,8 +41,8 @@ def read_statellite_topo():
 	old_topos = load_pkl(fn)
 	intervals = []
 	for _ in range(22):
-		intervals.append(116.36)
-		intervals.append(157.95)
+		intervals.append(50)
+		intervals.append(50)
 	epoch_time = sum(intervals)
 	long_lasting_edge = set()
 	exits_intervals = []
@@ -58,9 +58,11 @@ def read_statellite_topo():
 				if not is_connected(old_topo, i, j):
 					continue
 				links.add((i, j))
-				capacity = uniform(4000, 7000)
+				# capacity = uniform(4000, 7000)
+				capacity=100
 				delay = float(old_topo[i][j])
 				delay*=1000
+				delay=int(delay)
 
 				# 容量，延迟、loss,switch_cost
 				spec = [capacity, delay, 0,0]
