@@ -1,20 +1,11 @@
 import os
 
 from argparse import ArgumentParser
-from pathlib import Path
-import json
-from topo.distributed.topobuilder import TopoBuilder
-from path_utils import get_prj_root
 from utils.file_utils import check_dir, check_file, load_json, load_pkl
 from path_utils import get_prj_root
 from utils.log_utils import debug, info, err
 from utils.common_utils import is_digit
-from typing import List
-import netifaces
 from topo.distributed.topo_scheduler import Scheduler2
-from utils.time_utils import run_at, roundTime
-from topo.distributed.traffic_scheduler import TrafficScheduler
-import datetime
 from typing import Dict, List
 import requests
 import threading
@@ -37,21 +28,21 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 	traffic_started = False
 	while True:
 		try:
-			print(">Available commands:\n"
-			      ">0.set up local switch\n"
+			print("> Available commands:\n"
+			      "> 0.set up local switch\n"
 
-			      ">1.start topo scheduler\n"
-			      ">2.stop topo scheduler\n"
+			      "> 1.start topo scheduler\n"
+			      "> 2.stop topo scheduler\n"
 
-			      ">3.start traffic (built in traffic generator,for test only)\n"
-			      ">4.stop traffic (built int traffic generator,for test only)\n"
+			      "> 3.start traffic (built in traffic generator,for test only)\n"
+			      "> 4.stop traffic (built int traffic generator,for test only)\n"
 
-			      ">5.start traffic scheduler\n"
-			      ">6.stop traffic scheduler\n"
+			      "> 5.start traffic scheduler\n"
+			      "> 6.stop traffic scheduler\n"
 
-			      ">7.quit\n"
-			      ">8.set up first topo\n"
-			      ">Press Enter to print this msg")
+			      "> 7.quit\n"
+			      "> 8.set up first topo\n"
+			      "> Press Enter to print this msg")
 
 			command = input(">Input commands:\n").strip()
 			if len(command) == 0:

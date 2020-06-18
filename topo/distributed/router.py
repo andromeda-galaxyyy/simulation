@@ -34,7 +34,8 @@ class Config(Resource):
 
 	def delete(self):
 		global builder
-		builder.stop()
+		if builder is not None:
+			start_new_thread_run(builder.stop,args=[])
 		builder = None
 
 
@@ -53,7 +54,7 @@ class Topo(Resource):
 		global builder
 		debug("tear down topo")
 		if builder is not None:
-			builder.stop()
+			start_new_thread_run(builder.stop,args=[])
 			return '', 200
 		else:
 			return '', 404

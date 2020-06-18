@@ -34,8 +34,11 @@ class BasicTrafficScheduler:
 		self.pid2genid = {}
 		self.binary = self.config["traffic_generator"]
 
-		self.traffic_scales = ["small", "small", "small", "small"]
-		self.durations = [60, 60, 60, 60]
+		# self.traffic_scales = ["small", "small", "small", "small"]
+		self.traffic_scales=self.config["traffic_mode"]
+		self.durations=self.config["traffic_duration"]
+		assert len(self.traffic_scales)==len(self.durations)
+		# self.durations = [120, 120, 120, 120]
 		self.flow_types = ["iot", "video", "voip"]
 
 	def _do_start_traffic(self, hid, flow_type) -> (int, int):
@@ -63,10 +66,10 @@ class BasicTrafficScheduler:
 			controller_ip,
 			self.config["controller_socket_port"],
 		)
+		fp=open("/tmp/{}.{}.log".format(hostname,gen_id),"w")
 
-		# fp = open(log_fn, "w")
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
-		pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
+		pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
 		return pid, self.generator_id
 
 	def _do_traffic_schedule(self):
@@ -232,6 +235,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 			for _ in range(self.config["num_process"][ft][0]):
 				for hid in self.hostids:
 					self._start_traffic(hid, ft)
+		debug("started {} process to form small flow".format(self.generator_id))
 		self.cv.acquire()
 
 		# medium,large 分别让20%和50%的主机产生额外的流量,每个主机产生2个进程
@@ -250,16 +254,18 @@ class TrafficScheduler2(BasicTrafficScheduler):
 				target_n_host = math.ceil(n_host * 0.5)
 			else:
 				err("Invalid traffic scale {}".format(scale))
-			target_n_process = target_n_host * 2
+
+			#每个选中的主机产生30个视频流
+			target_n_process = target_n_host * 30
 
 			# we need to add more generator process
 			# ? 如何让流量仅仅分布在某一些主机上?
 			if target_n_process > len(self.schedule_record):
 				n_add = target_n_process - len(self.schedule_record)
 				# sample host
-				sampled_hosts = random.sample(self.hostids, n_add // 2)
+				sampled_hosts = random.sample(self.hostids, n_add // 30)
 				for hid in sampled_hosts:
-					for _ in range(2):
+					for _ in range(30):
 						self._start_traffic(hid, "video", True)
 
 			# we need to reduce generator

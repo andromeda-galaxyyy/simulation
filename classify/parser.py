@@ -4,6 +4,7 @@ import dpkt
 import socket
 from typing import Mapping, Dict, Tuple, List
 from collections import defaultdict
+from utils.log_utils import  err
 
 import shutil
 from utils.common_utils import save_json, debug, info, check_file, check_dir
@@ -106,8 +107,7 @@ class FilteredParser(Parser):
 		debug("#{} flows (maybe bidirectional)".format(len(packets)))
 		res: Dict[Tuple, List[Tuple]] = defaultdict(list)
 
-		for specifier in packets.keys():
-
+		for specifier in list(packets.keys()):
 			sip = specifier[0]
 			sport = specifier[1]
 			dip = specifier[2]
@@ -141,7 +141,6 @@ class FilteredParser(Parser):
 		return tcp_packets, udp_packets
 
 
-# todo make timestamp start from zero
 
 def generate_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict, pcap_fn: str,
                    flow_type):
@@ -218,7 +217,6 @@ if __name__ == '__main__':
 	for ftype in pcaps_fn.keys():
 		pcaps_dir,output_dir,ftype=pcaps_fn[ftype]
 
-		debug("remove ditg dir")
 		if pathlib.Path(output_dir).is_dir():
 			shutil.rmtree(output_dir, ignore_errors=True)
 
@@ -237,7 +235,8 @@ if __name__ == '__main__':
 					tcp[f] = list(filter(lambda x: x[1] != 0, tcp[f]))
 				for f in list(udp.keys()):
 					udp[f] = list(filter(lambda x: x[1] != 0, udp[f]))
-			except:
+			except Exception as e:
+				err(e)
 				continue
 
 			generate_files(tcp, output_dir, statistics, file, ftype)

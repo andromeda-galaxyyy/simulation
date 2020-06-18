@@ -41,8 +41,8 @@ def read_statellite_topo():
 	old_topos = load_pkl(fn)
 	intervals = []
 	for _ in range(22):
-		intervals.append(50)
-		intervals.append(50)
+		intervals.append(157)
+		intervals.append(116)
 	epoch_time = sum(intervals)
 	long_lasting_edge = set()
 	exits_intervals = []

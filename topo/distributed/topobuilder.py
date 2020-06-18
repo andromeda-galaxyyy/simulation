@@ -112,6 +112,7 @@ def del_tc(interface: str):
 
 
 def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
+	return
 	if delay is None and bandwidth is None and loss is None:
 		return
 	# use hfsc
@@ -137,6 +138,7 @@ def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
 
 
 def change_tc(interface: str, delay=None, bandwidth=None, loss=None):
+	return
 	if delay is None and bandwidth is None and loss is None:
 		return
 	# use hfsc
@@ -268,7 +270,7 @@ def add_hosts_to_switches(switch_id, k, vhost_mtu=1500):
 
 def add_ovs(switch_id, controller: str):
 	ovs_name = "s{}".format(switch_id)
-	debug("set up switch {}".format(ovs_name))
+	debug("set up switch {} controller:{}".format(ovs_name,controller))
 	dpid = gen_dpid(switch_id)
 	os.system(
 		"ovs-vsctl add-br {} -- set bridge {} protocols=OpenFlow10,OpenFlow11,OpenFlow12,OpenFlow13 other-config:datapath-id={}".format(
@@ -528,7 +530,7 @@ class TopoBuilder:
 	def diff_topo(self, new_topo: List[List[Tuple]]):
 		self._diff_local_links(new_topo)
 		self._diff_gre_links(new_topo)
-		time.sleep(5)
+		time.sleep(8)
 		if not self.enable_host_find:
 			self._do_find_host()
 			self.enable_host_find = True

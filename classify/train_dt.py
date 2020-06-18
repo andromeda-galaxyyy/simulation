@@ -10,7 +10,7 @@ import numpy as np
 
 random.seed(datetime.now())
 model_dir=os.path.join(get_prj_root(),"classify/models")
-dt_model_pkl=os.path.join(get_prj_root(),"dt.pkl")
+dt_model_pkl=os.path.join(model_dir,"dt.pkl")
 
 Instance = namedtuple("Instance", ["features", "label"])
 
@@ -18,8 +18,8 @@ win_size = 10
 limit = 100000
 
 dirs = {
-	"iot": "/tmp/classify/iot",
-	"video": "/tmp/classify/video"
+	"iot": "/tmp/dt/iot",
+	"video": "/tmp/dt/video"
 }
 instances_dir = os.path.join(get_prj_root(), "classify/instances")
 
@@ -68,9 +68,7 @@ def gen_single_instance(dirname, flow, flow_type):
 	ps = [p for p in ps if p > 0]
 	if len(ps) == 0:
 		print(flow["ps"])
-		# print(flow["ps"])
 		return None
-	# assert len(ps)!=0
 	idts = [i for i in idts if i >= 0]
 	if len(idts) == 0:
 		return None

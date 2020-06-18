@@ -1,11 +1,8 @@
-import socket
-import sys
 import json
 from json import JSONDecodeError
-import threading
 import socketserver
 from utils.common_utils import is_digit, info, err, debug
-from sockets.server import Server, recvall
+from sockets.server import Server, recvall,recvall2
 # from classify.model import Dumb
 import random
 import numpy as np
@@ -51,7 +48,12 @@ class DumbHandler(socketserver.BaseRequestHandler):
 	pool = Pool(10)
 
 	def handle(self) -> None:
-		req_content = str(recvall(self.request), "ascii")
+		req_str=recvall2(self.request)
+		if req_str=="check":
+			self.request.sendall(bytes("ok","ascii"))
+			return
+		req_content=req_str
+		# req_content = str(recvall(self.request), "ascii")
 		stats = check(req_content)
 		if stats == -1:
 			err("Invalid request {}".format(req_content))
@@ -85,5 +87,12 @@ class DTHandler(socketserver.BaseRequestHandler):
 
 
 if __name__ == '__main__':
-	server = Server(1025, DumbHandler)
+	import argparse
+	parser=argparse.ArgumentParser()
+	parser.add_argument("--port",type=int,help="service listening port",default=1026)
+	args=parser.parse_args()
+	port=int(args.port)
+	server = Server(port, DumbHandler)
 	server.start()
+
+
