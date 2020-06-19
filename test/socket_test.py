@@ -6,7 +6,6 @@ from time import sleep
 import time
 
 
-
 if __name__ == '__main__':
 	# for idx in range(44):
 	with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as sock:

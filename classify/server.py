@@ -2,7 +2,7 @@ import json
 from json import JSONDecodeError
 import socketserver
 from utils.common_utils import is_digit, info, err, debug
-from sockets.server import Server, recvall,recvall2
+from sockets.server import Server, recvall, recvall2
 # from classify.model import Dumb
 import random
 import numpy as np
@@ -14,11 +14,17 @@ from multiprocessing import Pool
 import asyncio, socket
 
 dt_model_dir = os.path.join(get_prj_root(), "classify/models")
+dt_model_pkl = os.path.join(dt_model_dir, "dt.pkl")
 
+num_process = 20
 dt = DT()
+dts = [None for _ in range(num_process)]
 
+for idx in range(num_process):
+	dts[idx] = DT()
+	dts[idx].load_model(dt_model_pkl)
+	debug("{}th process loaded model".format(idx))
 
-# dt.load_model(os.path.join(dt_model_dir,"dt.pkl"))
 
 def check(content: str):
 	try:
@@ -45,14 +51,14 @@ def dumb_calculate(stats):
 
 
 class DumbHandler(socketserver.BaseRequestHandler):
-	pool = Pool(10)
+	pool = Pool(num_process)
 
 	def handle(self) -> None:
-		req_str=recvall2(self.request)
-		if req_str=="check":
-			self.request.sendall(bytes("ok","ascii"))
+		req_str = recvall2(self.request)
+		if req_str == "check":
+			self.request.sendall(bytes("ok", "ascii"))
 			return
-		req_content=req_str
+		req_content = req_str
 		# req_content = str(recvall(self.request), "ascii")
 		stats = check(req_content)
 		if stats == -1:
@@ -69,30 +75,36 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		self.request.sendall(bytes(json.dumps({"res": future.get()}), "ascii"))
 
 
+def dt_calculated(stats):
+	global dts
+	pid = os.getpid()
+	model = dts[pid % num_process]
+	return int(model.predict([stats])[0])
+
+
 class DTHandler(socketserver.BaseRequestHandler):
+	pool = Pool(num_process)
+
 	def handle(self) -> None:
-		req_content = str(recvall(self.request), "ascii")
+		req_content = recvall2(self.request)
 		stats = check(req_content)
 		if stats == -1:
 			err("invalid")
 			self.request.close()
 			return
 		resp = {"res": 0}
-		try:
-			res = dt.predict([stats])
-		except:
-			pass
-		resp["res"] = res[0]
+
+		future = DTHandler.pool.apply_async(dt_calculated, args=(stats,))
+		resp["res"] = future.get()
 		self.request.sendall(bytes(json.dumps(resp), "ascii"))
 
 
 if __name__ == '__main__':
 	import argparse
-	parser=argparse.ArgumentParser()
-	parser.add_argument("--port",type=int,help="service listening port",default=1026)
-	args=parser.parse_args()
-	port=int(args.port)
-	server = Server(port, DumbHandler)
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--port", type=int, help="service listening port", default=1026)
+	args = parser.parse_args()
+	port = int(args.port)
+	server = Server(port, DTHandler)
 	server.start()
-
-

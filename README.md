@@ -12,6 +12,9 @@ socket+json,所有的编码均为ASCII编码
 接受统计量，示例为receive.demo.json,端口为1025
 
 返回结果  示例为resp.demo.json "0"代表大流量，"1"低时延
+统计包大小包间隔，
+包间隔为nanosecond
+包大小为byte
 
 
 # deploy

@@ -49,7 +49,7 @@ class DT(Classifier):
 		self.model.fit(features, y)
 
 	def predict(self, features):
-		info("# instances {}".format(len(features)))
+		# info("# instances {}".format(len(features)))
 		return self.model.predict(features)
 
 	def save_model(self, fn_name):

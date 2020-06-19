@@ -66,10 +66,9 @@ class BasicTrafficScheduler:
 			controller_ip,
 			self.config["controller_socket_port"],
 		)
-		fp=open("/tmp/{}.{}.log".format(hostname,gen_id),"w")
 
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
-		pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
+		pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
 		return pid, self.generator_id
 
 	def _do_traffic_schedule(self):
@@ -167,7 +166,7 @@ class TrafficScheduler(BasicTrafficScheduler):
 			# 睡眠
 			if not self.cv.wait(duration):
 				traffic_scale_idx = (traffic_scale_idx + 1) % len(self.durations)
-				debug("traffic mode changed")
+				debug("traffic mode changed to {}".format(self.traffic_scales[traffic_scale_idx]))
 				continue
 			else:
 				debug("Exit traffic scheduler")
@@ -239,6 +238,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		self.cv.acquire()
 
 		# medium,large 分别让20%和50%的主机产生额外的流量,每个主机产生2个进程
+
 		traffic_scale_idx = 0
 		while True:
 			scale = self.traffic_scales[traffic_scale_idx]

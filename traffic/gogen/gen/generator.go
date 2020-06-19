@@ -235,21 +235,21 @@ func (g *Generator)Start() (err error) {
 			}
 			toSleep,err:=strconv.ParseFloat(content[0],64)
 			if toSleep<0 && int(toSleep)!=-1{
-				log.Fatalln("Invalid sleep time")
+				log.Fatalf("Invalid sleep time in pkt file %s\n",pktFile)
 			}
 			if err!=nil{
-				log.Fatalf("Invalid idt time in pkt file %s\n\n", pktFile)
+				log.Fatalf("Invalid idt time in pkt file %s\n", pktFile)
 			}
 			size,err:=strconv.Atoi(content[1])
 			if err!=nil{
-				log.Fatalf("Invalid pkt size in pkt file %s\n\n", pktFile)
+				log.Fatalf("Invalid pkt size in pkt file %s\n", pktFile)
 			}
 			proto:=content[2]
 			flowId,err:=strconv.Atoi(content[3])
 			if err!=nil{
-				log.Fatalf("Invalid flow id in pkt file %s\n\n", pktFile)
+				log.Fatalf("Invalid flow id in pkt file %s\n", pktFile)
 			}
-			//todo tsDiffInFlow
+
 			tsDiffInFlow,err:=strconv.ParseFloat(content[4],64)
 			if tsDiffInFlow<0 && int(tsDiffInFlow)!=-1{
 				log.Fatalln("Invalid ts diff in flow")

@@ -96,7 +96,7 @@
         "video": [5,2,3],
         "voip": [5,2,3]
     },
-  "traffic_mode": ["small","medium","large","medium","small"],
+  "traffic_mode": ["small","small","small","small","small"],
     "traffic_duration": [120,120,120,120,120],
     "topo_port": 1029
 }

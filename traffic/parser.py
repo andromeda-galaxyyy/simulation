@@ -160,6 +160,8 @@ class Parser:
 		timestamps = [(pkt[1][0]) * 1e9 for pkt in raw_pkts]
 		duration= (timestamps[-1]-timestamps[0]) / 1e9
 		time_diffs = [y - x for x, y in zip(timestamps, timestamps[1:])]
+		for ts in time_diffs:
+			assert ts>=0
 		# set
 		recorded_pkts = defaultdict(lambda: 0)
 
@@ -217,8 +219,8 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 	pcaps_fns={
 		# "iot":["/Volumes/DATA/dataset/converted_iot","/tmp/pkts/iot"],
-		# "video":["/Volumes/DATA/dataset/cicdataset/video","/tmp/pkts/video"]
-		"voip":["/Volumes/DATA/dataset/voip","/tmp/pkts/voip"]
+		"video":["/Volumes/DATA/dataset/cicdataset/video","/tmp/pkts/video"]
+		# "voip":["/Volumes/DATA/dataset/voip","/tmp/pkts/voip"]
 	}
 
 	for flow_type in pcaps_fns.keys():
