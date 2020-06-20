@@ -50,7 +50,7 @@ class Parser:
 		self.out_fn = out_fn
 		self.limit = limit
 
-	def parse(self,stats):
+	def parse(self, stats):
 		fp = open(self.file, 'rb')
 		raw_pkts = []
 		pcap = list(dpkt.pcap.Reader(fp))
@@ -62,6 +62,7 @@ class Parser:
 		flow_sizes = defaultdict(lambda: 0)
 		num_pkts = defaultdict(lambda: 0)
 
+		# 丢掉payload==0的包，和特殊协议的包，并记录流的size，num of packets
 		for ts, buf in pcap:
 			try:
 				eth = dpkt.ethernet.Ethernet(buf)
@@ -100,24 +101,24 @@ class Parser:
 			num_pkts[specifier] += 1
 			raw_pkts.append((specifier, (ts, len(l4.data))))
 
-		# flow_id
+		# specifier->flow id
+		# 从双向流中取出单向流，并且记录流id
+
 		filtered_flow = {}
-		# ratio=0.01 if self.limit else 1
+		# 对于iot流，取出前百分之10的流, 对于其他流，取出前100%
 		ratio = 1
-		# 取前百分之10
+
+		# 按照流大小，从大到小排列
 		selected_specifiers = [s for s, num in sorted(num_pkts.items(), key=lambda item: -item[1])]
-		# debug(selected_specifiers[0])
 		selected_specifiers = selected_specifiers[:int(len(selected_specifiers) * ratio)]
-		# selected_specifiers = [s for s in selected_specifiers if num_pkts[s] >= 5]
 
 		debug("#selected specifier {}".format(len(selected_specifiers)))
-		# 查找业务流
+
+		# 查找业务流,从双向流中取出较大方向的流
 		keys = list(flow_sizes.keys())
 		debug("#bidiretional flows: {}".format(len(keys)))
 
 		for specifier in selected_specifiers:
-			# if specifier not in selected_specifiers:
-			# 	continue
 			sip = specifier[0]
 			sport = specifier[1]
 			dip = specifier[2]
@@ -146,33 +147,32 @@ class Parser:
 			flow_idx += 1
 		debug("#flows {}".format(len(filtered_flow)))
 
-		# debug("#raw valid pkts {}".format(len(raw_pkts)))
-		# pkt (specifier,(ts,size))
+		# 筛选出合格的数据包
+		# pkt:(specifier,(ts,len(l4.data))
 		raw_pkts = list(filter(lambda x: x[0] in filtered_flow, raw_pkts))
 
-		raw_pkts = list(filter(lambda pkt: pkt[1][1] != 0, raw_pkts))
-
-		pkt_sizes=[pkt[1][1] for pkt in raw_pkts]
-		all_size=sum(pkt_sizes)
-
+		pkt_sizes = [pkt[1][1] for pkt in raw_pkts]
+		all_size = sum(pkt_sizes)
 
 		# in nano seconds
 		timestamps = [(pkt[1][0]) * 1e9 for pkt in raw_pkts]
-		duration= (timestamps[-1]-timestamps[0]) / 1e9
+		duration = (timestamps[-1] - timestamps[0]) / 1e9
 		time_diffs = [y - x for x, y in zip(timestamps, timestamps[1:])]
 		for ts in time_diffs:
-			assert ts>=0
-		# set
+			assert ts >= 0
+
+		# 记录已经遍历的包的数量
 		recorded_pkts = defaultdict(lambda: 0)
 
 		#
-		pcap_stats={
-			"duration":0,
-			"size":0,
+		pcap_stats = {
+			"duration": 0,
+			"size": 0,
+			"file": self.file
 		}
 		with open(self.out_fn, 'w') as fp:
 			for idx, pkt in enumerate(raw_pkts):
-				# pkt =(specifier,(ts,size))
+
 				specifier = pkt[0]
 				if num_pkts[specifier] < 20:
 					continue
@@ -208,8 +208,8 @@ class Parser:
 				                                      diff_two_pkt_in_same_flow, finished))
 			fp.flush()
 			fp.close()
-		pcap_stats["duration"]=duration
-		pcap_stats["size"]=all_size
+		pcap_stats["duration"] = duration
+		pcap_stats["size"] = all_size
 		stats["pcaps"].append(pcap_stats)
 
 
@@ -217,15 +217,15 @@ if __name__ == '__main__':
 	parser = ArgumentParser()
 	parser.add_argument("--limit", dest="limit", action="store_true")
 	args = parser.parse_args()
-	pcaps_fns={
+	pcaps_fns = {
 		# "iot":["/Volumes/DATA/dataset/converted_iot","/tmp/pkts/iot"],
-		"video":["/Volumes/DATA/dataset/cicdataset/video","/tmp/pkts/video"]
+		"video": ["/Volumes/DATA/dataset/cicdataset/video", "/tmp/pkts/video"]
 		# "voip":["/Volumes/DATA/dataset/voip","/tmp/pkts/voip"]
 	}
 
 	for flow_type in pcaps_fns.keys():
 		statistics = {"count": 0, "pcaps": []}
-		pcaps,output=pcaps_fns[flow_type]
+		pcaps, output = pcaps_fns[flow_type]
 		shutil.rmtree(output, ignore_errors=True)
 		os.mkdir(output)
 		for file in os.listdir(pcaps):
@@ -238,4 +238,4 @@ if __name__ == '__main__':
 				parser.parse(statistics)
 			except:
 				continue
-		save_json(os.path.join(output,"statistics.json"),statistics)
+		save_json(os.path.join(output, "statistics.json"), statistics)

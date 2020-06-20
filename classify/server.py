@@ -4,6 +4,7 @@ import socketserver
 from utils.common_utils import is_digit, info, err, debug
 from sockets.server import Server, recvall, recvall2
 # from classify.model import Dumb
+import multiprocessing
 import random
 import numpy as np
 import time
@@ -78,6 +79,7 @@ class DumbHandler(socketserver.BaseRequestHandler):
 def dt_calculated(stats):
 	global dts
 	pid = os.getpid()
+	# proc=multiprocessing.current_process.
 	model = dts[pid % num_process]
 	return int(model.predict([stats])[0])
 
@@ -87,6 +89,9 @@ class DTHandler(socketserver.BaseRequestHandler):
 
 	def handle(self) -> None:
 		req_content = recvall2(self.request)
+		if req_content == "check":
+			self.request.sendall(bytes("ok", "ascii"))
+			return
 		stats = check(req_content)
 		if stats == -1:
 			err("invalid")
