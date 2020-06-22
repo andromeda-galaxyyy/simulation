@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ssh-keygen -f "/home/stack/.ssh/known_hosts" -R "[localhost]:8101"
+#ssh-keygen -f "/home/stack/.ssh/known_hosts" -R "[localhost]:8101"
 docker stop onos22
 docker rm onos22
 service docker restart

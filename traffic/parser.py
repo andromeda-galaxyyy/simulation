@@ -219,8 +219,8 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 	pcaps_fns = {
 		# "iot":["/Volumes/DATA/dataset/converted_iot","/tmp/pkts/iot"],
-		"video": ["/Volumes/DATA/dataset/cicdataset/video", "/tmp/pkts/video"]
-		# "voip":["/Volumes/DATA/dataset/voip","/tmp/pkts/voip"]
+		# "video": ["/Volumes/DATA/dataset/cicdataset/video", "/tmp/pkts/video"]
+		"voip":["/Volumes/DATA/dataset/voip/","/tmp/pkts/voip"]
 	}
 
 	for flow_type in pcaps_fns.keys():

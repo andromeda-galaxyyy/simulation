@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
 curr_dir=`pwd`
-
+echo $curr_dir
 export PYTHONPATH=${PYTHONPATH}:${curr_dir}/topo:${curr_dir}utils

@@ -9,6 +9,7 @@ sklearn~=0.0
 scikit-learn~=0.22.2.post1
 fnss
 flask
-flask_rest
+flask_restful
 tensorflow
 netifaces
+requests

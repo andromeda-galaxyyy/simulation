@@ -9,8 +9,8 @@ from path_utils import get_prj_root
 import numpy as np
 
 random.seed(datetime.now())
-model_dir=os.path.join(get_prj_root(),"classify/models")
-dt_model_pkl=os.path.join(model_dir,"dt.pkl")
+model_dir = os.path.join(get_prj_root(), "classify/models")
+dt_model_pkl = os.path.join(model_dir, "dt.pkl")
 
 Instance = namedtuple("Instance", ["features", "label"])
 
@@ -18,8 +18,9 @@ win_size = 10
 limit = 100000
 
 dirs = {
-	"iot": "/tmp/dt/iot",
-	"video": "/tmp/dt/video"
+	# "video": "/tmp/dt/video",
+	# "iot": "/tmp/dt/iot",
+	"voip": "/tmp/dt/voip"
 }
 instances_dir = os.path.join(get_prj_root(), "classify/instances")
 
@@ -45,8 +46,8 @@ def gen_single_instance(dirname, flow, flow_type):
 		lines = fp.readlines()
 		fp.close()
 	lines = [l.strip() for l in lines]
-	# lines = [l for l in lines if l != "" and l != "\n"]
-	lines = [l for l in lines if len(l) > 0]
+
+	lines = [l for l in lines if len(l) > -1]
 	if len(lines) > win_size:
 		lines = lines[:win_size]
 	for l in lines:
@@ -75,16 +76,23 @@ def gen_single_instance(dirname, flow, flow_type):
 
 	features.extend(extract_features(ps))
 	features.extend(extract_features(idts))
-	if flow_type == "iot":
-		label = 1
+	if flow_type=="video":
+		label=0
+	elif flow_type=="iot":
+		label=1
+	elif flow_type=="voip":
+		label = 2
 	else:
-		label = 0
+		err("Unsupported flow type")
+		raise Exception("Unsupported flow type")
 	return Instance(features=features, label=label)
 
 
 def generate():
 	instances_dir = os.path.join(get_prj_root(), "classify/instances")
 	for flow_type, dirname in dirs.items():
+		stats_fn=os.path.join(dirname,"statistics.json")
+		debug(stats_fn)
 		statistics = load_json(os.path.join(dirname, "statistics.json"))
 		debug("#flows {}".format(statistics["count"]))
 		flows: List = statistics["flows"]
@@ -101,16 +109,23 @@ def generate():
 def train_and_predict():
 	iot = load_pkl(os.path.join(instances_dir, "iot.pkl"))
 	videos = load_pkl(os.path.join(instances_dir, "video.pkl"))
-	for i in iot:
-		assert i.label == 1
+	voip = load_pkl(os.path.join(instances_dir, "voip.pkl"))
 	for i in videos:
 		assert i.label == 0
+	for i in iot:
+		assert i.label == 1
+	for i in voip:
+		assert i.label == 2
+
 	debug("# iot instances {}".format(len(iot)))
 	debug("# video instances {}".format(len(videos)))
+
+	random.shuffle(voip)
 	random.shuffle(iot)
 	random.shuffle(videos)
 
 	n_video_train = int(len(videos) * 0.7)
+	n_video_test = len(videos) - n_video_train
 
 	video_train = videos[:n_video_train]
 	video_test = videos[n_video_train:]
@@ -118,27 +133,36 @@ def train_and_predict():
 	iot_train = iot[:n_video_train]
 	iot_test = iot[len(iot) - len(video_test):]
 
+	voip_train = voip[:n_video_train]
+	voip_test = voip[len(voip)-len(video_test):]
+
 	info("#video train {}".format(len(video_train)))
 	info("#iot train {}".format(len(iot_train)))
+	info("#voip train {}".format(len(voip_train)))
 
 	train = []
 	train.extend(iot_train)
 	train.extend(video_train)
+	train.extend(voip_train)
+	random.shuffle(train)
+
 	train_x = [x.features for x in train]
 	train_y = [x.label for x in train]
 
 	# test 1:1
 	test = []
-	info("#iot test {}".format(len(iot_test)))
-	video_test = videos[n_video_train:]
-	info("#video test {}".format(len(video_test)))
 
-	test.extend(iot_test)
+	info("#video test {}".format(len(video_test)))
+	info("#iot test {}".format(len(iot_test)))
+	info("#voip test {}".format(len(voip_test)))
+
 	test.extend(video_test)
+	test.extend(iot_test)
+	test.extend(voip_test)
+	random.shuffle(test)
 
 	test_x = [t.features for t in test]
 	test_y = [t.label for t in test]
-	# print(len([t.label for t in test if t.label==0]))
 
 	dt = DT()
 	dt.fit((train_x, train_y))

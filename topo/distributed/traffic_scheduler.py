@@ -35,9 +35,9 @@ class BasicTrafficScheduler:
 		self.binary = self.config["traffic_generator"]
 
 		# self.traffic_scales = ["small", "small", "small", "small"]
-		self.traffic_scales=self.config["traffic_mode"]
-		self.durations=self.config["traffic_duration"]
-		assert len(self.traffic_scales)==len(self.durations)
+		self.traffic_scales = self.config["traffic_mode"]
+		self.durations = self.config["traffic_duration"]
+		assert len(self.traffic_scales) == len(self.durations)
 		# self.durations = [120, 120, 120, 120]
 		self.flow_types = ["iot", "video", "voip"]
 
@@ -49,6 +49,16 @@ class BasicTrafficScheduler:
 		self.generator_id += 1
 		log_fn = "/tmp/{}.{}.gen.log".format(hostname, gen_id)
 		pkt_dir = self.config["traffic_dir"][flow_type]
+		ftype = 0
+		if flow_type == "video":
+			ftype = 0
+		elif flow_type == "iot":
+			ftype = 1
+		elif flow_type == "voip":
+			ftype = 2
+		else:
+			raise Exception("Unsupported flow type")
+
 		controller_ip = self.config["controller"].split(":")[0]
 
 		params = "--id {} " \
@@ -57,6 +67,7 @@ class BasicTrafficScheduler:
 		         "--mtu {} " \
 		         "--int {} " \
 		         "--cip {} " \
+		         "--ftype {}" \
 		         "--cport {}".format(
 			hid,
 			target_id_fn,
@@ -64,6 +75,7 @@ class BasicTrafficScheduler:
 			self.config["vhost_mtu"],
 			intf,
 			controller_ip,
+			ftype,
 			self.config["controller_socket_port"],
 		)
 
@@ -255,7 +267,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 			else:
 				err("Invalid traffic scale {}".format(scale))
 
-			#每个选中的主机产生30个视频流
+			# 每个选中的主机产生15个视频流
 			target_n_process = target_n_host * 15
 
 			# we need to add more generator process

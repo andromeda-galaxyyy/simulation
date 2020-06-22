@@ -202,9 +202,9 @@ def generate_files(flows: Dict[Tuple, List[Tuple]], dirname, statistics: Dict, p
 
 if __name__ == '__main__':
 	pcaps_fn={
-		"iot":["/Volumes/DATA/dataset/converted_iot","/tmp/dt/iot","iot"],
-		"video":["/Volumes/DATA/dataset/cicdataset/video","/tmp/dt/video","video"],
-		# "voip":[],
+		# "iot":["/Volumes/DATA/dataset/converted_iot","/tmp/dt/iot","iot"],
+		# "video":["/Volumes/DATA/dataset/cicdataset/video","/tmp/dt/video","video"],
+		"voip":["/Volumes/DATA/dataset/cicdataset/voip","/tmp/dt/voip","voip"],
 	}
 	# parser = ArgumentParser()
 	# parser.add_argument("--pcaps", help="Directory where pcap files stay", default="/tmp/pcaps",

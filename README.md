@@ -11,7 +11,7 @@ socket+json,所有的编码均为ASCII编码
 这个模块用于判断属于哪种流
 接受统计量，示例为receive.demo.json,端口为1025
 
-返回结果  示例为resp.demo.json "0"代表大流量，"1"低时延
+返回结果  示例为resp.demo.json "0"代表视频流，"1"为iot流，"2"为voip流
 统计包大小包间隔，
 包间隔为nanosecond
 包大小为byte
