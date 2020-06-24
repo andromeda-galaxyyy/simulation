@@ -19,6 +19,8 @@ type worker struct {
 	flowDelay map[[5]string] []int64
 	flowDelayFinished *utils.SpecifierSet
 	flowWriter *writer
+	//flowType
+	flowTypes map[[5]string] int
 
 	//writer channel
 	writerChannel chan *flowDesc
@@ -68,17 +70,31 @@ func (worker *worker)processPacket(packet *gopacket.Packet)  {
 	if len(l4Payload)<9{
 		return
 	}
+
+	//todo flowType
+	flowFinished:= utils.GetBit(l4Payload[8],7)==1
+
+	// 获取流类型
+	l4Payload[8]=utils.UnsetBit(l4Payload[8],7)
+	flowType:=int(l4Payload[8])
+
+	//记录流类型
+	if _,exists:=worker.flowTypes[specifier];!exists{
+		worker.flowTypes[specifier]=flowType
+	}
+
 	sendTime:=utils.BytesToInt64(l4Payload[:8])
+
 	if sendTime!=0{
 		worker.flowDelay[specifier]=append(worker.flowDelay[specifier],captureTime-sendTime)
 	}
-	//todo flowType
-	flowFinished:= utils.GetBit(l4Payload[8],7)==1
+
 	if flowFinished {
 		//must copied
-		go worker.processPktDelays(specifier,utils.CopyInt64Slice(worker.flowDelay[specifier]),0)
+		go worker.processPktDelays(specifier,utils.CopyInt64Slice(worker.flowDelay[specifier]),flowType)
 		log.Println("flow finished")
 		delete(worker.flowDelay,specifier)
+		delete(worker.flowTypes,specifier)
 	}
 }
 
@@ -88,16 +104,21 @@ func (w *worker)start(packetChannel chan gopacket.Packet,wg *sync.WaitGroup)  {
 	for packet:=range packetChannel{
 		w.processPacket(&packet)
 	}
-	log.Printf("worker %d flush cache...\n",w.id)
-	w.flush()
+	log.Printf("worker %d completeFlush cache...\n",w.id)
+	w.completeFlush()
 	time.Sleep(10*time.Second)
-	log.Printf("Shutting down worker %s...Closing writer channel...\n",w.id)
+	log.Printf("Shutting down worker %d...Closing writer channel...\n",w.id)
 	close(w.writerChannel)
 }
 
-func (w *worker)flush()  {
+//程序截止的时候，停止完全flush
+func (w *worker) completeFlush()  {
+	fType:=0
 	for specifier,delays:=range w.flowDelay{
-		w.processPktDelays(specifier,delays,0)
+		if _,exists:=w.flowTypes[specifier];exists{
+			fType=w.flowTypes[specifier]
+		}
+		w.processPktDelays(specifier,delays,fType)
 	}
 }
 
@@ -124,7 +145,7 @@ func (w *worker)processPktDelays(specifier [5]string,delays []int64,flowType int
 	for _,v:=range delays{
 		d:=float64(v)
 		diff:=d-mean
-		s+=(diff*diff)
+		s+= diff*diff
 	}
 	s/=float64(l)
 	std=math.Sqrt(s)

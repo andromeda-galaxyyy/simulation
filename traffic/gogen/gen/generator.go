@@ -348,9 +348,7 @@ func (g *Generator)Start() (err error) {
 			if toSleep > 0 && g.Sleep {
 				nano := int(toSleep)
 
-				//if g.Debug{
-				//	nano*=5
-				//}
+
 				time.Sleep(time.Duration(nano) * time.Nanosecond)
 			}
 		}
@@ -402,9 +400,9 @@ func (g *Generator)Init()  {
 
 func (g *Generator)reset(){
 	g.sentRecord=&utils.IntSet{}
-	g.flowStats=make(map[int]map[string][]float64)
 	g.sentRecord.Init()
-	//_=g.buffer.Clear()
+
+	g.flowStats=make(map[int]map[string][]float64)
 	g.flowId2Port=make(map[int][2]int)
 
 	g.flowTimestampAddRecord=&utils.IntSet{}

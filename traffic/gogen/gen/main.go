@@ -40,6 +40,7 @@ func main(){
 
 
 
+
 	//dumb generator
 	isDumb:=flag.Bool("dumb",false,"Whether use dumb generator")
 	ipFile:=flag.String("ips","","IP file")

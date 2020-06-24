@@ -36,11 +36,15 @@ type Listener struct {
 	WriterBaseDir string
 
 	workers []*worker
+
+	//dispatcher---->worker的packet channel
 	packetChannels []chan gopacket.Packet
+
+	//dispatcher---->worker的channel size
 	channelSize int64
 
 	//delay sample size
-	//延迟采样大小
+	//延迟采样大小，暂时不用
 	delaySampleSize int
 }
 
@@ -58,7 +62,7 @@ func (l *Listener)getFilter() (filter string){
 	return filter
 }
 
-func (l *Listener)startDispatcher(stop chan struct{},flush chan struct{})  {
+func (l *Listener)startDispatcher(stop chan struct{}, periodicFlushChan chan struct{})  {
 	log.Println("Dispatcher start")
 
 	handle,err:=pcap.OpenLive(l.Intf,snapshot_len,promiscuous,pcap.BlockForever)
@@ -87,29 +91,52 @@ func (l *Listener)startDispatcher(stop chan struct{},flush chan struct{})  {
 				close(l.packetChannels[i])
 			}
 			return
-		//case <-flush:
+			//周期性的flush，防止收不到最后一个包导致内存爆掉
+		case <-periodicFlushChan:
 			//todo direct write to file
+			log.Println("periodically worker completeFlush")
+			//?????
+			continue
 		case packet:=<-packetSource.Packets():
 			if net:=packet.NetworkLayer();net!=nil{
 				if !stopRequested{
 					l.packetChannels[int(net.NetworkFlow().FastHash())&(l.NWorker-1)]<-packet
 				}
 			}
+			continue
 		}
 	}
 }
 
 func (l *Listener)Start()  {
+	ticker := time.NewTicker(3 * time.Second)
 	//register signal
 	sigs:=make(chan os.Signal,1)
 	flushChan:=make(chan struct{},10)
-	signal.Notify(sigs,syscall.SIGINT,syscall.SIGTERM)
-	stopChan:=make(chan struct{})
+	signal.Notify(sigs,syscall.SIGINT,syscall.SIGTERM,syscall.SIGKILL)
+	stopSig2Dispatcher :=make(chan struct{})
+	stopSig2Ticker:=make(chan struct{})
+
+	//start signal listener
 	go func() {
 		sig:=<-sigs
 		log.Printf("received signal %s\n",sig)
 		log.Printf("start to shutdown dispatcher\n")
-		stopChan<- struct{}{}
+		stopSig2Dispatcher <- struct{}{}
+		stopSig2Ticker<- struct{}{}
+	}()
+
+	//start ticker
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				flushChan<- struct{}{}
+			case <-stopSig2Ticker:
+				ticker.Stop()
+				return
+			}
+		}
 	}()
 
 	//ctx, cancelFunc := context.WithCancel(context.Background())
@@ -121,7 +148,7 @@ func (l *Listener)Start()  {
 	for i:=0;i<l.NWorker;i++{
 		go l.workers[i].start(l.packetChannels[i],wg)
 	}
-	go l.startDispatcher(stopChan,flushChan)
+	go l.startDispatcher(stopSig2Dispatcher,flushChan)
 
 	wg.Wait()
 	//休息60s
@@ -163,6 +190,8 @@ func (l *Listener)Init()  {
 			worker.flowDelay=make(map[[5]string][]int64)
 			worker.flowDelayFinished=utils.NewSpecifierSet()
 			worker.flowWriter=NewDefaultWriter(i,l.WriterBaseDir, worker.writerChannel)
+			worker.flowTypes=make(map[[5]string]int)
+
 
 			l.workers=append(l.workers, worker)
 			l.packetChannels[i]=make(chan gopacket.Packet,l.channelSize)

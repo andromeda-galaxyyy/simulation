@@ -21,12 +21,13 @@ func main()  {
 	}
 
 	intf:=flag.String("intf","ens33","Interface to listen")
-	nworker:=flag.Int("worker",8,"Number of listener workers")
+	nworker:=flag.Int("worker",16,"Number of listener workers")
 	enableWorkers:=flag.Bool("enable_workers",true,"Whether enable multiple workers")
-	srcSubnet:=flag.String("src","10.0.0.0/24","Source host subnet")
-	dstSubnet:=flag.String("dst","10.0.0.0/24","Destination host subnet")
+	srcSubnet:=flag.String("src","10.0.0.0/16","Source host subnet")
+	dstSubnet:=flag.String("dst","10.0.0.0/16","Destination host subnet")
 	sportRange:=flag.String("srange","1500-65535","Source port range")
 	dportRange:=flag.String("drange","1500-65535","Destination port range")
+
 
 	//writer config
 	flowStatsBaseDir:=flag.String("dir","/tmp/log","Flow stats base dir")
