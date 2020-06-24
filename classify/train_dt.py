@@ -18,8 +18,8 @@ win_size = 10
 limit = 100000
 
 dirs = {
-	# "video": "/tmp/dt/video",
-	# "iot": "/tmp/dt/iot",
+	"video": "/tmp/dt/video",
+	"iot": "/tmp/dt/iot",
 	"voip": "/tmp/dt/voip"
 }
 instances_dir = os.path.join(get_prj_root(), "classify/instances")

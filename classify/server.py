@@ -52,7 +52,8 @@ def dumb_calculate(stats):
 
 
 class DumbHandler(socketserver.BaseRequestHandler):
-	pool = Pool(num_process)
+	# pool = Pool(num_process)
+	pool=None
 
 	def handle(self) -> None:
 		req_str = recvall2(self.request)

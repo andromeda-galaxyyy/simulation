@@ -56,11 +56,13 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 			command = int(command)
 
 			if command == 0:
+				intfs=config["workers_intf"]
 				# set up local switch
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/config".format(ip, 5000)
+					intf=intfs[idx]
 					threading.Thread(target=do_post, args=[url, {"config": config, "id": idx,
-					                                             "intf": "eno1"}]).start()
+					                                             "intf": intf}]).start()
 				continue
 			if command == 8:
 				for idx, ip in enumerate(config["workers_ip"]):

@@ -7,6 +7,7 @@ from collections import defaultdict
 
 import shutil
 from utils.common_utils import save_json, debug, info, check_file, check_dir, dir_exsit
+from utils.log_utils import info,debug,err
 from os import listdir
 from collections import Counter
 from argparse import ArgumentParser
@@ -106,7 +107,10 @@ class Parser:
 
 		filtered_flow = {}
 		# 对于iot流，取出前百分之10的流, 对于其他流，取出前100%
-		ratio = 1
+		if self.limit:
+			ratio = 0.1
+		else:
+			ratio=1
 
 		# 按照流大小，从大到小排列
 		selected_specifiers = [s for s, num in sorted(num_pkts.items(), key=lambda item: -item[1])]
@@ -214,12 +218,9 @@ class Parser:
 
 
 if __name__ == '__main__':
-	parser = ArgumentParser()
-	parser.add_argument("--limit", dest="limit", action="store_true")
-	args = parser.parse_args()
 	pcaps_fns = {
-		# "iot":["/Volumes/DATA/dataset/converted_iot","/tmp/pkts/iot"],
-		# "video": ["/Volumes/DATA/dataset/cicdataset/video", "/tmp/pkts/video"]
+		"video": ["/Volumes/DATA/dataset/cicdataset/video", "/tmp/pkts/video"],
+		"iot":["/Volumes/DATA/dataset/converted_iot","/tmp/pkts/iot"],
 		"voip":["/Volumes/DATA/dataset/voip/","/tmp/pkts/voip"]
 	}
 
@@ -234,8 +235,10 @@ if __name__ == '__main__':
 			fname = file[:-5]
 			try:
 				debug("start parsing {}".format(fname))
-				parser = Parser(fn, os.path.join(output, fname + ".pkts"), limit=args.limit)
+				parser = Parser(fn, os.path.join(output, fname + ".pkts"),limit=(flow_type=="iot"))
 				parser.parse(statistics)
-			except:
+			except Exception as e:
+				err(e)
 				continue
+
 		save_json(os.path.join(output, "statistics.json"), statistics)

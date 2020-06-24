@@ -1,6 +1,6 @@
 {
     "n_switches": 66,
-    "workers_count": 2,
+    "n_workers": 2,
     "workers": [
         [
             0,
@@ -77,6 +77,10 @@
         "192.168.1.90",
         "192.168.1.76"
     ],
+    "workers_intf": [
+        "eno1",
+        "eno1"
+    ],
     "host_mtu": 1500,
     "gre_mtu": 1458,
     "vhost_mtu": 1420,
@@ -87,16 +91,18 @@
         "iot": "/home/stack/code/simulation/traffic/gogen/pkts/iot",
         "video": "/home/stack/code/simulation/traffic/gogen/pkts/video",
         "voip": "/home/stack/code/simulation/traffic/gogen/pkts/voip",
-        "default": "/home/stack/code/simulation/traffic/gogen/pkts"
+        "default": "/home/stack/code/simulation/traffic/gogen/pkts/default"
     },
     "traffic_generator": "/home/stack/code/simulation/traffic/gogen/gen/gen",
-    "listener": "",
+    "enable_listener": 0,
+    "listener": "/home/stack/code/simulation/traffic/gogen/golisten/golisten",
+    "listener_log_base_dir": "/tmp/listener_log",
     "num_process": {
         "iot": [5,2,3],
         "video": [5,2,3],
         "voip": [5,2,3]
     },
-  "traffic_mode": ["small","medium","large","small","small"],
-    "traffic_duration": [120,120,120,120,120],
+  "traffic_mode": ["small","large"],
+    "traffic_duration": [50,150],
     "topo_port": 1029
 }

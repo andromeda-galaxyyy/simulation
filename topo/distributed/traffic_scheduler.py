@@ -39,7 +39,7 @@ class BasicTrafficScheduler:
 		self.durations = self.config["traffic_duration"]
 		assert len(self.traffic_scales) == len(self.durations)
 		# self.durations = [120, 120, 120, 120]
-		self.flow_types = ["iot", "video", "voip"]
+		self.flow_types = ["video", "iot", "voip"]
 
 	def _do_start_traffic(self, hid, flow_type) -> (int, int):
 		hostname = "h{}".format(hid)
@@ -67,7 +67,7 @@ class BasicTrafficScheduler:
 		         "--mtu {} " \
 		         "--int {} " \
 		         "--cip {} " \
-		         "--ftype {}" \
+		         "--ftype {} " \
 		         "--cport {}".format(
 			hid,
 			target_id_fn,
@@ -78,6 +78,7 @@ class BasicTrafficScheduler:
 			ftype,
 			self.config["controller_socket_port"],
 		)
+		# fp=open(log_fn,"w")
 
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
 		pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
@@ -271,11 +272,17 @@ class TrafficScheduler2(BasicTrafficScheduler):
 			target_n_process = target_n_host * 15
 
 			# we need to add more generator process
-			# ? 如何让流量仅仅分布在某一些主机上?
+			# 选取连续的主机，让流量集中在某块区域发出去
 			if target_n_process > len(self.schedule_record):
 				n_add = target_n_process - len(self.schedule_record)
 				# sample host
-				sampled_hosts = random.sample(self.hostids, n_add // 15)
+				# sampled_hosts = random.sample(self.hostids, n_add // 15)
+				n_sampled = n_add // 15
+				# 从start开始的某一段连续的主机,数量为n_sampled
+				start = random.sample(range(len(self.hostids)-n_sampled),1)[0]
+				# debug("sampled host start from {}, number of hosts {}".format(start,n_sampled))
+				sampled_hosts = self.hostids[start:start + n_sampled]
+
 				for hid in sampled_hosts:
 					for _ in range(15):
 						self._start_traffic(hid, "video", True)
@@ -286,11 +293,11 @@ class TrafficScheduler2(BasicTrafficScheduler):
 				for pid in to_be_killed:
 					self._stop_traffic(pid, "video", True)
 
-			debug(self.schedule_record)
+			# debug(self.schedule_record)
 
 			if not self.cv.wait(duration):
 				traffic_scale_idx = (traffic_scale_idx + 1) % (len(self.durations))
-				debug("traffic mode changed")
+				debug("traffic mode changed to {}".format(self.traffic_scales[traffic_scale_idx]))
 				continue
 			else:
 				debug("Exit traffic scheduler")

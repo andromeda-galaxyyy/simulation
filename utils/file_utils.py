@@ -1,6 +1,8 @@
 from pathlib import Path
 import json
 import pickle
+import os
+import shutil
 def check_dir(dir_name):
     if not Path(dir_name).is_dir():
         raise FileNotFoundError
@@ -15,7 +17,11 @@ def file_exsit(fn):
 def dir_exsit(fn):
     return Path(fn).is_dir()
 
+def create_dir(dirname):
+    os.mkdir(dirname)
 
+def del_dir(dirname):
+    shutil.rmtree(dirname,ignore_errors=True)
 
 def load_pkl(filename):
     if Path(filename).is_file():

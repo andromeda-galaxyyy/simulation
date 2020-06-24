@@ -6,6 +6,7 @@ from path_utils import get_prj_root
 from utils.log_utils import debug, info, err
 from topo.distributed.traffic_scheduler import TrafficScheduler, TrafficScheduler2
 import time
+from utils.file_utils import check_file, create_dir, del_dir,dir_exsit
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
@@ -225,9 +226,7 @@ def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, 
 		remote_ip,
 		grekey
 	)
-	debug(gre_command)
 	os.system(gre_command)
-
 	attach_interface_to_sw(local_sw, grename)
 
 	gre_mtu = int(gre_mtu)
@@ -239,7 +238,6 @@ def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, 
 	return grename
 
 
-# todo mtu
 def add_hosts_to_switches(switch_id, k, vhost_mtu=1500):
 	ovsname = "s{}".format(switch_id)
 	mtu = int(vhost_mtu)
@@ -324,7 +322,8 @@ class TopoBuilder:
 	def __init__(self, config: dict, id_, inetintf: str):
 		self.config: dict = config
 		self.id = id_
-		self.gres: List[str] = []
+		# self.gres: List[str] = []
+		self.gres=set()
 		self.gre_keys = {}
 		self.inetintf = inetintf
 
@@ -342,7 +341,7 @@ class TopoBuilder:
 		debug(self.local_switch_ids)
 		debug(self.remote_switches)
 
-		self.local_links: List[str] = []
+		self.local_links=set()
 		self.nat_links: List[str] = []
 
 		self.hosts: List[tuple] = []
@@ -371,9 +370,12 @@ class TopoBuilder:
 			for hostidx in range(k):
 				hostid = sw_id * k + hostidx
 				self.hostids.append(hostid)
-		# 确保没有重复的hostid
-		assert len(set(self.hostids)) == len(self.hostids)
-		self.set_up_nat()
+		self._set_up_nat()
+
+		if self.config["enable_listener"]==1:
+			debug("Set up traffic listener")
+			self._set_up_listener()
+			debug("Set up traffic listener done")
 
 	def _populate_gre_key(self):
 		gre_ = 1
@@ -429,7 +431,7 @@ class TopoBuilder:
 			del_interface(gre)
 
 	def _tear_down_local_links(self):
-		debug(self.local_links)
+		# debug(self.local_links)
 		for link in self.local_links:
 			del_local_link(link)
 
@@ -448,7 +450,7 @@ class TopoBuilder:
 
 	def _diff_local_links(self, new_topo: List[List[Tuple]]):
 		debug("diff local links")
-		new_links = []
+		new_links = set()
 
 		local_switch_ids = [int(x) for x in self.local_switch_ids]
 		for sa_id in local_switch_ids:
@@ -460,14 +462,11 @@ class TopoBuilder:
 				reverse_link = "s{}-s{}".format(sb_id, sa_id)
 
 				if -1 not in new_topo[sa_id][sb_id]:
-					debug("set up link {}".format(link))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
-					debug("bandwidth:{};delay:{}".format(rate,delay))
-					new_links.append(link)
-					new_links.append(reverse_link)
+					new_links.add(link)
+					new_links.add(reverse_link)
 					if link not in self.local_links:
 						connect_local_switches(sa_id, sb_id, rate, delay, None)
-
 					else:
 						# exists in previous local links,
 						# change tc
@@ -480,15 +479,16 @@ class TopoBuilder:
 					if link in self.local_links:
 						del_tc(link)
 						del_tc(reverse_link)
-						detach_interface_from_sw("s{}".format(sa_id),link)
-						detach_interface_from_sw("s{}".format(sb_id),reverse_link)
+						detach_interface_from_sw("s{}".format(sa_id), link)
+						detach_interface_from_sw("s{}".format(sb_id), reverse_link)
 						del_interface(link)
 						del_interface(reverse_link)
 		self.local_links = new_links
 
 	def _diff_gre_links(self, new_topo: List[List[Tuple]]):
+		gre_mtu = self.config["gre_mtu"]
 		debug("Setting up gre links")
-		new_gres = []
+		new_gres = set()
 		local_sw_ids = [int(x) for x in self.local_switch_ids]
 		remote_sw_ids = [int(x) for x in self.remote_switches.keys()]
 
@@ -501,8 +501,6 @@ class TopoBuilder:
 				# mapping from worker id to remote ip
 				remote_ip = self.remote_ips[int(self.remote_switches[sb_id])]
 
-				# if new_topo[sa_idx][sb_idx][0] == "None":
-				# debug("sa_id:{},sb_id:{}".format(sa_id,sb_id))
 				if -1 in new_topo[sa_id][sb_id]:
 					if gretap in self.gres:
 						# take down gre
@@ -512,30 +510,32 @@ class TopoBuilder:
 						del_interface(gretap)
 
 				else:
-					debug("setting up gre {}".format(gretap))
+					# debug("setting up gre {}".format(gretap))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
-					debug("bandwidth:{};delay:{}".format(rate,delay))
-					new_gres.append(gretap)
+					# debug("bandwidth:{};delay:{}".format(rate,delay))
+					new_gres.add(gretap)
 					if gretap in self.gres:
 						# del tc
 						change_tc(gretap, delay, rate, None)
 					else:
 						# set up gre
-						gre_mtu = self.config["gre_mtu"]
+
 						connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, key, rate,
 						                           delay, None, gre_mtu)
 
 		self.gres = new_gres
 
 	def diff_topo(self, new_topo: List[List[Tuple]]):
+		debug("start diff topo")
 		self._diff_local_links(new_topo)
 		self._diff_gre_links(new_topo)
-		time.sleep(8)
+		debug("diff topo done")
 		if not self.enable_host_find:
+			time.sleep(8)
 			self._do_find_host()
 			self.enable_host_find = True
 
-	def set_up_nat(self):
+	def _set_up_nat(self):
 		debug("Setting up nat")
 		intf = self.inetintf
 
@@ -592,10 +592,7 @@ class TopoBuilder:
 		# tear down
 		for p in self.nat_links:
 			del_interface(p)
-		# restore iptable rule to very basic
-		# commands = """iptables-save | awk '/^[*]/ { print $1 }
-		#              /^:[A-Z]+ [^-]/ { print $1 " ACCEPT" ; }
-		#              /COMMIT/ { print $0; }' | iptables-restore"""
+
 		commands = "iptables -F"
 		os.system(commands)
 		debug("Tearing down nat done")
@@ -647,8 +644,10 @@ class TopoBuilder:
 
 	def stop(self):
 		self.stop_traffic()
+		self._stop_listener()
 		self._stop_traffic_scheduler()
 		self.tear_down()
+
 		os.system("iptables-restore < {}".format(iptables_bk))
 
 	def _write_targetids(self):
@@ -695,3 +694,30 @@ class TopoBuilder:
 		hostname = "h{}".format(self.hostids[0])
 		for targetid in self.hostids:
 			os.system("ip netns exec {} ping {} -c 1".format(hostname, generate_ip(targetid)))
+
+	def _set_up_listener(self):
+		listener_binary = self.config["listener"]
+		base_dir=self.config["listener_log_base_dir"]
+
+		if dir_exsit(base_dir):
+			del_dir(base_dir)
+		create_dir(base_dir)
+
+		check_file(listener_binary)
+
+		for hid in self.hostids:
+			hostname = "h{}".format(hid)
+			hintf = "{}-eth0".format(hostname)
+			log_dir=os.path.join(base_dir,hostname)
+			if dir_exsit(log_dir):
+				del_dir(log_dir)
+			create_dir(log_dir)
+			log_fn = os.path.join("/tmp/{}.listener.log".format(hostname))
+			os.system("ip netns exec {} nohup {} --intf {} --dir {}>{} 2>&1 &".format(hostname,
+			                                                                          listener_binary,
+			                                                                          hintf,
+			                                                                          log_dir,
+			                                                                          log_fn))
+
+	def _stop_listener(self):
+		os.system("for p in `pgrep '^golisten$'`;do kill $p;done")

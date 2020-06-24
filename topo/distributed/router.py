@@ -5,6 +5,13 @@ import json
 import atexit
 import threading
 from utils.log_utils import debug, info, err
+from path_utils import get_prj_root
+import os
+
+tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
+iptables_bk = os.path.join(tmp_dir, "iptables.bk")
+
+os.system("iptables-save > {}".format(iptables_bk))
 
 app = Flask(__name__)
 api = Api(app)
