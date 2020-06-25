@@ -12,12 +12,16 @@ tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
 
 
-def fix_traffic_path(config: Dict):
+def fix_path(config: Dict):
 	prj_root = get_prj_root()
 	config["traffic_dir"]["iot"] = os.path.join(prj_root, "traffic/gogen/pkts/iot")
 	config["traffic_dir"]["video"] = os.path.join(prj_root, "traffic/gogen/pkts/video")
 	config["traffic_dir"]["voip"] = os.path.join(prj_root, "traffic/gogen/pkts/voip")
 	config["traffic_dir"]["default"] = os.path.join(prj_root, "traffic/gogen/pkts/default")
+
+	config["traffic_generator"]=os.path.join(prj_root,"traffic/gogen/gen/gen")
+	config["listener"]=os.path.join(prj_root,"traffic/gogen/golisten/golisten")
+
 
 
 def generate_ip(id):
@@ -326,7 +330,8 @@ def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
 class TopoBuilder:
 	def __init__(self, config: dict, id_, inetintf: str):
 		self.config: dict = config
-		fix_traffic_path(config)
+		fix_path(config)
+		# debug(config)
 
 		self.id = id_
 		# self.gres: List[str] = []
