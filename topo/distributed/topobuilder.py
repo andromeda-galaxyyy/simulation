@@ -6,13 +6,18 @@ from path_utils import get_prj_root
 from utils.log_utils import debug, info, err
 from topo.distributed.traffic_scheduler import TrafficScheduler, TrafficScheduler2
 import time
-from utils.file_utils import check_file, create_dir, del_dir,dir_exsit
+from utils.file_utils import check_file, create_dir, del_dir, dir_exsit,load_pkl,load_json
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
 
 
-# todo mtu size
+def fix_traffic_path(config: Dict):
+	prj_root = get_prj_root()
+	config["traffic_dir"]["iot"] = os.path.join(prj_root, "traffic/gogen/pkts/iot")
+	config["traffic_dir"]["video"] = os.path.join(prj_root, "traffic/gogen/pkts/video")
+	config["traffic_dir"]["voip"] = os.path.join(prj_root, "traffic/gogen/pkts/voip")
+	config["traffic_dir"]["default"] = os.path.join(prj_root, "traffic/gogen/pkts/default")
 
 
 def generate_ip(id):
@@ -321,9 +326,11 @@ def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
 class TopoBuilder:
 	def __init__(self, config: dict, id_, inetintf: str):
 		self.config: dict = config
+		fix_traffic_path(config)
+
 		self.id = id_
 		# self.gres: List[str] = []
-		self.gres=set()
+		self.gres = set()
 		self.gre_keys = {}
 		self.inetintf = inetintf
 
@@ -341,7 +348,7 @@ class TopoBuilder:
 		debug(self.local_switch_ids)
 		debug(self.remote_switches)
 
-		self.local_links=set()
+		self.local_links = set()
 		self.nat_links: List[str] = []
 
 		self.hosts: List[tuple] = []
@@ -372,7 +379,7 @@ class TopoBuilder:
 				self.hostids.append(hostid)
 		self._set_up_nat()
 
-		if self.config["enable_listener"]==1:
+		if self.config["enable_listener"] == 1:
 			debug("Set up traffic listener")
 			self._set_up_listener()
 			debug("Set up traffic listener done")
@@ -697,7 +704,7 @@ class TopoBuilder:
 
 	def _set_up_listener(self):
 		listener_binary = self.config["listener"]
-		base_dir=self.config["listener_log_base_dir"]
+		base_dir = self.config["listener_log_base_dir"]
 
 		if dir_exsit(base_dir):
 			del_dir(base_dir)
@@ -708,7 +715,7 @@ class TopoBuilder:
 		for hid in self.hostids:
 			hostname = "h{}".format(hid)
 			hintf = "{}-eth0".format(hostname)
-			log_dir=os.path.join(base_dir,hostname)
+			log_dir = os.path.join(base_dir, hostname)
 			if dir_exsit(log_dir):
 				del_dir(log_dir)
 			create_dir(log_dir)
@@ -721,3 +728,8 @@ class TopoBuilder:
 
 	def _stop_listener(self):
 		os.system("for p in `pgrep '^golisten$'`;do kill $p;done")
+
+
+if __name__ == '__main__':
+	config=load_json(os.path.join(get_prj_root(),"topo/distributed/satellite.config.json"))
+	builder=TopoBuilder(config,0,"ens33")
