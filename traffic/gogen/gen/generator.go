@@ -35,6 +35,9 @@ type Generator struct {
 	DelayTime int
 	Debug bool
 	FlowType int
+	//whether enable force target
+	ForceTarget bool
+	Target int
 
 	ipStr string
 	macStr string
@@ -213,7 +216,21 @@ func (g *Generator)Start() (err error) {
 		time.Sleep(time.Millisecond*time.Duration(rand.Intn(10000)))
 	}
 	log.Println("Sleep over.Start injection")
+	var dstIPStr string
+	var dstMACStr string
+	var dstIP net.IP
+	var dstMAC net.HardwareAddr
 
+	if g.ForceTarget{
+		dstIPStr,err=utils.GenerateIP(g.Target)
+		if err!=nil{
+			log.Fatalf("Cannot generate ip for given id:%d\n",g.Target)
+		}
+		dstMACStr,err=utils.GenerateMAC(g.Target)
+		if err!=nil{
+			log.Fatalf("Cannot generate mac for given id:%d\n",g.Target)
+		}
+	}
 	for{
 		//shuffle dst ips and dstmacs
 		rand.Shuffle(len(DstIPs), func(i, j int) {
@@ -267,15 +284,14 @@ func (g *Generator)Start() (err error) {
 				isLastL4Payload =true
 			}
 
-			//dstIPStr:=DstIPs[3]
-			dstIPStr:=DstIPs[flowId%nDsts]
+			//
+			if !g.ForceTarget{
+				dstIPStr=DstIPs[flowId%nDsts]
+				dstIP=net.ParseIP(dstIPStr)
+				dstMACStr=DstMACs[flowId%nDsts]
+				dstMAC,_=net.ParseMAC(dstMACStr)
+			}
 
-			dstIP:=net.ParseIP(dstIPStr)
-			dstMACStr:=DstMACs[flowId%nDsts]
-
-			dstMAC,_:=net.ParseMAC(dstMACStr)
-			//log.Printf("target mac %s,target ip %s",dstIPStr,dstMACStr)
-			//dstMAC,_:=net.ParseMAC(DstMACs[3])
 
 			//determine sport and dport
 			srcPort:=-1

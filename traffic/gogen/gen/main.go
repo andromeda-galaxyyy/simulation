@@ -28,8 +28,10 @@ func main(){
 	report:=flag.Bool("report",true,"whether report between packets")
 	delay:=flag.Bool("delay",true,"whether delay before packet injection")
 	delayTime:=flag.Int("delaytime",100,"delay time")
-
 	flowType:=flag.Int("ftype",0,"Flow Type")
+
+	forceTarget:=flag.Bool("force-target",false,"Whether force target")
+	target:=flag.Int("target",-1,"If enable force target,the target id")
 
 
 	//dumb generator
@@ -53,8 +55,15 @@ func main(){
 		log.Fatalf("Unsupported flow type %d\n",fType)
 	}
 
-
 	log.Printf("flow type %d",fType)
+
+	if *forceTarget{
+		log.Printf("Enable force target")
+		if *target==-1{
+			log.Fatalln("You must supply a target id")
+		}
+	}
+
 	if *isDumb{
 		log.Println("Use dumb generator")
 		if !utils.FileExist(*ipFile){
@@ -116,6 +125,8 @@ func main(){
 			Delay: *delay,
 			DelayTime: *delayTime,
 			Debug: *debug,
+			ForceTarget: *forceTarget,
+			Target: *target,
 		}
 		generator.Init()
 		err=generator.Start()
