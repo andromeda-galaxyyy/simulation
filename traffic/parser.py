@@ -220,8 +220,8 @@ class Parser:
 if __name__ == '__main__':
 	pcaps_fns = {
 		"video": ["/Volumes/DATA/dataset/cicdataset/video", "/tmp/pkts/video"],
-		"iot":["/Volumes/DATA/dataset/converted_iot","/tmp/pkts/iot"],
-		"voip":["/Volumes/DATA/dataset/voip/","/tmp/pkts/voip"]
+		# "iot":["/Volumes/DATA/dataset/converted_iot","/tmp/pkts/iot"],
+		# "voip":["/Volumes/DATA/dataset/voip/","/tmp/pkts/voip"]
 	}
 
 	for flow_type in pcaps_fns.keys():

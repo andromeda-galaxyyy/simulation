@@ -2,21 +2,18 @@ package main
 
 import (
 	"bufio"
+	"chandler.com/gogen/utils"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
-	"chandler.com/gogen/utils"
 )
 
 func main(){
 	debug:=flag.Bool("debug",true,"Enable debug mode")
-	if !(*debug){
-		fmt.Println("disable debug")
-		log.SetOutput(ioutil.Discard)
-	}
+
 
 	id:=flag.Int("id",0,"self id")
 	dstIdFn:=flag.String("dst_id","/home/stack/code/graduate/sim/system/topo/files/0.hostids","destiantion id file")
@@ -31,14 +28,8 @@ func main(){
 	report:=flag.Bool("report",true,"whether report between packets")
 	delay:=flag.Bool("delay",true,"whether delay before packet injection")
 	delayTime:=flag.Int("delaytime",100,"delay time")
+
 	flowType:=flag.Int("ftype",0,"Flow Type")
-
-	if *flowType>=4{
-		log.Fatalf("Unsupported flow type %d\n",flowType)
-	}
-	fType=*flowType
-
-
 
 
 	//dumb generator
@@ -51,6 +42,19 @@ func main(){
 
 
 	flag.Parse()
+
+	if !(*debug){
+		fmt.Println("disable debug")
+		log.SetOutput(ioutil.Discard)
+	}
+
+	fType= *flowType
+	if fType>=4{
+		log.Fatalf("Unsupported flow type %d\n",fType)
+	}
+
+
+	log.Printf("flow type %d",fType)
 	if *isDumb{
 		log.Println("Use dumb generator")
 		if !utils.FileExist(*ipFile){

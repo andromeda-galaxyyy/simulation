@@ -269,8 +269,10 @@ func (g *Generator)Start() (err error) {
 
 			//dstIPStr:=DstIPs[3]
 			dstIPStr:=DstIPs[flowId%nDsts]
+
 			dstIP:=net.ParseIP(dstIPStr)
 			dstMACStr:=DstMACs[flowId%nDsts]
+
 			dstMAC,_:=net.ParseMAC(dstMACStr)
 			//log.Printf("target mac %s,target ip %s",dstIPStr,dstMACStr)
 			//dstMAC,_:=net.ParseMAC(DstMACs[3])
@@ -347,8 +349,6 @@ func (g *Generator)Start() (err error) {
 
 			if toSleep > 0 && g.Sleep {
 				nano := int(toSleep)
-
-
 				time.Sleep(time.Duration(nano) * time.Nanosecond)
 			}
 		}
@@ -392,13 +392,13 @@ func (g *Generator)Init()  {
 	g.flowTimestampAddRecord.Init()
 	g.flowTimestampCount=make(map[int]int)
 
-	rand.Seed(time.Now().UnixNano())
 	//todo export this field
 	g.addTimeStamp=true
 	g.timestampWindow=5
 }
 
 func (g *Generator)reset(){
+	rand.Seed(time.Now().UnixNano())
 	g.sentRecord=&utils.IntSet{}
 	g.sentRecord.Init()
 

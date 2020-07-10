@@ -94,7 +94,7 @@ func (l *Listener)startDispatcher(stop chan struct{}, periodicFlushChan chan str
 			//周期性的flush，防止收不到最后一个包导致内存爆掉
 		case <-periodicFlushChan:
 			//todo direct write to file
-			log.Println("periodically worker completeFlush")
+			//log.Println("periodically worker completeFlush")
 			//?????
 			continue
 		case packet:=<-packetSource.Packets():
@@ -109,7 +109,7 @@ func (l *Listener)startDispatcher(stop chan struct{}, periodicFlushChan chan str
 }
 
 func (l *Listener)Start()  {
-	ticker := time.NewTicker(3 * time.Second)
+	ticker := time.NewTicker(3600 * time.Second)
 	//register signal
 	sigs:=make(chan os.Signal,1)
 	flushChan:=make(chan struct{},10)
@@ -186,7 +186,7 @@ func (l *Listener)Init()  {
 				flowWriter:        nil,
 				writerChannel:     nil,
 			}
-			worker.writerChannel=make(chan *flowDesc,1024)
+			worker.writerChannel=make(chan *flowDesc,102400)
 			worker.flowDelay=make(map[[5]string][]int64)
 			worker.flowDelayFinished=utils.NewSpecifierSet()
 			worker.flowWriter=NewDefaultWriter(i,l.WriterBaseDir, worker.writerChannel)

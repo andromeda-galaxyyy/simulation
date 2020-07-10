@@ -49,7 +49,7 @@ class BasicTrafficScheduler:
 		self.generator_id += 1
 		log_fn = "/tmp/{}.{}.gen.log".format(hostname, gen_id)
 		pkt_dir = self.config["traffic_dir"][flow_type]
-		ftype = 0
+		ftype = -1
 		if flow_type == "video":
 			ftype = 0
 		elif flow_type == "iot":
@@ -279,7 +279,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 				# sampled_hosts = random.sample(self.hostids, n_add // 15)
 				n_sampled = n_add // 15
 				# 从start开始的某一段连续的主机,数量为n_sampled
-				start = random.sample(range(len(self.hostids)-n_sampled),1)[0]
+				start = random.sample(range(len(self.hostids) - n_sampled), 1)[0]
 				# debug("sampled host start from {}, number of hosts {}".format(start,n_sampled))
 				sampled_hosts = self.hostids[start:start + n_sampled]
 
