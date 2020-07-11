@@ -84,6 +84,51 @@ class BasicTrafficScheduler:
 		pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
 		return pid, self.generator_id
 
+	def _do_start_traffic_to_target(self, hid, target_id, flow_type) -> (int, int):
+		hostname = "h{}".format(hid)
+		intf = "{}-eth0".format(hostname)
+		target_id_fn = os.path.join(target_id_dir, "{}.targetids".format(hostname))
+		gen_id = self.generator_id
+		self.generator_id += 1
+		log_fn = "/tmp/{}.{}.gen.log".format(hostname, gen_id)
+		pkt_dir = self.config["traffic_dir"][flow_type]
+		ftype = -1
+		if flow_type == "video":
+			ftype = 0
+		elif flow_type == "iot":
+			ftype = 1
+		elif flow_type == "voip":
+			ftype = 2
+		else:
+			raise Exception("Unsupported flow type")
+
+		controller_ip = self.config["controller"].split(":")[0]
+
+		params = "--id {} " \
+		         "--dst_id {} " \
+		         "--pkts {} " \
+		         "--mtu {} " \
+		         "--int {} " \
+		         "--cip {} " \
+		         "--forcetarget --target {} " \
+		         "--ftype {} " \
+		         "--cport {}".format(
+			hid,
+			target_id_fn,
+			pkt_dir,
+			self.config["vhost_mtu"],
+			intf,
+			controller_ip,
+			target_id,
+			ftype,
+			self.config["controller_socket_port"],
+		)
+		# fp=open(log_fn,"w")
+
+		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
+		pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
+		return pid, self.generator_id
+
 	def _do_traffic_schedule(self):
 		raise NotImplementedError
 
@@ -229,6 +274,15 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		if to_schedule:
 			self.schedule_record.append(pid)
 
+	def _start_traffic_to_target(self, hid, target_id, flow_type,to_schedule=False) -> (int, int):
+		pid, genid = self._do_start_traffic_to_target(hid, target_id,flow_type)
+		self.pid2genid[pid] = genid
+		self.genid2pid[genid] = pid
+		self.processes[flow_type].append(pid)
+
+		if to_schedule:
+			self.schedule_record.append(pid)
+
 	def _stop_traffic(self, pid, flow_type, to_schedule=True):
 		kill_pid(pid)
 		genid = self.pid2genid[pid]
@@ -250,7 +304,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		debug("started {} process to form small flow".format(self.generator_id))
 		self.cv.acquire()
 
-		# medium,large 分别让20%和50%的主机产生额外的流量,每个主机产生2个进程
+		# medium,large 分别让20%和50%的主机产生额外的流量,每个主机产生15个进程
 
 		traffic_scale_idx = 0
 		while True:
@@ -282,7 +336,6 @@ class TrafficScheduler2(BasicTrafficScheduler):
 				start = random.sample(range(len(self.hostids) - n_sampled), 1)[0]
 				# debug("sampled host start from {}, number of hosts {}".format(start,n_sampled))
 				sampled_hosts = self.hostids[start:start + n_sampled]
-
 				for hid in sampled_hosts:
 					for _ in range(15):
 						self._start_traffic(hid, "video", True)
