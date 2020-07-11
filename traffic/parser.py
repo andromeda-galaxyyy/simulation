@@ -144,6 +144,7 @@ class Parser:
 				continue
 			if flow_size >= reverse_flow_size:
 				flow_specifier = specifier
+				debug("Selected specifier {}".format(flow_specifier))
 			else:
 				flow_specifier = reverse_specifier
 
@@ -157,10 +158,14 @@ class Parser:
 
 		pkt_sizes = [pkt[1][1] for pkt in raw_pkts]
 		all_size = sum(pkt_sizes)
+		debug("all size: {}".format(all_size))
 
 		# in nano seconds
-		timestamps = [(pkt[1][0]) * 1e9 for pkt in raw_pkts]
+		timestamps = [(pkt[1][0])*1e9 for pkt in raw_pkts]
+		# debug("first 10 timestamps")
+
 		duration = (timestamps[-1] - timestamps[0]) / 1e9
+		debug("duration {}".format(duration))
 		time_diffs = [y - x for x, y in zip(timestamps, timestamps[1:])]
 		for ts in time_diffs:
 			assert ts >= 0
@@ -206,6 +211,7 @@ class Parser:
 				# finished=(recorded_pkts[specifier]==num_pkts[specifier])
 				if recorded_pkts[specifier] == num_pkts[specifier]:
 					finished = 1
+					debug("flow {} finished".format(specifier))
 				else:
 					finished = 0
 				fp.write("{} {} {} {} {} {}\n".format(ts_diff, size, proto, flow_id,

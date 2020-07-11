@@ -14,10 +14,9 @@ class PrintHandler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
 		data = str(recvall(self.request), "ascii")
 		print(data)
-		obj = json.loads(data)
 
 
 if __name__ == '__main__':
-	port = 1026
+	port = 1025
 	server = Server(port, PrintHandler)
 	server.start()

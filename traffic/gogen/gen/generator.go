@@ -213,7 +213,7 @@ func (g *Generator)Start() (err error) {
 	pktFileIdx:=0
 	log.Println("Start to sleep for random time")
 	if g.Delay{
-		time.Sleep(time.Millisecond*time.Duration(rand.Intn(10000)))
+		time.Sleep(time.Millisecond*time.Duration(rand.Intn(100)))
 	}
 	log.Println("Sleep over.Start injection")
 	var dstIPStr string
@@ -226,10 +226,12 @@ func (g *Generator)Start() (err error) {
 		if err!=nil{
 			log.Fatalf("Cannot generate ip for given id:%d\n",g.Target)
 		}
+		log.Printf("Force target ip:%s\n",dstIPStr)
 		dstMACStr,err=utils.GenerateMAC(g.Target)
 		if err!=nil{
 			log.Fatalf("Cannot generate mac for given id:%d\n",g.Target)
 		}
+		log.Printf("Force target mac %s\n",dstMACStr)
 	}
 	for{
 		//shuffle dst ips and dstmacs
@@ -245,6 +247,8 @@ func (g *Generator)Start() (err error) {
 		if err!=nil{
 			log.Fatalf("Error reading pkt file %s\n",pktFile)
 		}
+
+		log.Printf("pkt file %s: #lines: %d",pktFns[pktFileIdx],len(lines))
 		for _,line:=range lines{
 			content:=strings.Split(line," ")
 			if len(content)!=6{
@@ -287,10 +291,13 @@ func (g *Generator)Start() (err error) {
 			//
 			if !g.ForceTarget{
 				dstIPStr=DstIPs[flowId%nDsts]
-				dstIP=net.ParseIP(dstIPStr)
 				dstMACStr=DstMACs[flowId%nDsts]
-				dstMAC,_=net.ParseMAC(dstMACStr)
 			}
+
+
+			dstIP=net.ParseIP(dstIPStr)
+			dstMAC,_=net.ParseMAC(dstMACStr)
+
 
 
 			//determine sport and dport
@@ -364,7 +371,7 @@ func (g *Generator)Start() (err error) {
 			}
 
 			if toSleep > 0 && g.Sleep {
-				nano := int(toSleep)
+				nano := int(toSleep/15)
 				time.Sleep(time.Duration(nano) * time.Nanosecond)
 			}
 		}

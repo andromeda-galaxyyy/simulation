@@ -15,12 +15,12 @@ func main(){
 	debug:=flag.Bool("debug",true,"Enable debug mode")
 
 
-	id:=flag.Int("id",0,"self id")
-	dstIdFn:=flag.String("dst_id","/home/stack/code/graduate/sim/system/topo/files/0.hostids","destiantion id file")
-	pktDir:=flag.String("pkts","/home/stack/code/graduate/sim/system/traffic/gogen/pkts","pkts dir")
+	id:=flag.Int("id",1,"self id")
+	dstIdFn:=flag.String("dst_id","/home/stack/code/graduate/sim/system/traffic/gogen/1.hostids","destiantion id file")
+	pktDir:=flag.String("pkts","/home/stack/code/graduate/sim/system/traffic/gogen/pkts/default","pkts dir")
 	mtu:=flag.Int("mtu",1500,"Interface MTU")
 	emptyPktSize:=flag.Int("emppkt",64,"Empty Layer4 Packet Size in bytes")
-	interf:=flag.String("int","h0-eth0","Interface name")
+	interf:=flag.String("int","h1-eth0","Interface name")
 	winSize:=flag.Int("ws",10,"Window size")
 	controllerIP:=flag.String("cip","172.16.181.1","Controller ip")
 	controllerSocketPort:=flag.Int("cport",1025,"Controller Socket Port")
@@ -30,7 +30,7 @@ func main(){
 	delayTime:=flag.Int("delaytime",100,"delay time")
 	flowType:=flag.Int("ftype",0,"Flow Type")
 
-	forceTarget:=flag.Bool("force-target",false,"Whether force target")
+	forceTarget:=flag.Bool("forcetarget",false,"Whether force target")
 	target:=flag.Int("target",-1,"If enable force target,the target id")
 
 
@@ -61,6 +61,8 @@ func main(){
 		log.Printf("Enable force target")
 		if *target==-1{
 			log.Fatalln("You must supply a target id")
+		}else{
+			log.Printf("Supplied target :%d",*target)
 		}
 	}
 
