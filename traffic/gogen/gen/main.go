@@ -30,8 +30,11 @@ func main(){
 	delayTime:=flag.Int("delaytime",100,"delay time")
 	flowType:=flag.Int("ftype",0,"Flow Type")
 
+	enablePktLossStats:=flag.Bool("loss",false,"Whether enable pkt loss stats collection")
+
 	forceTarget:=flag.Bool("forcetarget",false,"Whether force target")
 	target:=flag.Int("target",-1,"If enable force target,the target id")
+
 
 
 	//dumb generator
@@ -66,6 +69,7 @@ func main(){
 		}
 	}
 
+
 	if *isDumb{
 		log.Println("Use dumb generator")
 		if !utils.FileExist(*ipFile){
@@ -87,6 +91,11 @@ func main(){
 		dumb.Init()
 		dumb.Start()
 	}else{
+
+		if *enablePktLossStats{
+			log.Println("Enable pkt loss stats collection")
+		}
+
 		if !utils.FileExist(*dstIdFn){
 			log.Fatal(fmt.Sprintf("File not exists %s\n", *dstIdFn))
 		}
@@ -129,6 +138,7 @@ func main(){
 			Debug: *debug,
 			ForceTarget: *forceTarget,
 			Target: *target,
+			enablePktLossStats: *enablePktLossStats,
 		}
 
 		generator.Init()

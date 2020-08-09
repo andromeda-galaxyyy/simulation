@@ -28,24 +28,33 @@ func main()  {
 	sportRange:=flag.String("srange","1500-65535","Source port range")
 	dportRange:=flag.String("drange","1500-65535","Destination port range")
 
+	delayBaseDir:=flag.String("delay_dir","/tmp/rxdelay","Base dir to store delay stats")
+	pktLossBaseDir:=flag.String("loss_dir","/tmp/rxloss","Base dir to store loss stats")
 
-	//writer config
-	flowStatsBaseDir:=flag.String("dir","/tmp/log","Flow stats base dir")
-	//itemsPerFile:=flag.Int("ni",10240,"Number of flow desc per file")
-	//filesPerDir:=flag.Int("nf",1024,"Number of files per dir")
-	if utils.DirExists(*flowStatsBaseDir){
-		log.Printf("base dir %s exists\n",*flowStatsBaseDir)
+
+
+	flag.Parse()
+	if utils.DirExists(*delayBaseDir){
+		log.Printf("Base dir for delay stats %s exists\n",*delayBaseDir)
 	}else{
-		err=utils.CreateDir(*flowStatsBaseDir)
+		err=utils.CreateDir(*delayBaseDir)
 		if err!=nil{
-			log.Fatalf("Cannot create dir %s\n",*flowStatsBaseDir)
+			log.Fatalf("Cannot create dir for delay stats %s\n",*delayBaseDir)
+		}
+	}
+
+	if utils.DirExists(*pktLossBaseDir){
+		log.Printf("Base dir for pkt loss stats %s exists\n",*pktLossBaseDir)
+	}else{
+		err=utils.CreateDir(*pktLossBaseDir)
+		if err!=nil{
+			log.Fatalf("Cannot create dir for pkt loss stats %s\n",*pktLossBaseDir)
 		}
 	}
 
 
 
 
-	flag.Parse()
 	if *enableWorkers&&!(*nworker>0){
 		err=errors.New(fmt.Sprintf("Invalid number of worker: %d",*nworker))
 	}
@@ -97,7 +106,9 @@ func main()  {
 		DstPortLower:  dportLower,
 		DstPortUpper:  dportUpper,
 
-		WriterBaseDir: *flowStatsBaseDir,
+		DelayBaseDir: *delayBaseDir,
+		PktLossDir: *pktLossBaseDir,
+
 	}
 	l.Init()
 	l.Start()

@@ -55,6 +55,9 @@ type Generator struct {
 	statsToReport map[int]map[string][]float64
     sentRecord    *utils.IntSet
 	buffer        gopacket.SerializeBuffer
+
+	enablePktLossStats bool
+
 	//flowId2Port   map[int][2]int
 	stopChannel chan struct{}
 
@@ -223,7 +226,9 @@ func (g *Generator)Start() (err error) {
 	for{
 		//刷新packet loss stats到channel
 		//正常情况下应该no work to do
-		g.flushPktLossStats()
+		if g.enablePktLossStats{
+			g.flushPktLossStats()
+		}
 		if stopped{
 			break
 		}
@@ -246,6 +251,7 @@ func (g *Generator)Start() (err error) {
 			select {
 			case <-g.stopChannel:
 				//break loop
+				log.Println("Generator stop requested")
 				stopped = true
 				//close channel
 				break
@@ -393,35 +399,37 @@ func (g *Generator)Start() (err error) {
 							}
 						}
 					}
-					//collect stats
-					if _,exists:=g.flowIDToFlowDesc[flowId];!exists{
-						fd:=&common.FlowDesc{
-							SrcIP:       g.ipStr,
-							SrcPort:     srcPort,
-							DstIP:       dstIPStr,
-							DstPort:     dstPort,
-							Proto:       proto,
-							StartTs:     utils.NowInMilli(),
-							EndTs:       0,
-							FlowType:    fType,
-							Packets:     0,
-							MinDelay:    0,
-							MaxDelay:    0,
-							MeanDelay:   0,
-							StdVarDelay: 0,
+
+					if g.enablePktLossStats {
+						if _, exists := g.flowIDToFlowDesc[flowId]; !exists {
+							fd := &common.FlowDesc{
+								SrcIP:       g.ipStr,
+								SrcPort:     srcPort,
+								DstIP:       dstIPStr,
+								DstPort:     dstPort,
+								Proto:       proto,
+								TxStartTs:   utils.NowInMilli(),
+								TxEndTs:     0,
+								FlowType:    fType,
+								Packets:     0,
+								MinDelay:    0,
+								MaxDelay:    0,
+								MeanDelay:   0,
+								StdVarDelay: 0,
+							}
+							g.flowIDToFlowDesc[flowId] = fd
 						}
-						g.flowIDToFlowDesc[flowId]=fd
-					}
 
-					fDesc:=g.flowIDToFlowDesc[flowId]
-					fDesc.Packets+=1
+						fDesc := g.flowIDToFlowDesc[flowId]
+						fDesc.Packets += 1
 
-					if isLastL4Payload{
-						fDesc.EndTs=utils.NowInMilli()
-						//send
-						g.writerChan<-fDesc
-						//delete
-						delete(g.flowIDToFlowDesc,flowId)
+						if isLastL4Payload {
+							fDesc.TxEndTs = utils.NowInMilli()
+							//send
+							g.writerChan <- fDesc
+							//delete
+							delete(g.flowIDToFlowDesc, flowId)
+						}
 					}
 
 					if toSleep > 0 && g.Sleep {
@@ -469,22 +477,25 @@ func (g *Generator)Init()  {
 	g.stopChannel=make(chan struct{})
 	g.flowIDToFiveTuple=make(map[int][5]string)
 
-	//register signal
-	sigs:=make(chan os.Signal,1)
-	signal.Notify(sigs,syscall.SIGINT,syscall.SIGTERM,syscall.SIGKILL)
-	go func() {
-		sig:=<-sigs
-		log.Printf("Generator received signal %s\n",sig)
-		log.Println("Start to shutdown sender")
-		g.stopChannel<- struct{}{}
-	}()
+		//register signal
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+		go func() {
+			sig := <-sigs
+			log.Printf("Generator received signal %s\n", sig)
+			log.Println("Start to shutdown sender")
+			g.stopChannel <- struct{}{}
+		}()
 
-	g.writerChan=make(chan *common.FlowDesc,10240)
-	g.writer=NewPktLossWriter(1024,"/tmp/pktloss",g.writerChan)
-	//start writer
-	go func() {
-		g.writer.start()
-	}()
+		if g.enablePktLossStats {
+
+		g.writerChan = make(chan *common.FlowDesc, 10240)
+		g.writer = NewPktLossWriter(1024, "/tmp/pktloss", g.writerChan)
+		//start writer
+		go func() {
+			g.writer.start()
+		}()
+	}
 }
 
 func (g *Generator)reset(){

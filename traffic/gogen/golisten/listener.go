@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chandler.com/gogen/common"
 	"chandler.com/gogen/utils"
 	"fmt"
 	"github.com/google/gopacket"
@@ -19,7 +20,9 @@ var (
 	snapshot_len int32 =1024
 	promiscuous          = false
 	timeout      =30*time.Second
-	sport,dport,sip,dip,proto string
+	delayBaseDir string
+	pktLossBaseDir string
+	//sport,dport,sip,dip,proto string
 )
 
 type Listener struct {
@@ -33,7 +36,8 @@ type Listener struct {
 	SrcSubnet     string
 	DstSubnet     string
 
-	WriterBaseDir string
+	DelayBaseDir string
+	PktLossDir string
 
 	workers []*worker
 
@@ -93,7 +97,7 @@ func (l *Listener)startDispatcher(stop chan struct{}, periodicFlushChan chan str
 			return
 			//周期性的flush，防止收不到最后一个包导致内存爆掉
 		case <-periodicFlushChan:
-			//todo direct write to file
+			//todo direct writeDelayStats to file
 			//log.Println("periodically worker completeFlush")
 			//?????
 			continue
@@ -181,20 +185,19 @@ func (l *Listener)Init()  {
 			worker :=&worker{
 				id:i,
 				delaySampleSize:   l.delaySampleSize,
-				flowDelay:         nil,
-				flowDelayFinished: nil,
-				flowWriter:        nil,
-				writerChannel:     nil,
+				flowDelay:         make(map[[5]string][]int64),
+				flowDelayFinished: utils.NewSpecifierSet(),
+				writerChannel:     make(chan *common.FlowDesc,102400),
 			}
-			worker.writerChannel=make(chan *flowDesc,102400)
-			worker.flowDelay=make(map[[5]string][]int64)
-			worker.flowDelayFinished=utils.NewSpecifierSet()
-			worker.flowWriter=NewDefaultWriter(i,l.WriterBaseDir, worker.writerChannel)
-			worker.flowTypes=make(map[[5]string]int)
 
-
+			//worker.flowWriter=NewDefaultWriter(i,l.DelayBaseDir, worker.writerChannel)
+			delayBaseDir=l.DelayBaseDir
+			pktLossBaseDir=l.PktLossDir
+			worker.fiveTupleToFtype =make(map[[5]string]int)
 			l.workers=append(l.workers, worker)
 			l.packetChannels[i]=make(chan gopacket.Packet,l.channelSize)
+			worker.Init()
+
 		}
 
 	}
