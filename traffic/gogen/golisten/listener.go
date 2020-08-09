@@ -17,12 +17,12 @@ import (
 
 
 var (
-	snapshot_len int32 =1024
+	snapshotLen    int32 =1024
 	promiscuous          = false
-	timeout      =30*time.Second
-	delayBaseDir string
+	timeout              =30*time.Second
+	delayBaseDir   string
 	pktLossBaseDir string
-	//sport,dport,sip,dip,proto string
+	enablePktLossStats bool
 )
 
 type Listener struct {
@@ -69,7 +69,7 @@ func (l *Listener)getFilter() (filter string){
 func (l *Listener)startDispatcher(stop chan struct{}, periodicFlushChan chan struct{})  {
 	log.Println("Dispatcher start")
 
-	handle,err:=pcap.OpenLive(l.Intf,snapshot_len,promiscuous,pcap.BlockForever)
+	handle,err:=pcap.OpenLive(l.Intf, snapshotLen,promiscuous,pcap.BlockForever)
 	if err!=nil{
 		log.Fatalf("Cannot open %s\n",l.Intf)
 	}
@@ -156,8 +156,8 @@ func (l *Listener)Start()  {
 
 	wg.Wait()
 	//休息60s
-	log.Println("Wait for 30 seconds to exit gracefully")
-	time.Sleep(time.Duration(30)*time.Second)
+	log.Println("Wait for 10 seconds to exit gracefully")
+	time.Sleep(time.Duration(15)*time.Second)
 	log.Println("All Work done,exiting")
 }
 

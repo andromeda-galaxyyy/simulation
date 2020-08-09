@@ -36,6 +36,7 @@ type writer struct {
 	filesInDir        int64
 	currDelayStatsDir string
 	currPktLossStatsDir string
+	//todo export to field to flag
 	enablePktLossStats bool
 }
 
@@ -73,7 +74,7 @@ func (w *writer)Flush()  {
 	fn:=path.Join(dirname,utils.NowInString())
 	w.writeDelayStats(w.cache,fn)
 
-	if w.enablePktLossStats{
+	if enablePktLossStats{
 		dirname:=path.Join(w.basePktStatsDir,w.dirnameGenerator())
 		_=utils.CreateDir(dirname)
 		fn:=path.Join(dirname,utils.NowInString())
@@ -107,7 +108,7 @@ func (w *writer) Start()  {
 				log.Printf("Write pkt delay stats to file %s\n",fn)
 				w.writeDelayStats(w.cache,fn)
 
-				if w.enablePktLossStats{
+				if enablePktLossStats{
 					fn:=path.Join(w.currPktLossStatsDir,utils.NowInString())
 					log.Printf("Write pkt loss stats to file %s\n",fn)
 					w.writePktLossStats(w.cache,fn)
@@ -156,7 +157,7 @@ func (w *writer) writePktLossStats(flows [] *common.FlowDesc,pktLossStatsFn stri
 
 	for _, f := range flows {
 
-		_,err=pktLossWriter.WriteString(fmt.Sprintf("%s\n",f.ToLossRateStats()))
+		_,err=pktLossWriter.WriteString(fmt.Sprintf("%s\n",f.ToRxLossStats()))
 		if err!=nil{
 			errors=append(errors,err)
 		}

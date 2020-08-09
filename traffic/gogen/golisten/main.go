@@ -20,7 +20,7 @@ func main()  {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	intf:=flag.String("intf","ens33","Interface to listen")
+	intf:=flag.String("intf","h1-eth0","Interface to listen")
 	nworker:=flag.Int("worker",16,"Number of listener workers")
 	enableWorkers:=flag.Bool("enable_workers",true,"Whether enable multiple workers")
 	srcSubnet:=flag.String("src","10.0.0.0/16","Source host subnet")
@@ -28,28 +28,42 @@ func main()  {
 	sportRange:=flag.String("srange","1500-65535","Source port range")
 	dportRange:=flag.String("drange","1500-65535","Destination port range")
 
+
 	delayBaseDir:=flag.String("delay_dir","/tmp/rxdelay","Base dir to store delay stats")
 	pktLossBaseDir:=flag.String("loss_dir","/tmp/rxloss","Base dir to store loss stats")
+	enableLossStats:=flag.Bool("loss",true,"Whether enable packet loss stats")
 
 
 
 	flag.Parse()
 	if utils.DirExists(*delayBaseDir){
-		log.Printf("Base dir for delay stats %s exists\n",*delayBaseDir)
-	}else{
-		err=utils.CreateDir(*delayBaseDir)
+		log.Printf("Base dir for delay stats %s exists,now remove\n",*delayBaseDir)
+		err=utils.RMDir(*delayBaseDir)
 		if err!=nil{
-			log.Fatalf("Cannot create dir for delay stats %s\n",*delayBaseDir)
+			log.Fatalf("Error when deleting dir %s\n",*delayBaseDir)
 		}
+	}
+	enablePktLossStats=*enableLossStats
+	if enablePktLossStats{
+		log.Println("Enable packet stats")
+	}
+
+	err=utils.CreateDir(*delayBaseDir)
+	if err!=nil{
+		log.Fatalf("Cannot create dir for delay stats %s\n",*delayBaseDir)
 	}
 
 	if utils.DirExists(*pktLossBaseDir){
 		log.Printf("Base dir for pkt loss stats %s exists\n",*pktLossBaseDir)
-	}else{
-		err=utils.CreateDir(*pktLossBaseDir)
+		err=utils.RMDir(*pktLossBaseDir)
 		if err!=nil{
-			log.Fatalf("Cannot create dir for pkt loss stats %s\n",*pktLossBaseDir)
+			log.Fatalf("Error when deleting dir %s\n",*pktLossBaseDir)
 		}
+	}
+
+	err=utils.CreateDir(*pktLossBaseDir)
+	if err!=nil{
+		log.Fatalf("Cannot create dir for pkt loss stats %s\n",*pktLossBaseDir)
 	}
 
 

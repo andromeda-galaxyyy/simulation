@@ -31,7 +31,21 @@ type FlowDesc struct {
 }
 
 
-func (f *FlowDesc) ToLossRateStats() string{
+func (f *FlowDesc) ToRxLossStats() string{
+	return fmt.Sprintf("%d %d %d %s %d %s %d %s %d",
+		f.RxStartTs,
+		f.RxEndTs,
+		f.Packets,
+		f.SrcIP,
+		f.SrcPort,
+		f.DstIP,
+		f.DstPort,
+		f.Proto,
+		f.FlowType,
+	)
+}
+
+func (f *FlowDesc) ToTxLossStats() string{
 	return fmt.Sprintf("%d %d %d %s %d %s %d %s %d",
 		f.TxStartTs,
 		f.TxEndTs,

@@ -73,7 +73,7 @@ func (w *pktlosswriter)write(flows []*common.FlowDesc,filepath string)  {
 
 	bufferWriter:=bufio.NewWriter(f)
 	for _,f:=range flows{
-		_,err=bufferWriter.WriteString(fmt.Sprintf("%s\n",f.ToLossRateStats()))
+		_,err=bufferWriter.WriteString(fmt.Sprintf("%s\n",f.ToTxLossStats()))
 		if err!=nil{
 			errors=append(errors,err)
 		}
