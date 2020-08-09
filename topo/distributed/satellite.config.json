@@ -94,7 +94,8 @@
         "default": "/home/stack/code/simulation/traffic/gogen/pkts/default"
     },
     "traffic_generator": "/home/stack/code/simulation/traffic/gogen/gen/gen",
-    "enable_listener": 1,
+    "enable_traffic_generator_log": false,
+    "enable_listener": 0,
     "listener": "/home/stack/code/simulation/traffic/gogen/golisten/golisten",
     "listener_log_base_dir": "/tmp/listener_log",
     "num_process": {

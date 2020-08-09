@@ -28,10 +28,12 @@ class BasicTrafficScheduler:
 	def __init__(self, config: Dict, hostids: List[int]):
 		self.config = config
 		self.hostids = hostids
+
 		self.generator_id = 0
 
 		self.genid2pid = {}
 		self.pid2genid = {}
+
 		self.binary = self.config["traffic_generator"]
 
 		# self.traffic_scales = ["small", "small", "small", "small"]
@@ -110,7 +112,8 @@ class BasicTrafficScheduler:
 		         "--mtu {} " \
 		         "--int {} " \
 		         "--cip {} " \
-		         "--forcetarget --target {} " \
+		         "--forcetarget " \
+		         "--target {} " \
 		         "--ftype {} " \
 		         "--cport {}".format(
 			hid,
@@ -252,6 +255,10 @@ class TrafficScheduler(BasicTrafficScheduler):
 
 
 class TrafficScheduler2(BasicTrafficScheduler):
+	'''
+	config:
+	hostids: id of hosts which are running in this worker
+	'''
 	def __init__(self, config: Dict, hostids: List[int]):
 		super(TrafficScheduler2, self).__init__(config, hostids)
 		self.cv = threading.Condition()
