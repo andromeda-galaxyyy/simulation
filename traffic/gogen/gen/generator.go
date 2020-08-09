@@ -22,6 +22,8 @@ import (
 	"time"
 )
 
+
+
 type Generator struct {
 	ID             int
 	MTU            int
@@ -56,6 +58,8 @@ type Generator struct {
 	buffer        gopacket.SerializeBuffer
 
 	enablePktLossStats bool
+	pktLossDir string
+
 
 	//flowId2Port   map[int][2]int
 	stopChannel chan struct{}
@@ -487,7 +491,7 @@ func (g *Generator) Init() {
 	if g.enablePktLossStats {
 
 		g.writerChan = make(chan *common.FlowDesc, 10240)
-		g.writer = NewPktLossWriter(1024, "/tmp/pktloss", g.writerChan)
+		g.writer = NewPktLossWriter(1024, g.pktLossDir, g.writerChan)
 		//start writer
 		go func() {
 			g.writer.start()

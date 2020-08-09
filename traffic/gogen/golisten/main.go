@@ -25,6 +25,10 @@ func main()  {
 	enableWorkers:=flag.Bool("enable_workers",true,"Whether enable multiple workers")
 	srcSubnet:=flag.String("src","10.0.0.0/16","Source host subnet")
 	dstSubnet:=flag.String("dst","10.0.0.0/16","Destination host subnet")
+
+	srcHostIp:=flag.String("src_ips_file","","File which contains source host ip to be captured")
+	//dstHostIp:=flag.String("dst_ips_file","","File which contains dst host ip to be captured")
+
 	sportRange:=flag.String("srange","1500-65535","Source port range")
 	dportRange:=flag.String("drange","1500-65535","Destination port range")
 
@@ -36,6 +40,14 @@ func main()  {
 
 
 	flag.Parse()
+
+	if len(*srcHostIp)>0{
+		fmt.Printf("This will overwrite src subnet %s \n",*srcSubnet)
+		if !utils.FileExist(*srcHostIp){
+			log.Fatalf("Source host ip file does not exsits %s\n",*srcHostIp)
+		}
+	}
+
 	if utils.DirExists(*delayBaseDir){
 		log.Printf("Base dir for delay stats %s exists,now remove\n",*delayBaseDir)
 		err=utils.RMDir(*delayBaseDir)

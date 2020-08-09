@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"chandler.com/gogen/utils"
+	"debug/elf"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -30,7 +31,8 @@ func main(){
 	delayTime:=flag.Int("delaytime",100,"delay time")
 	flowType:=flag.Int("ftype",0,"Flow Type")
 
-	enablePktLossStats:=flag.Bool("loss",true,"Whether enable pkt loss stats collection")
+	enablePktLossStats:=flag.Bool("loss",false,"Whether enable pkt loss stats collection")
+	pktLossDir:=flag.String("loss_dir","/tmp/txloss","Dir to store pkt loss stats")
 
 	forceTarget:=flag.Bool("forcetarget",false,"Whether force target")
 	target:=flag.Int("target",-1,"If enable force target,the target id")
@@ -94,6 +96,17 @@ func main(){
 
 		if *enablePktLossStats{
 			log.Println("Enable pkt loss stats collection")
+			if utils.DirExists(*pktLossDir){
+				err=utils.RMDir(*pktLossDir)
+				if err!=nil{
+					log.Fatalf("Cannot remove pkt loss stats dir %s\n",*pktLossDir)
+				}
+				err=utils.CreateDir(*pktLossDir)
+				if err!=nil{
+					log.Fatalf("Cannot create pkt loss stats dir %s\n",*pktLossDir)
+				}
+			}
+
 		}
 
 		if !utils.FileExist(*dstIdFn){
@@ -139,6 +152,7 @@ func main(){
 			ForceTarget: *forceTarget,
 			Target: *target,
 			enablePktLossStats: *enablePktLossStats,
+			pktLossDir: *pktLossDir,
 		}
 
 		generator.Init()

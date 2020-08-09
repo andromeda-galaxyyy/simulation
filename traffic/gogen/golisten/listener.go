@@ -35,10 +35,10 @@ type Listener struct {
 	DstPortUpper  int
 	SrcSubnet     string
 	DstSubnet     string
+	SrcIPFile string
 
 	DelayBaseDir string
 	PktLossDir string
-
 	workers []*worker
 
 	//dispatcher---->worker的packet channel
@@ -55,9 +55,26 @@ type Listener struct {
 
 
 func (l *Listener)getFilter() (filter string){
-	filter=fmt.Sprintf("inbound && src net %s && dst net %s && src portrange %d-%d && dst portrange %d-%d && ! ip broadcast && ! ether broadcast",
-		l.SrcSubnet,
-		l.DstSubnet,
+
+	srcIPFilter :=""
+	if len(l.SrcIPFile)>0{
+		srcIPFilter ="("
+		log.Printf("Starting to parse source ip file %s\n",l.SrcIPFile)
+		ips,err:=utils.ReadLines(l.SrcIPFile)
+		if err!=nil{
+			log.Fatalf("Error when parsing source ip file %s\n",l.SrcIPFile)
+		}
+		//https://serverfault.com/questions/280215/tcpdump-capturing-packets-on-multiple-ip-address-filter
+		for _,ip:=range ips[:len(ips)-1]{
+			srcIPFilter +=fmt.Sprintf("host %s or ",ip)
+		}
+		srcIPFilter +=fmt.Sprintf("host %s)",ips[len(ips)-1])
+		log.Printf("Constructed src ip filter is %s\n", srcIPFilter)
+	}else{
+		srcIPFilter=fmt.Sprintf("src net %s",l.SrcSubnet)
+	}
+	filter=fmt.Sprintf("inbound && %s && src portrange %d-%d && dst portrange %d-%d && ! ip broadcast && ! ether broadcast",
+		srcIPFilter,
 		l.SrcPortLower,
 		l.SrcPortUpper,
 		l.DstPortLower,
