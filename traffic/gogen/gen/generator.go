@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chandler.com/gogen/common"
 	"chandler.com/gogen/utils"
 	"fmt"
 	"github.com/google/gopacket"
@@ -10,12 +11,15 @@ import (
 	"io/ioutil"
 	"log"
 	"math"
+	"math/rand"
 	"net"
+	"os"
+	"os/signal"
 	"path"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
-	"math/rand"
 )
 
 type Generator struct {
@@ -42,34 +46,25 @@ type Generator struct {
 	ipStr string
 	macStr string
 
-	//whether add timestamp to transport layer payload
-	addTimeStamp bool
-	timestampWindow int
 
 	rawData []byte
 	handle *pcap.Handle
 	timeout time.Duration
 
 	//flow-id ---> {pkt_size:[],idt:[]}
-	flowStats map[int]map[string][]float64
-    sentRecord *utils.IntSet
-	buffer gopacket.SerializeBuffer
-	flowId2Port map[int][2]int
+	statsToReport map[int]map[string][]float64
+    sentRecord    *utils.IntSet
+	buffer        gopacket.SerializeBuffer
+	//flowId2Port   map[int][2]int
+	stopChannel chan struct{}
 
-
-	// whether the flow has finish sent timestamps
-	flowTimestampAddRecord *utils.IntSet
-	// count times flow has send timestamp
-	flowTimestampCount map[int]int
-
-	//bytes to change
-
+	flowIDToFiveTuple map[int][5]string
+	flowIDToFlowDesc map[int]*common.FlowDesc
+	writerChan chan *common.FlowDesc
+	writer *pktlosswriter
 }
 
 
-func init()  {
-
-}
 
 func processStats(nums []float64) (min,max,mean float64)  {
 	min=math.MaxFloat64
@@ -91,7 +86,6 @@ func processStats(nums []float64) (min,max,mean float64)  {
 	}
 	return min,max, sum/float64(validCount)
 }
-
 
 
 func processFlowStats(ip string,port int,specifier [5]string,stats map[string][]float64){
@@ -141,6 +135,12 @@ func randomFlowIdToPort(flowId int) (sport,dport int){
 	return sport,dport
 }
 
+func (g *Generator)flushPktLossStats()  {
+	for _,fDesc:=range g.flowIDToFlowDesc{
+		g.writerChan<-fDesc
+	}
+}
+
 func (g *Generator)Start() (err error) {
 
 	log.Printf("Start to generate")
@@ -161,8 +161,10 @@ func (g *Generator)Start() (err error) {
 	if err!=nil{
 		log.Fatalf("Invalid generator id %d\n",g.ID)
 	}
+
 	ip:=net.ParseIP(g.ipStr)
 	ipv4.SrcIP=ip
+
 	g.macStr,err= utils.GenerateMAC(g.ID)
 	mac,_:=net.ParseMAC(g.macStr)
 	ether.SrcMAC=mac
@@ -213,172 +215,226 @@ func (g *Generator)Start() (err error) {
 	pktFileIdx:=0
 	log.Println("Start to sleep for random time")
 	if g.Delay{
-		time.Sleep(time.Millisecond*time.Duration(rand.Intn(100)))
+		time.Sleep(time.Millisecond*time.Duration(rand.Intn(1000)))
 	}
 	log.Println("Sleep over.Start injection")
-	var dstIPStr string
-	var dstMACStr string
-	var dstIP net.IP
-	var dstMAC net.HardwareAddr
 
-	if g.ForceTarget{
-		dstIPStr,err=utils.GenerateIP(g.Target)
-		if err!=nil{
-			log.Fatalf("Cannot generate ip for given id:%d\n",g.Target)
-		}
-		log.Printf("Force target ip:%s\n",dstIPStr)
-		dstMACStr,err=utils.GenerateMAC(g.Target)
-		if err!=nil{
-			log.Fatalf("Cannot generate mac for given id:%d\n",g.Target)
-		}
-		log.Printf("Force target mac %s\n",dstMACStr)
-	}
+	stopped:=false
 	for{
-		//shuffle dst ips and dstmacs
+		//刷新packet loss stats到channel
+		//正常情况下应该no work to do
+		g.flushPktLossStats()
+		if stopped{
+			break
+		}
 		rand.Shuffle(len(DstIPs), func(i, j int) {
 			DstIPs[i],DstIPs[j]=DstIPs[j],DstIPs[i]
 			DstMACs[i],DstMACs[j]=DstMACs[j],DstMACs[i]
 		})
+
 		g.reset()
-		//#read pkt file
 		pktFile:=path.Join(g.PktsDir,pktFns[pktFileIdx])
 		lines,err:= utils.ReadLines(pktFile)
-		//log.Printf("#lines %d",len(lines))
 		if err!=nil{
 			log.Fatalf("Error reading pkt file %s\n",pktFile)
 		}
 
 		log.Printf("pkt file %s: #lines: %d",pktFns[pktFileIdx],len(lines))
+
+
 		for _,line:=range lines{
-			content:=strings.Split(line," ")
-			if len(content)!=6{
-				log.Fatalf("Invalid pkt file %s\n",pktFile)
-			}
-			toSleep,err:=strconv.ParseFloat(content[0],64)
-			if toSleep<0 && int(toSleep)!=-1{
-				log.Fatalf("Invalid sleep time in pkt file %s\n",pktFile)
-			}
-			if err!=nil{
-				log.Fatalf("Invalid idt time in pkt file %s\n", pktFile)
-			}
-			size,err:=strconv.Atoi(content[1])
-			if err!=nil{
-				log.Fatalf("Invalid pkt size in pkt file %s\n", pktFile)
-			}
-			proto:=content[2]
-			flowId,err:=strconv.Atoi(content[3])
-			if err!=nil{
-				log.Fatalf("Invalid flow id in pkt file %s\n", pktFile)
-			}
+			select {
+			case <-g.stopChannel:
+				//break loop
+				stopped = true
+				//close channel
+				break
+			default:
+				{
+					content := strings.Split(line, " ")
+					if len(content) != 6 {
+						log.Fatalf("Invalid pkt file %s\n", pktFile)
+					}
+					toSleep, err := strconv.ParseFloat(content[0], 64)
+					if toSleep < 0 && int(toSleep) != -1 {
+						log.Fatalf("Invalid sleep time in pkt file %s\n", pktFile)
+					}
+					if err != nil {
+						log.Fatalf("Invalid idt time in pkt file %s\n", pktFile)
+					}
+					size, err := strconv.Atoi(content[1])
+					if err != nil {
+						log.Fatalf("Invalid pkt size in pkt file %s\n", pktFile)
+					}
+					proto := content[2]
+					flowId, err := strconv.Atoi(content[3])
+					if err != nil {
+						log.Fatalf("Invalid flow id in pkt file %s\n", pktFile)
+					}
 
-			tsDiffInFlow,err:=strconv.ParseFloat(content[4],64)
-			if tsDiffInFlow<0 && int(tsDiffInFlow)!=-1{
-				log.Fatalln("Invalid ts diff in flow")
-			}
-			if err!=nil{
-				log.Fatalf("Invalid ts diff in flow in pkt file %s\n", pktFile)
-			}
-			last,err:=strconv.ParseInt(content[5],10,64)
-			if err!=nil{
-				log.Fatalf("Invalid last payload indicator in pkt file %s\n",pktFile)
-			}
-			isLastL4Payload :=false
-			if last>0{
-				log.Printf("Flow %d finished\n",flowId)
-				isLastL4Payload =true
-			}
-
-			//
-			if !g.ForceTarget{
-				dstIPStr=DstIPs[flowId%nDsts]
-				dstMACStr=DstMACs[flowId%nDsts]
-			}
-
-
-			dstIP=net.ParseIP(dstIPStr)
-			dstMAC,_=net.ParseMAC(dstMACStr)
+					tsDiffInFlow, err := strconv.ParseFloat(content[4], 64)
+					if tsDiffInFlow < 0 && int(tsDiffInFlow) != -1 {
+						log.Fatalln("Invalid ts diff in flow")
+					}
+					if err != nil {
+						log.Fatalf("Invalid ts diff in flow in pkt file %s\n", pktFile)
+					}
+					last, err := strconv.ParseInt(content[5], 10, 64)
+					if err != nil {
+						log.Fatalf("Invalid last payload indicator in pkt file %s\n", pktFile)
+					}
+					isLastL4Payload := false
+					if last > 0 {
+						log.Printf("Flow %d finished\n", flowId)
+						isLastL4Payload = true
+					}
 
 
-
-			//determine sport and dport
-			srcPort:=-1
-			dstPort:=-1
-			if ports,exsits:=g.flowId2Port[flowId];exsits{
-				srcPort=ports[0]
-				dstPort=ports[1]
-			}else{
-				srcPort,dstPort=randomFlowIdToPort(flowId)
-				g.flowId2Port[flowId]=[2]int{srcPort,dstPort}
-			}
-
-			ether.DstMAC=dstMAC
-			ipv4.DstIP=dstIP
-
-			addTs:=g.addTimeStamp
-
-
-			if proto=="TCP"{
-				tcp.SrcPort= layers.TCPPort(srcPort)
-				tcp.DstPort= layers.TCPPort(dstPort)
-				ipv4.Protocol=6
-				err=send(g.handle,g.buffer,g.rawData, size,g.MTU-g.EmptySize, ether,vlan,ipv4,tcp,udp,true,addTs, isLastL4Payload)
-				if err!=nil{
-					log.Fatal(err)
-				}
-			}else{
-				udp.SrcPort= layers.UDPPort(srcPort)
-				udp.DstPort= layers.UDPPort(dstPort)
-				ipv4.Protocol=17
-				err=send(g.handle,g.buffer,g.rawData, size,g.MTU-g.EmptySize ,ether,vlan,ipv4,tcp,udp,false,addTs, isLastL4Payload)
-				//err=g.send(size,false,addTs,isLastL4Payload)
-				if err!=nil{
-					log.Fatal(err)
-				}
-			}
-
-
-			_, exits := g.flowStats[flowId]
-			if !exits {
-				g.flowStats[flowId] = map[string][]float64{
-					"pkt_size": make([]float64, 0),
-					"idt":      make([]float64, 0),
-				}
-			}
-
-			if g.Report {
-				//collects
-				if !g.sentRecord.Contains(flowId) {
-					//log.Printf("hello : %d\n",len(g.flowStats[flowId]["pkt_size"]))
-					//collect stats
-					if len(g.flowStats[flowId]["pkt_size"]) == g.WinSize {
-						//ok
-						specifier := [5]string{
-							fmt.Sprintf("%d", srcPort),
-							fmt.Sprintf("%d", dstPort),
+					if _,exists:=g.flowIDToFiveTuple[flowId];!exists{
+						//map and save
+						sp, dp:= randomFlowIdToPort(flowId)
+						var dip string
+						if g.ForceTarget{
+							dip,err=utils.GenerateIP(g.Target)
+							if err!=nil{
+								log.Fatalf("Cannot generate ip for given id:%d\n",g.Target)
+							}
+							log.Printf("Force target ip:%s\n",dip)
+						}else{
+							dip = DstIPs[flowId%nDsts]
+						}
+						g.flowIDToFiveTuple[flowId]=[5]string{
 							g.ipStr,
-							dstIPStr,
+							strconv.Itoa(sp),
+							dip,
+							strconv.Itoa(dp),
 							proto,
 						}
-						stats := g.flowStats[flowId]
-						go processFlowStats(g.ControllerIP, g.ControllerPort, specifier, utils.CopyMap(stats))
-						delete(g.flowStats, flowId)
-						g.sentRecord.Add(flowId)
+					}
+
+
+					//sip,sport,dip,dport,proto
+					fiveTuple:=g.flowIDToFiveTuple[flowId]
+					srcPort,err:=strconv.Atoi(fiveTuple[1])
+					if err!=nil{
+						log.Fatalf("Error when parsing src port,five tuple:%s",fiveTuple)
+					}
+
+					dstIPStr:=fiveTuple[2]
+					dstIP:=net.ParseIP(dstIPStr)
+					ipv4.DstIP = dstIP
+
+
+					var dstMACStr string
+					if g.ForceTarget{
+						dstMACStr,err=utils.GenerateMAC(g.Target)
+						if err!=nil{
+								log.Fatalf("Cannot generate mac for given id:%d\n",g.Target)
+						}
+					}else{
+						dstMACStr = DstMACs[flowId%nDsts]
+					}
+					ether.DstMAC,_=net.ParseMAC(dstMACStr)
+
+					dstPort,err:=strconv.Atoi(fiveTuple[3])
+					if err!=nil{
+						log.Fatalf("Error when parsing dst port,five tuple:%s",fiveTuple)
+					}
+
+
+					if proto == "TCP" {
+						tcp.SrcPort = layers.TCPPort(srcPort)
+						tcp.DstPort = layers.TCPPort(dstPort)
+						ipv4.Protocol = 6
+						err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, true, true, isLastL4Payload)
+						if err != nil {
+							log.Fatal(err)
+						}
 					} else {
-						g.flowStats[flowId]["pkt_size"] = append(g.flowStats[flowId]["pkt_size"], float64(size))
-						g.flowStats[flowId]["idt"] = append(g.flowStats[flowId]["idt"], tsDiffInFlow)
+						udp.SrcPort = layers.UDPPort(srcPort)
+						udp.DstPort = layers.UDPPort(dstPort)
+						ipv4.Protocol = 17
+						err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, false, true, isLastL4Payload)
+						if err != nil {
+							log.Fatal(err)
+						}
+					}
+
+					//report
+					_, exits := g.statsToReport[flowId]
+					if !exits {
+						g.statsToReport[flowId] = map[string][]float64{
+							"pkt_size": make([]float64, 0),
+							"idt":      make([]float64, 0),
+						}
+					}
+
+					if g.Report {
+						//collects
+						if !g.sentRecord.Contains(flowId) {
+							//log.Printf("hello : %d\n",len(g.statsToReport[flowId]["pkt_size"]))
+							//collect stats
+							if len(g.statsToReport[flowId]["pkt_size"]) == g.WinSize {
+								//ok
+								specifier := [5]string{
+									fmt.Sprintf("%d", srcPort),
+									fmt.Sprintf("%d", dstPort),
+									g.ipStr,
+									dstIPStr,
+									proto,
+								}
+								stats := g.statsToReport[flowId]
+								go processFlowStats(g.ControllerIP, g.ControllerPort, specifier, utils.CopyMap(stats))
+								delete(g.statsToReport, flowId)
+								g.sentRecord.Add(flowId)
+							} else {
+								g.statsToReport[flowId]["pkt_size"] = append(g.statsToReport[flowId]["pkt_size"], float64(size))
+								g.statsToReport[flowId]["idt"] = append(g.statsToReport[flowId]["idt"], tsDiffInFlow)
+							}
+						}
+					}
+					//collect stats
+					if _,exists:=g.flowIDToFlowDesc[flowId];!exists{
+						fd:=&common.FlowDesc{
+							SrcIP:       g.ipStr,
+							SrcPort:     srcPort,
+							DstIP:       dstIPStr,
+							DstPort:     dstPort,
+							Proto:       proto,
+							StartTs:     utils.NowInMilli(),
+							EndTs:       0,
+							FlowType:    fType,
+							Packets:     0,
+							MinDelay:    0,
+							MaxDelay:    0,
+							MeanDelay:   0,
+							StdVarDelay: 0,
+						}
+						g.flowIDToFlowDesc[flowId]=fd
+					}
+
+					fDesc:=g.flowIDToFlowDesc[flowId]
+					fDesc.Packets+=1
+
+					if isLastL4Payload{
+						fDesc.EndTs=utils.NowInMilli()
+						//send
+						g.writerChan<-fDesc
+						//delete
+						delete(g.flowIDToFlowDesc,flowId)
+					}
+
+					if toSleep > 0 && g.Sleep {
+						nano := int(toSleep)
+						time.Sleep(time.Duration(nano) * time.Nanosecond)
 					}
 				}
-			}
-
-			if toSleep > 0 && g.Sleep {
-				nano := int(toSleep/15)
-				time.Sleep(time.Duration(nano) * time.Nanosecond)
 			}
 		}
 
 		pktFileIdx=(pktFileIdx+1)%pktFileCount
 	}
-
+	return nil
 }
 
 
@@ -406,18 +462,29 @@ func (g *Generator)Init()  {
 
 	options.FixLengths=true
 	payloadPerPacketSize=g.MTU-g.EmptySize
-	g.flowStats=make(map[int]map[string][]float64)
+	g.statsToReport =make(map[int]map[string][]float64)
 	g.sentRecord=&utils.IntSet{}
 	g.buffer=gopacket.NewSerializeBuffer()
-	g.flowId2Port=make(map[int][2]int)
+	//g.flowId2Port=make(map[int][2]int)
+	g.stopChannel=make(chan struct{})
+	g.flowIDToFiveTuple=make(map[int][5]string)
 
-	g.flowTimestampAddRecord=&utils.IntSet{}
-	g.flowTimestampAddRecord.Init()
-	g.flowTimestampCount=make(map[int]int)
+	//register signal
+	sigs:=make(chan os.Signal,1)
+	signal.Notify(sigs,syscall.SIGINT,syscall.SIGTERM,syscall.SIGKILL)
+	go func() {
+		sig:=<-sigs
+		log.Printf("Generator received signal %s\n",sig)
+		log.Println("Start to shutdown sender")
+		g.stopChannel<- struct{}{}
+	}()
 
-	//todo export this field
-	g.addTimeStamp=true
-	g.timestampWindow=5
+	g.writerChan=make(chan *common.FlowDesc,10240)
+	g.writer=NewPktLossWriter(1024,"/tmp/pktloss",g.writerChan)
+	//start writer
+	go func() {
+		g.writer.start()
+	}()
 }
 
 func (g *Generator)reset(){
@@ -425,12 +492,12 @@ func (g *Generator)reset(){
 	g.sentRecord=&utils.IntSet{}
 	g.sentRecord.Init()
 
-	g.flowStats=make(map[int]map[string][]float64)
-	g.flowId2Port=make(map[int][2]int)
+	g.statsToReport =make(map[int]map[string][]float64)
+	//g.flowId2Port=make(map[int][2]int)
 
-	g.flowTimestampAddRecord=&utils.IntSet{}
-	g.flowTimestampAddRecord.Init()
-	g.flowTimestampCount=make(map[int]int)
+	g.flowIDToFiveTuple=make(map[int][5]string)
+
+
 }
 
 

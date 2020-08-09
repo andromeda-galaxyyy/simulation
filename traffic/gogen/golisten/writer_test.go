@@ -12,7 +12,7 @@ func TestWriter_Accept(t *testing.T) {
 	_ = utils.CreateDir("/tmp/hello")
 
 	w:=NewDefaultWriter(1,"/tmp/hello",channel)
-	go w.Accept()
+	go w.Start()
 	f:=&flowDesc{
 		sport:       "1",
 		dport:       "2",

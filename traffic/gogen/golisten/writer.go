@@ -46,8 +46,7 @@ func NewWriter(id int,base string,itemsPerFile int64,filesPerDir int64,dirnameGe
 		dirnameGenerator: dirnameGenerator,
 		flowChannel:      channel,
 		cache: make([]*flowDesc,0),
-		//cacheA:           make([]*flowDesc,0),
-		//cacheB:           make([]*flowDesc,0),
+
 	}
 	w.current=0
 
@@ -67,27 +66,10 @@ func (w *writer)Flush()  {
 	_=utils.CreateDir(dirname)
 	fn:=path.Join(dirname,utils.NowInString())
 	w.write(w.cache,fn)
-	//if len(w.cacheA)==0 && len(w.cacheB)==0{
-	//	log.Printf("writer :%d,No need to completeFlush\n",w.id)
-	//	return
-	//}
-	////
-	//
-
-	//if len(w.cacheB)>0{
-	//	fn1:=path.Join(dirname,utils.NowInString())
-	//	log.Printf("writer %d completeFlush cacheB to file :%s\n",w.id,fn1)
-	//	w.write(w.cacheB,fn1,1)
-	//}
-	//if len(w.cacheA)>0{
-	//	fn2:=path.Join(dirname,utils.NowInString())
-	//	log.Printf("writer %d completeFlush cacheA to file :%s\n",w.id,fn2)
-	//	w.write(w.cacheA,fn2,0)
-	//}
 }
 
 
-func (w *writer)Accept()  {
+func (w *writer) Start()  {
 	defer w.Flush()
 	for f:=range w.flowChannel {
 		w.cache=append(w.cache,f)
@@ -107,40 +89,6 @@ func (w *writer)Accept()  {
 				w.cache=make([]*flowDesc,0)
 				w.filesInDir+=1
 		}
-		//if w.current==0{
-		//	//A cache
-		//	w.cacheA=append(w.cacheA,f)
-		//	w.currentCache=w.cacheA
-		//}else{
-		//	//cache B
-		//	w.cacheB=append(w.cacheB,f)
-		//	w.currentCache=w.cacheB
-		//}
-		//if int64(len(w.currentCache))>=w.numItemsPerFile {
-		//	//change cache and start to write
-		//	//todo possible race condition,but very unlikely
-		//	//
-		//
-		//	if w.filesInDir>=w.numFilesPerDir ||w.currentDir==""{
-		//		dir:=path.Join(w.baseDir,w.dirnameGenerator())
-		//		err:=utils.CreateDir(dir)
-		//		if err!=nil{
-		//			log.Fatalf("Error Create dir %s\n",dir)
-		//		}
-		//		w.currentDir=dir
-		//		w.filesInDir=0
-		//	}
-		//	fn:=path.Join(w.currentDir,utils.NowInString())
-		//	log.Printf("Write flows to file %s\n",fn)
-		//	if w.current==0{
-		//		go w.write(w.cacheA,fn,w.current)
-		//	}else{
-		//		go w.write(w.cacheB,fn,w.current)
-		//	}
-		//
-		//	w.filesInDir+=1
-		//	w.current=1-w.current
-		//}
 	}
 }
 

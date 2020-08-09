@@ -2,11 +2,6 @@ package main
 
 import "fmt"
 
-const (
-	Video=iota
-	IoT
-)
-
 type flowDesc struct {
 	sport string
 	dport string

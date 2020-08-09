@@ -165,7 +165,7 @@ func (w *worker)start()  {
 		if w.g.Report {
 			//collects
 			if !w.sentRecord.Contains(flowId) {
-				//log.Printf("hello : %d\n",len(g.flowStats[flowId]["pkt_size"]))
+				//log.Printf("hello : %d\n",len(g.statsToReport[flowId]["pkt_size"]))
 				//collect stats
 				if len(w.flowStats[flowId]["pkt_size"]) == w.g.WinSize {
 					//ok

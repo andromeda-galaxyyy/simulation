@@ -130,6 +130,7 @@ func main(){
 			ForceTarget: *forceTarget,
 			Target: *target,
 		}
+
 		generator.Init()
 		err=generator.Start()
 		if err!=nil{

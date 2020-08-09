@@ -99,7 +99,7 @@ func (worker *worker)processPacket(packet *gopacket.Packet)  {
 }
 
 func (w *worker)start(packetChannel chan gopacket.Packet,wg *sync.WaitGroup)  {
-	go w.flowWriter.Accept()
+	go w.flowWriter.Start()
 	defer wg.Done()
 	for packet:=range packetChannel{
 		w.processPacket(&packet)
