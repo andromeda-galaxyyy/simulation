@@ -9,7 +9,6 @@ import (
 	"math"
 	"strconv"
 	"sync"
-	"time"
 )
 
 type worker struct {
@@ -52,8 +51,8 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 	l4Payload := (*packet).TransportLayer().LayerPayload()
 	tcpLayer := (*packet).Layer(layers.LayerTypeTCP)
 
-	var sp int
-	var dp int
+	var sp,dp int
+
 	if tcpLayer != nil {
 		tcp, _ := tcpLayer.(*layers.TCP)
 		sp=int(tcp.SrcPort)
@@ -142,7 +141,7 @@ func (w *worker) start(packetChannel chan gopacket.Packet, wg *sync.WaitGroup) {
 	}
 	log.Printf("worker %d completeFlush cache...\n", w.id)
 	w.completeFlush()
-	time.Sleep(10 * time.Second)
+	//time.Sleep(10 * time.Second)
 	log.Printf("Shutting down worker %d...Closing writer channel...\n", w.id)
 	close(w.writerChannel)
 }

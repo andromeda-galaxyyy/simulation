@@ -44,6 +44,9 @@ func (f *FlowDesc) ToRxLossStats() string{
 		f.FlowType,
 	)
 }
+func RxLossHeader() string{
+	return "RxStartTs RxEndTs #packets sip sport dip dport proto flowtype"
+}
 
 func (f *FlowDesc) ToTxLossStats() string{
 	return fmt.Sprintf("%d %d %d %s %d %s %d %s %d",
@@ -58,10 +61,12 @@ func (f *FlowDesc) ToTxLossStats() string{
 		f.FlowType,
 	)
 }
+func TxLossHeader() string  {
+	return "TxStartTs TxEndTs #packets sip sport dip dport proto flowtype"
+}
 
 func (f *FlowDesc) ToDelayStats() string  {
-	return fmt.Sprintf("%d %s %d %s %d %s %d %d %.2f %.2f",
-		f.FlowType,
+	return fmt.Sprintf("%s %d %s %d %s %d %d %.2f %.2f %d",
 		f.SrcIP,
 		f.SrcPort,
 		f.DstIP,
@@ -71,7 +76,11 @@ func (f *FlowDesc) ToDelayStats() string  {
 		f.MaxDelay,
 		f.MeanDelay,
 		f.StdVarDelay,
+		f.FlowType,
 	)
+}
+func RxDelayStatsHeader()string  {
+	return "sip sport dip dport proto min max mean stdvar flowtype"
 }
 
 func (f *FlowDesc) String() string{

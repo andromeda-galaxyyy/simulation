@@ -11,6 +11,7 @@ import (
 )
 
 type pktlosswriter struct {
+	id int
 	flowsPerFile int
 	dir string
 	channel chan *common.FlowDesc
@@ -24,6 +25,10 @@ func NewPktLossWriter(fPerFile int,dir string,channel chan *common.FlowDesc) *pk
 		channel:      channel,
 		cache: make([]*common.FlowDesc,0),
 	}
+}
+
+func (w *pktlosswriter)generateFn() string  {
+	return path.Join(w.dir,fmt.Sprintf("%d.%s",w.id,utils.NowInString()))
 }
 
 func (w *pktlosswriter)start()  {
@@ -43,8 +48,8 @@ func (w *pktlosswriter)start()  {
 		w.cache=append(w.cache,f)
 		if w.flowsPerFile<=len(w.cache){
 			//write to file
-			fn:=path.Join(w.dir,utils.NowInString())
-			w.write(w.cache,fn)
+			fn:=w.generateFn()
+			w.write(w.cache,w.generateFn())
 			log.Printf("Write pkt loss stats to file %s\n",fn)
 			w.cache=make([]*common.FlowDesc,0)
 		}
@@ -56,7 +61,8 @@ func (w *pktlosswriter)flush()  {
 	if len(w.cache)==0{
 		log.Println("No need to flush cache")
 	}
-	fn:=path.Join(w.dir,utils.NowInString())
+	fn:=w.generateFn()
+	log.Printf("flush pkt loss stats to file %s\n",fn)
 	w.write(w.cache,fn)
 }
 
@@ -65,13 +71,14 @@ func (w *pktlosswriter)flush()  {
 func (w *pktlosswriter)write(flows []*common.FlowDesc,filepath string)  {
 	f,err:=os.Create(filepath)
 	if err!=nil{
-		log.Fatalf("Cannot create file %s",filepath);
+		log.Fatalf("Cannot create file %s",filepath)
 	}
 	defer f.Close()
 
 	errors:=make([]error,0)
 
 	bufferWriter:=bufio.NewWriter(f)
+	bufferWriter.WriteString(fmt.Sprintf("%s\n",common.TxLossHeader()))
 	for _,f:=range flows{
 		_,err=bufferWriter.WriteString(fmt.Sprintf("%s\n",f.ToTxLossStats()))
 		if err!=nil{

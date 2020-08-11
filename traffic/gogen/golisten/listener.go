@@ -23,6 +23,7 @@ var (
 	delayBaseDir   string
 	pktLossBaseDir string
 	enablePktLossStats bool
+	lid int=0
 )
 
 type Listener struct {

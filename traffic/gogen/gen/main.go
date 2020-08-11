@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"chandler.com/gogen/utils"
-	"debug/elf"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -97,7 +96,7 @@ func main(){
 		if *enablePktLossStats{
 			log.Println("Enable pkt loss stats collection")
 			if utils.DirExists(*pktLossDir){
-				err=utils.RMDir(*pktLossDir)
+				err:=utils.RMDir(*pktLossDir)
 				if err!=nil{
 					log.Fatalf("Cannot remove pkt loss stats dir %s\n",*pktLossDir)
 				}

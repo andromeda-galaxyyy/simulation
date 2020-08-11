@@ -16,10 +16,8 @@ var (
 
 func main()  {
 	debug:=flag.Bool("debug",true,"enable debug mode")
-	if !(*debug){
-		log.SetOutput(ioutil.Discard)
-	}
 
+	listenerID:=flag.Int("id",0,"Listener ID")
 	intf:=flag.String("intf","h1-eth0","Interface to listen")
 	nworker:=flag.Int("worker",16,"Number of listener workers")
 	enableWorkers:=flag.Bool("enable_workers",true,"Whether enable multiple workers")
@@ -35,16 +33,30 @@ func main()  {
 
 	delayBaseDir:=flag.String("delay_dir","/tmp/rxdelay","Base dir to store delay stats")
 	pktLossBaseDir:=flag.String("loss_dir","/tmp/rxloss","Base dir to store loss stats")
-	enableLossStats:=flag.Bool("loss",true,"Whether enable packet loss stats")
-
+	enableLossStats:=flag.Bool("loss",false,"Whether enable packet loss stats")
+	items:=flag.Int64("items",20,"Number of items per file")
 
 
 	flag.Parse()
+	if *items<=0{
+		log.Fatalf("Invalid args for items per file %d\n",items);
+	}
+	itemsPerFile=*items
+
+	if *listenerID<0{
+		log.Fatalf("Invalid listener id %d\n",*listenerID)
+	}
+
+	lid=*listenerID
+
+	if !(*debug){
+		log.SetOutput(ioutil.Discard)
+	}
 
 	if len(*srcHostIp)>0{
 		fmt.Printf("This will overwrite src subnet %s \n",*srcSubnet)
 		if !utils.FileExist(*srcHostIp){
-			log.Fatalf("Source host ip file does not exsits %s\n",*srcHostIp)
+			log.Fatalf("Source host ip file does not exsits,now remove %s\n",*srcHostIp)
 		}
 	}
 
@@ -57,7 +69,7 @@ func main()  {
 	}
 	enablePktLossStats=*enableLossStats
 	if enablePktLossStats{
-		log.Println("Enable packet stats")
+		log.Println("Listener:enable packet stats")
 	}
 
 	err=utils.CreateDir(*delayBaseDir)
