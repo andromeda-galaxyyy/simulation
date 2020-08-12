@@ -309,7 +309,7 @@ func (g *Generator) Start() (err error) {
 							if err != nil {
 								log.Fatalf("Cannot generate ip for given id:%d\n", g.Target)
 							}
-							log.Printf("Force target ip:%s\n", dip)
+							//log.Printf("Force target ip:%s\n", dip)
 						} else {
 							dip = DstIPs[flowId%nDsts]
 						}
@@ -505,7 +505,6 @@ func (g *Generator) reset() {
 	g.sentRecord.Init()
 
 	g.statsToReport = make(map[int]map[string][]float64)
-	//g.flowId2Port=make(map[int][2]int)
 
 	g.flowIDToFiveTuple = make(map[int][5]string)
 

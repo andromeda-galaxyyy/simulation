@@ -57,7 +57,7 @@ type Listener struct {
 
 func (l *Listener)getFilter() (filter string){
 
-	srcIPFilter :=""
+	srcIPFilter:=""
 	if len(l.SrcIPFile)>0{
 		srcIPFilter ="("
 		log.Printf("Starting to parse source ip file %s\n",l.SrcIPFile)

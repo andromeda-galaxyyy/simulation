@@ -33,17 +33,6 @@ func (w *pktlosswriter)generateFn() string  {
 
 func (w *pktlosswriter)start()  {
 	defer w.flush()
-	var err error=nil
-	if utils.DirExists(w.dir){
-		err=utils.RMDir(w.dir)
-		if err!=nil{
-			log.Fatalf("Error deleting dir %s\n",w.dir)
-		}
-	}
-	err=utils.CreateDir(w.dir)
-	if err!=nil{
-		log.Fatalf("Error creating dir %s\n",w.dir)
-	}
 	for f:=range w.channel{
 		w.cache=append(w.cache,f)
 		if w.flowsPerFile<=len(w.cache){

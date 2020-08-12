@@ -186,6 +186,7 @@ func (w *worker) processPktStats(specifier [5]string, delays []int64) {
 		desc.MaxDelay=max
 		desc.StdVarDelay=std
 		desc.MeanDelay=mean
+		desc.RxEndTs=utils.NowInMilli()
 
 		fType:=0
 		if _, exists := w.fiveTupleToFtype[specifier]; exists {

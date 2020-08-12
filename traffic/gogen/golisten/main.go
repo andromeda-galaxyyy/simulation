@@ -143,7 +143,7 @@ func main()  {
 		SrcPortLower:  sportLower,
 		DstPortLower:  dportLower,
 		DstPortUpper:  dportUpper,
-
+		SrcIPFile: *srcHostIp,
 		DelayBaseDir: *delayBaseDir,
 		PktLossDir: *pktLossBaseDir,
 

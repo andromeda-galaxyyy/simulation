@@ -31,7 +31,7 @@ func main(){
 	flowType:=flag.Int("ftype",0,"Flow Type")
 
 	enablePktLossStats:=flag.Bool("loss",false,"Whether enable pkt loss stats collection")
-	pktLossDir:=flag.String("loss_dir","/tmp/txloss","Dir to store pkt loss stats")
+	pktLossDir:=flag.String("loss_dir","","Dir to store pkt loss stats")
 
 	forceTarget:=flag.Bool("forcetarget",false,"Whether force target")
 	target:=flag.Int("target",-1,"If enable force target,the target id")
@@ -95,6 +95,9 @@ func main(){
 
 		if *enablePktLossStats{
 			log.Println("Enable pkt loss stats collection")
+			if len(*pktLossDir)==0{
+				log.Fatalf("You must provide a directory name\n")
+			}
 			if utils.DirExists(*pktLossDir){
 				err:=utils.RMDir(*pktLossDir)
 				if err!=nil{
@@ -105,7 +108,6 @@ func main(){
 					log.Fatalf("Cannot create pkt loss stats dir %s\n",*pktLossDir)
 				}
 			}
-
 		}
 
 		if !utils.FileExist(*dstIdFn){
