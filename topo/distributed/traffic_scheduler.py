@@ -21,7 +21,7 @@ def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
 
 
 def kill_pid(pid):
-	os.system("kill -9 {}".format(pid))
+	os.system("kill {}".format(pid))
 
 
 class BasicTrafficScheduler:

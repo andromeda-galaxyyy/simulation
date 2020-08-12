@@ -650,13 +650,15 @@ class TopoBuilder:
 				run_ns_binary(hostname, binary, params, log_fn)
 
 	def stop_traffic(self):
-		os.system("for p in `pgrep '^gen$'`;do kill -9 $p;done")
+		os.system("for p in `pgrep '^gen$'`;do kill $p;done")
 
 		os.system("pkill -f '^golistener$'")
 
 	def stop(self):
 		self.stop_traffic()
+		time.sleep(90)
 		self._stop_listener()
+		time.sleep(90)
 		self._stop_traffic_scheduler()
 		self.tear_down()
 
