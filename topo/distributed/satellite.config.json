@@ -99,6 +99,7 @@
     "enable_loss": 0,
     "listener": "/home/stack/code/simulation/traffic/gogen/golisten/golisten",
     "listener_log_base_dir": "/tmp/listener_log",
+    "generator_log_dir": "/tmp/gen_log",
     "num_process": {
         "iot": [5,2,3],
         "video": [5,2,3],
