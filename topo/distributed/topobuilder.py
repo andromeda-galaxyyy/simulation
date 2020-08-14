@@ -6,7 +6,7 @@ from path_utils import get_prj_root
 from utils.log_utils import debug, info, err
 from topo.distributed.traffic_scheduler import TrafficScheduler, TrafficScheduler2
 import time
-from utils.file_utils import check_file, create_dir, del_dir, dir_exsit,load_pkl,load_json
+from utils.file_utils import check_file, create_dir, del_dir, dir_exsit, load_pkl, load_json
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
@@ -19,9 +19,8 @@ def fix_path(config: Dict):
 	config["traffic_dir"]["voip"] = os.path.join(prj_root, "traffic/gogen/pkts/voip")
 	config["traffic_dir"]["default"] = os.path.join(prj_root, "traffic/gogen/pkts/default")
 
-	config["traffic_generator"]=os.path.join(prj_root,"traffic/gogen/gen/gen")
-	config["listener"]=os.path.join(prj_root,"traffic/gogen/golisten/golisten")
-
+	config["traffic_generator"] = os.path.join(prj_root, "traffic/gogen/gen/gen")
+	config["listener"] = os.path.join(prj_root, "traffic/gogen/golisten/golisten")
 
 
 def generate_ip(id):
@@ -651,17 +650,17 @@ class TopoBuilder:
 
 	def stop_traffic(self):
 		os.system("for p in `pgrep '^gen$'`;do kill $p;done")
-
-		os.system("pkill -f '^golistener$'")
+		os.system("pkill -f '^golisten$'")
+		self._stop_traffic_scheduler()
 
 	def stop(self):
 		self.stop_traffic()
+		self.stop_traffic_use_scheduler()
 		time.sleep(90)
 		self._stop_listener()
 		time.sleep(90)
 		self._stop_traffic_scheduler()
 		self.tear_down()
-
 		os.system("iptables-restore < {}".format(iptables_bk))
 
 	def _write_targetids(self):
@@ -722,21 +721,28 @@ class TopoBuilder:
 		for hid in self.hostids:
 			hostname = "h{}".format(hid)
 			hintf = "{}-eth0".format(hostname)
-			log_dir = os.path.join(base_dir, hostname)
-			if dir_exsit(log_dir):
-				del_dir(log_dir)
-			create_dir(log_dir)
+			delay_dir = os.path.join(base_dir, "{}.rx.delay".format(hid))
+			# if dir_exsit(delay_dir):
+			# 	del_dir(delay_dir)
+			# create_dir(delay_dir)
+			#
+			loss_dir = os.path.join(base_dir, "{}.rx.loss".format(hid))
 			log_fn = os.path.join("/tmp/{}.listener.log".format(hostname))
-			os.system("ip netns exec {} nohup {} --intf {} --dir {}>{} 2>&1 &".format(hostname,
-			                                                                          listener_binary,
-			                                                                          hintf,
-			                                                                          log_dir,
-			                                                                          log_fn))
+			enable_loss = (int(self.config["enable_loss"]) == 1)
+
+			os.system("ip netns exec {} nohup {} --intf {} {} {} --delay_dir {}>{} 2>&1 &".format(
+				hostname,
+				listener_binary,
+				hintf,
+				("--loss " if enable_loss else ""),
+				("--loss_dir {}".format(loss_dir) if enable_loss else ""),
+				delay_dir,
+				log_fn))
 
 	def _stop_listener(self):
 		os.system("for p in `pgrep '^golisten$'`;do kill $p;done")
 
 
 if __name__ == '__main__':
-	config=load_json(os.path.join(get_prj_root(),"topo/distributed/satellite.config.json"))
-	builder=TopoBuilder(config,0,"ens33")
+	config = load_json(os.path.join(get_prj_root(), "topo/distributed/satellite.config.json"))
+	builder = TopoBuilder(config, 0, "ens33")

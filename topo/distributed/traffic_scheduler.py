@@ -62,7 +62,11 @@ class BasicTrafficScheduler:
 			raise Exception("Unsupported flow type")
 
 		controller_ip = self.config["controller"].split(":")[0]
-
+		enable_loss = (int(self.config["enable_loss"]) == 1)
+		
+		base_dir = self.config["listener_log_base_dir"]
+		loss_dir = os.path.join(base_dir, "{}.rx.loss".format(hid))
+		
 		params = "--id {} " \
 		         "--dst_id {} " \
 		         "--pkts {} " \
@@ -70,7 +74,9 @@ class BasicTrafficScheduler:
 		         "--int {} " \
 		         "--cip {} " \
 		         "--ftype {} " \
-		         "--cport {}".format(
+		         "--cport {} " \
+		         "{} " \
+		         "--loss_dir {}".format(
 			hid,
 			target_id_fn,
 			pkt_dir,
@@ -79,6 +85,8 @@ class BasicTrafficScheduler:
 			controller_ip,
 			ftype,
 			self.config["controller_socket_port"],
+			("--loss" if enable_loss else ""),
+			(loss_dir if enable_loss else "")
 		)
 		# fp=open(log_fn,"w")
 
@@ -104,6 +112,11 @@ class BasicTrafficScheduler:
 		else:
 			raise Exception("Unsupported flow type")
 
+		enable_loss = (int(self.config["enable_loss"]) == 1)
+
+		base_dir = self.config["listener_log_base_dir"]
+		loss_dir = os.path.join(base_dir, "{}.rx.loss".format(hid))
+
 		controller_ip = self.config["controller"].split(":")[0]
 
 		params = "--id {} " \
@@ -115,7 +128,9 @@ class BasicTrafficScheduler:
 		         "--forcetarget " \
 		         "--target {} " \
 		         "--ftype {} " \
-		         "--cport {}".format(
+		         "--cport {} " \
+		         "{} " \
+		         "--loss_dir {}".format(
 			hid,
 			target_id_fn,
 			pkt_dir,
@@ -125,6 +140,8 @@ class BasicTrafficScheduler:
 			target_id,
 			ftype,
 			self.config["controller_socket_port"],
+			("--loss" if enable_loss else ""),
+			(loss_dir if enable_loss else "")
 		)
 		# fp=open(log_fn,"w")
 
@@ -244,7 +261,7 @@ class TrafficScheduler(BasicTrafficScheduler):
 			kill_pid(pid)
 
 		# 保险起见
-		os.system("for p in `pgrep '^gen$'`;do kill -9 $p;done")
+		os.system("for p in `pgrep '^gen$'`;do kill $p;done")
 		self.processes = {
 			"iot": [],
 			"video": [],
@@ -259,6 +276,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 	config:
 	hostids: id of hosts which are running in this worker
 	'''
+
 	def __init__(self, config: Dict, hostids: List[int]):
 		super(TrafficScheduler2, self).__init__(config, hostids)
 		self.cv = threading.Condition()
@@ -281,8 +299,8 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		if to_schedule:
 			self.schedule_record.append(pid)
 
-	def _start_traffic_to_target(self, hid, target_id, flow_type,to_schedule=False) -> (int, int):
-		pid, genid = self._do_start_traffic_to_target(hid, target_id,flow_type)
+	def _start_traffic_to_target(self, hid, target_id, flow_type, to_schedule=False) -> (int, int):
+		pid, genid = self._do_start_traffic_to_target(hid, target_id, flow_type)
 		self.pid2genid[pid] = genid
 		self.genid2pid[genid] = pid
 		self.processes[flow_type].append(pid)
