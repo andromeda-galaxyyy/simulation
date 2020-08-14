@@ -65,7 +65,7 @@ class BasicTrafficScheduler:
 		enable_loss = (int(self.config["enable_loss"]) == 1)
 		
 		base_dir = self.config["listener_log_base_dir"]
-		loss_dir = os.path.join(base_dir, "{}.rx.loss".format(hid))
+		loss_dir = os.path.join(base_dir, "{}.tx.loss".format(hid))
 		
 		params = "--id {} " \
 		         "--dst_id {} " \
@@ -115,7 +115,7 @@ class BasicTrafficScheduler:
 		enable_loss = (int(self.config["enable_loss"]) == 1)
 
 		base_dir = self.config["listener_log_base_dir"]
-		loss_dir = os.path.join(base_dir, "{}.rx.loss".format(hid))
+		loss_dir = os.path.join(base_dir, "{}.tx.loss".format(hid))
 
 		controller_ip = self.config["controller"].split(":")[0]
 
