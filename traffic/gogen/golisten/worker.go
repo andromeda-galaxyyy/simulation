@@ -37,9 +37,9 @@ func (w *worker) Init(){
 func (w *worker) processPacket(packet *gopacket.Packet) {
 	specifier := [5]string{}
 	ipLayer := (*packet).Layer(layers.LayerTypeIPv4)
-	meta := (*packet).Metadata()
-	captureInfo := meta.CaptureInfo
-	captureTime := captureInfo.Timestamp.UnixNano() / 1e6
+	//meta := (*packet).Metadata()
+	//captureInfo := meta.CaptureInfo
+	//captureTime := captureInfo.Timestamp.UnixNano() / 1e6
 	if ipLayer == nil {
 		return
 	}
@@ -83,7 +83,6 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 		return
 	}
 
-	//todo flowType
 	flowFinished := utils.GetBit(l4Payload[8], 7) == 1
 
 	// 获取流类型
@@ -95,11 +94,10 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 		w.fiveTupleToFtype[specifier] = flowType
 	}
 
-	sendTime := utils.BytesToInt64(l4Payload[:8])
+	//sendTime := utils.BytesToInt64(l4Payload[:8])
+	delay:=utils.BytesToInt64(l4Payload[:8])
 
-	if sendTime != 0 {
-		w.flowDelay[specifier] = append(w.flowDelay[specifier], captureTime-sendTime)
-	}
+	w.flowDelay[specifier] = append(w.flowDelay[specifier], delay)
 
 	if _,exists:= w.fiveTupleToFDesc[specifier];!exists{
 		w.fiveTupleToFDesc[specifier]=&common.FlowDesc{

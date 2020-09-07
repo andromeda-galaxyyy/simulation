@@ -120,7 +120,16 @@ func (l *Listener)startDispatcher(stop chan struct{}, periodicFlushChan chan str
 			//?????
 			continue
 		case packet:=<-packetSource.Packets():
+			meta := packet.Metadata()
+			captureInfo := meta.CaptureInfo
+			captureTime := captureInfo.Timestamp.UnixNano() / 1e6
 			if net:=packet.NetworkLayer();net!=nil{
+				l4Payload:=packet.TransportLayer().LayerPayload()
+				if len(l4Payload)<9{
+					continue
+				}
+				sendTime := utils.BytesToInt64(l4Payload[:8])
+				utils.Copy(l4Payload,0,utils.Int64ToBytes(captureTime-sendTime),0,8)
 				if !stopRequested{
 					l.packetChannels[int(net.NetworkFlow().FastHash())&(l.NWorker-1)]<-packet
 				}
