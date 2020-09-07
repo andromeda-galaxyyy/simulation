@@ -39,7 +39,7 @@ func main()  {
 
 	flag.Parse()
 	if *items<=0{
-		log.Fatalf("Invalid args for items per file %d\n",items);
+		log.Fatalf("Invalid args for items per file %d\n",items)
 	}
 	itemsPerFile=*items
 
