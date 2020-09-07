@@ -93,11 +93,11 @@
         "voip": "/home/stack/code/simulation/traffic/gogen/pkts/voip",
         "default": "/home/stack/code/simulation/traffic/gogen/pkts/default"
     },
-    "traffic_generator": "/home/stack/code/simulation/traffic/gogen/gen/gen",
+    "traffic_generator": "/home/stack/code/simulation/traffic/gogen/bin/gogen",
     "enable_traffic_generator_log": false,
     "enable_listener": 0,
     "enable_loss": 0,
-    "listener": "/home/stack/code/simulation/traffic/gogen/golisten/golisten",
+    "listener": "/home/stack/code/simulation/traffic/gogen/bin/golisten",
     "listener_log_base_dir": "/tmp/listener_log",
     "generator_log_dir": "/tmp/gen_log",
     "num_process": {
