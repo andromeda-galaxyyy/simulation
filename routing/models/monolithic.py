@@ -19,29 +19,11 @@ import random
 from argparse import ArgumentParser
 from collections import namedtuple
 from typing import Tuple, List, Dict
+from routing.models.base import Routing
 
 Instance = namedtuple("Instance", "features labels")
 
 module_dir = os.path.join(get_prj_root(), "routing")
-
-
-class Routing:
-	def __init__(self, id_):
-		self.id = id_
-		pass
-
-	def fit(self, train, test):
-		raise NotImplementedError
-
-	def predict(self, data):
-		raise NotImplementedError
-
-	def save_model(self, fn):
-		raise NotImplementedError
-
-	def load_model(self, fn):
-		raise NotImplementedError
-
 
 models_dir = os.path.join(get_prj_root(), "routing/models")
 
@@ -196,7 +178,7 @@ def map_to_instance(obj):
 	assert len(res) == 66 * 65 * 2 + 2
 	# discard utility and weighted
 	res = res[:-2]
-	tms=[t[0] for t in tms]
+	tms = [t[0] for t in tms]
 	# 归一化
 	tms = normalize(tms)
 	labels1 = []

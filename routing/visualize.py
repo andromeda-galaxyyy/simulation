@@ -1,10 +1,7 @@
-import pickle
-from pathlib import Path
-from utils.common_utils import load_pkl,save_pkl,save_json,load_json,info,debug,err
+from utils.common_utils import load_pkl,save_pkl, info
 
 import matplotlib.pyplot as plt
 import numpy as np
-from routing.model import NN
 from routing.ksp import NetworkTopo
 import os
 from typing import List,Dict,Tuple
