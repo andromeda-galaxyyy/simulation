@@ -112,7 +112,7 @@ class Minor(Routing):
 			metrics=[self.metric]
 		)
 
-		debug("Minor model {} compiled".format(self.id_))
+		debug("Minor model id: {} compiled".format(self.id_))
 		self.model.summary()
 
 	def predict(self, data):
@@ -134,10 +134,12 @@ class Minor(Routing):
 		# reshape to (instance,n_flows,N-1)
 		return raw.argmax(-1)
 
-	def save_model(self, fn=None):
-		if fn is None:
-			fn = os.path.join(persist_dir, "minor.{}.hdf5".format(self.id_))
-		self.model.save(fn)
+	def save_model(self, f_n=None):
+		if f_n is None:
+			f_n = os.path.join(persist_dir, "minor.{}.hdf5".format(self.id_))
+
+		debug("Minor model id:{} save model to {}".format(self.id_,f_n))
+		self.model.save(f_n)
 
 	def load_model(self, fn=None):
 		if fn is None:
@@ -201,6 +203,12 @@ class Minor(Routing):
 		m=tf.keras.metrics.SparseCategoricalAccuracy()
 		m.update_state(y_true,y_predict)
 		return tf.metrics.sparse_categorical_crossentropy(y_true,y_predict)
+
+
+class MinorDataLoader:
+	pass
+
+
 
 
 if __name__ == '__main__':

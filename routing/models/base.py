@@ -1,4 +1,3 @@
-
 class Routing:
 	def __init__(self, id_):
 		self.id_ = id_
@@ -24,9 +23,17 @@ class Routing:
 
 	# plot model
 	# for nn, draw net
-	def plot(self,fn):
+	def plot(self, fn):
 		raise NotImplementedError
 
 	@staticmethod
-	def plot_history(self,fn):
+	def plot_history(self, fn):
 		pass
+
+
+def has_gpu():
+	return False
+
+
+def use_gpu():
+	pass
