@@ -1,5 +1,6 @@
 package common
 
+// 导入包
 import "fmt"
 
 const (
@@ -7,7 +8,7 @@ const (
 	Video
 )
 
-
+// 流描述的结构体
 type FlowDesc struct {
 	SrcIP   string
 	SrcPort int
@@ -30,7 +31,8 @@ type FlowDesc struct {
 	StdVarDelay float64
 }
 
-
+/*各种与流描述相关的方法
+*/
 func (f *FlowDesc) ToRxLossStats() string{
 	return fmt.Sprintf("%d %d %d %s %d %s %d %s %d",
 		f.RxStartTs,

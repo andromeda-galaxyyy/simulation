@@ -8,7 +8,7 @@ import (
 	"log"
 	"time"
 )
-
+//全局变量的声明
 var (
 	ether *layers.Ethernet
 	vlan *layers.Dot1Q
@@ -100,6 +100,7 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 		}
 	}
 
+	
 
 	if payloadSize<9{
 		payloadSize=9

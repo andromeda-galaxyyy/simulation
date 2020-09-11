@@ -309,6 +309,12 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		if to_schedule:
 			self.schedule_record.append(pid)
 
+	def _start_traffic_to_target_list(self, hid, target_id_list, flow_type, to_schedule=False, cnt_process=3):
+		for target_id in target_id_list:
+			for _ in range(cnt_process):
+				self._start_traffic_to_target(hid, target_id, flow_type, to_schedule)
+
+
 	def _stop_traffic(self, pid, flow_type, to_schedule=True):
 		kill_pid(pid)
 		genid = self.pid2genid[pid]
@@ -333,6 +339,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		# medium,large 分别让20%和50%的主机产生额外的流量,每个主机产生15个进程
 
 		traffic_scale_idx = 0
+		cnt_large = 0
 		while True:
 			scale = self.traffic_scales[traffic_scale_idx]
 			duration = self.durations[traffic_scale_idx]
@@ -342,33 +349,44 @@ class TrafficScheduler2(BasicTrafficScheduler):
 			if scale == "small":
 				target_n_host = 0
 			elif scale == "medium":
-				target_n_host = math.ceil(n_host * 0.2)
+				# target_n_host = math.ceil(n_host * 0.2)
+				target_n_host = 1
 			elif scale == "large":
-				target_n_host = math.ceil(n_host * 0.5)
+				# target_n_host = math.ceil(n_host * 0.5)
+				target_n_host = 2
 			else:
 				err("Invalid traffic scale {}".format(scale))
 
 			# 每个选中的主机产生15个视频流
-			target_n_process = target_n_host * 15
+			# target_n_process = target_n_host * 15
 
 			# we need to add more generator process
 			# 选取连续的主机，让流量集中在某块区域发出去
-			if target_n_process > len(self.schedule_record):
-				n_add = target_n_process - len(self.schedule_record)
-				# sample host
-				# sampled_hosts = random.sample(self.hostids, n_add // 15)
-				n_sampled = n_add // 15
-				# 从start开始的某一段连续的主机,数量为n_sampled
-				start = random.sample(range(len(self.hostids) - n_sampled), 1)[0]
-				# debug("sampled host start from {}, number of hosts {}".format(start,n_sampled))
-				sampled_hosts = self.hostids[start:start + n_sampled]
-				for hid in sampled_hosts:
-					for _ in range(15):
-						self._start_traffic(hid, "video", True)
-
+			# if target_n_process > len(self.schedule_record):
+			# 	n_add = target_n_process - len(self.schedule_record)
+			# 	# sample host
+			# 	# sampled_hosts = random.sample(self.hostids, n_add // 15)
+			# 	n_sampled = n_add // 15
+			# 	# 从start开始的某一段连续的主机,数量为n_sampled
+			# 	start = random.sample(range(len(self.hostids) - n_sampled), 1)[0]
+			# 	# debug("sampled host start from {}, number of hosts {}".format(start,n_sampled))
+			# 	sampled_hosts = self.hostids[start:start + n_sampled]
+			# 	for hid in sampled_hosts:
+			# 		for _ in range(15):
+			# 			self._start_traffic(hid, "video", True)
+			if target_n_host == 2:
+				if cnt_large % 3 == 0:
+					for hid in [24, 25, 26]:
+						self._start_traffic_to_target_list(hid, [2, 3, 4, 13, 14, 15], "video", True)
+				if cnt_large % 3 == 1：
+					for hid in [24, 25, 26]:
+						self._start_traffic_to_target_list(hid, [35, 36, 37, 46, 47, 48], "video", True)
+				if cnt_large %3 == 2:
+					for hid in [29, 30, 31]:
+						self._start_traffic_to_target_list(hid, [7, 8, 9, 18, 19, 20], "video", True)
 			# we need to reduce generator
-			elif target_n_process < len(self.schedule_record):
-				to_be_killed = self.schedule_record[target_n_process:]
+			if target_n_host == 0:
+				to_be_killed = self.schedule_record[:]
 				for pid in to_be_killed:
 					self._stop_traffic(pid, "video", True)
 
@@ -376,6 +394,8 @@ class TrafficScheduler2(BasicTrafficScheduler):
 
 			if not self.cv.wait(duration):
 				traffic_scale_idx = (traffic_scale_idx + 1) % (len(self.durations))
+				if self.traffic_scales[traffic_scale_idx] == "large":
+					cnt_large += 1
 				debug("traffic mode changed to {}".format(self.traffic_scales[traffic_scale_idx]))
 				continue
 			else:
