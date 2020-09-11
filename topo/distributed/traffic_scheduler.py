@@ -10,6 +10,7 @@ import signal
 from collections import defaultdict
 import math
 from subprocess import DEVNULL
+from utils.file_utils import *
 
 import random
 
@@ -144,7 +145,7 @@ class BasicTrafficScheduler:
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else "")
 		)
-		# fp=open(log_fn,"w")
+		fp=open(log_fn,"w")
 
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
 		pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
@@ -290,6 +291,9 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		# 用于记录额外产生的进程
 		self.schedule_record = []
 		random.seed(int(time.time()))
+		gen_base_log_dir=config["generator_log_dir"]
+		del_dir(gen_base_log_dir)
+		create_dir(gen_base_log_dir)
 
 	def _start_traffic(self, hid, flow_type, to_schedule=False):
 		pid, genid = self._do_start_traffic(hid, flow_type)

@@ -19,8 +19,8 @@ def fix_path(config: Dict):
 	config["traffic_dir"]["voip"] = os.path.join(prj_root, "traffic/gogen/pkts/voip")
 	config["traffic_dir"]["default"] = os.path.join(prj_root, "traffic/gogen/pkts/default")
 
-	config["traffic_generator"] = os.path.join(prj_root, "traffic/gogen/gen/gen")
-	config["listener"] = os.path.join(prj_root, "traffic/gogen/golisten/golisten")
+	config["traffic_generator"] = os.path.join(prj_root, "traffic/gogen/bin/gogen")
+	config["listener"] = os.path.join(prj_root, "traffic/gogen/bin/golisten")
 
 
 def generate_ip(id):
@@ -330,7 +330,7 @@ class TopoBuilder:
 	def __init__(self, config: dict, id_, inetintf: str):
 		self.config: dict = config
 		fix_path(config)
-		# debug(config)
+		debug(config)
 
 		self.id = id_
 		# self.gres: List[str] = []
@@ -656,9 +656,9 @@ class TopoBuilder:
 	def stop(self):
 		self.stop_traffic()
 		self.stop_traffic_use_scheduler()
-		time.sleep(90)
+		time.sleep(15)
 		self._stop_listener()
-		time.sleep(90)
+		time.sleep(15)
 		self._stop_traffic_scheduler()
 		self.tear_down()
 		os.system("iptables-restore < {}".format(iptables_bk))

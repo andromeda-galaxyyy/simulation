@@ -180,5 +180,6 @@ traffic/DITG/bin
 traffic/gogen/pkts
 traffic/gogen/bin/gogen
 traffic/gogen/bin/golisten
+traffic/gogen/bin/goserver
 *.hostids
 *targetids
