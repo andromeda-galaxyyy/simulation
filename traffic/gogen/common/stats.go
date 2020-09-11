@@ -102,3 +102,28 @@ func (f *FlowDesc) String() string{
 }
 
 
+
+type DetailedFlowDesc struct{
+	SrcIP string
+	SrcPort int
+	DstIP string
+	DstPort int
+	Proto string
+
+
+	TxStartTs int64
+	TxEndTs   int64
+
+	RxStartTs int64
+	RxEndTs   int64
+
+	FlowType int
+	Delays []int64
+}
+
+
+
+
+
+
+

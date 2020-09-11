@@ -30,7 +30,7 @@ func main(){
 	delayTime:=flag.Int("delaytime",100,"delay time")
 	flowType:=flag.Int("ftype",0,"Flow Type")
 
-	enablePktLossStats:=flag.Bool("loss",false,"Whether enable pkt loss stats collection")
+	enablePktLossStats:=flag.Bool("loss",true,"Whether enable pkt loss stats collection")
 	pktLossDir:=flag.String("loss_dir","/tmp/txloss","Dir to store pkt loss stats")
 
 	forceTarget:=flag.Bool("forcetarget",false,"Whether force target")

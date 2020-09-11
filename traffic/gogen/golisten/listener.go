@@ -17,13 +17,15 @@ import (
 
 
 var (
-	snapshotLen    int32 =1024
-	promiscuous          = false
-	timeout              =30*time.Second
-	delayBaseDir   string
-	pktLossBaseDir string
-	enablePktLossStats bool
-	lid int=0
+	snapshotLen           int32 =1024
+	promiscuous                     = false
+	timeout                             =30*time.Second
+	delayBaseDir          string
+	pktLossBaseDir        string
+	enablePktLossStats    bool
+	lid                   int   =0
+	enablePeriodicalFlush bool  =false
+	flushTimeout          int64 =300
 )
 
 type Listener struct {
@@ -84,7 +86,7 @@ func (l *Listener)getFilter() (filter string){
 	return filter
 }
 
-func (l *Listener)startDispatcher(stop chan struct{}, periodicFlushChan chan struct{})  {
+func (l *Listener)startDispatcher(sigChan chan common.Signal)  {
 	log.Println("Dispatcher start")
 
 	handle,err:=pcap.OpenLive(l.Intf, snapshotLen,promiscuous,pcap.BlockForever)
@@ -105,20 +107,17 @@ func (l *Listener)startDispatcher(stop chan struct{}, periodicFlushChan chan str
 	stopRequested:=false
 	for{
 		select{
-		case <-stop:
-			log.Printf("Stop received,now shutting down receiver")
-			//handle.Close()
-			stopRequested=true
-			for i:=0;i<l.NWorker;i++{
-				close(l.packetChannels[i])
+		case sig:=<-sigChan:
+			if sig.Type==common.StopSignal.Type {
+				log.Println("Stop received,now shutting down receiver")
+				stopRequested = true
+				for i := 0; i < l.NWorker; i++ {
+					close(l.packetChannels[i])
+				}
+				return
+			}else if sig.Type==common.FlushSignal.Type{
+				log.Println("Flush signal")
 			}
-			return
-			//周期性的flush，防止收不到最后一个包导致内存爆掉
-		case <-periodicFlushChan:
-			//todo direct writeDelayStats to file
-			//log.Println("periodically worker completeFlush")
-			//?????
-			continue
 		case packet:=<-packetSource.Packets():
 			meta := packet.Metadata()
 			captureInfo := meta.CaptureInfo
@@ -140,35 +139,22 @@ func (l *Listener)startDispatcher(stop chan struct{}, periodicFlushChan chan str
 }
 
 func (l *Listener)Start()  {
-	ticker := time.NewTicker(3600 * time.Second)
 	//register signal
 	sigs:=make(chan os.Signal,1)
-	flushChan:=make(chan struct{},10)
 	signal.Notify(sigs,syscall.SIGINT,syscall.SIGTERM,syscall.SIGKILL)
-	stopSig2Dispatcher :=make(chan struct{})
-	stopSig2Ticker:=make(chan struct{})
-
+	sigChan:=make(chan common.Signal,10)
 	//start signal listener
 	go func() {
 		sig:=<-sigs
 		log.Printf("received signal %s\n",sig)
 		log.Printf("start to shutdown dispatcher\n")
-		stopSig2Dispatcher <- struct{}{}
-		stopSig2Ticker<- struct{}{}
-	}()
-
-	//start ticker
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				flushChan<- struct{}{}
-			case <-stopSig2Ticker:
-				ticker.Stop()
-				return
-			}
+		sigChan<-common.StopSignal
+		for wid,w:=range l.workers{
+			log.Printf("Sending stop signal to worker %d\n",wid)
+			w.sigChan<-common.StopSignal
 		}
 	}()
+
 
 	//ctx, cancelFunc := context.WithCancel(context.Background())
 	log.Printf("Listener start")
@@ -179,7 +165,7 @@ func (l *Listener)Start()  {
 	for i:=0;i<l.NWorker;i++{
 		go l.workers[i].start(l.packetChannels[i],wg)
 	}
-	go l.startDispatcher(stopSig2Dispatcher,flushChan)
+	go l.startDispatcher(sigChan)
 
 	wg.Wait()
 	//休息60s
@@ -212,9 +198,10 @@ func (l *Listener)Init()  {
 			worker :=&worker{
 				id:i,
 				delaySampleSize:   l.delaySampleSize,
-				flowDelay:         make(map[[5]string][]int64),
-				flowDelayFinished: utils.NewSpecifierSet(),
-				writerChannel:     make(chan *common.FlowDesc,102400),
+				flushInterval: flushTimeout,
+				enablePeriodFlush: enablePeriodicalFlush,
+				//flowDelay:         make(map[[5]string][]int64),
+				//flowDelayFinished: utils.NewSpecifierSet(),
 			}
 
 			//worker.flowWriter=NewDefaultWriter(i,l.DelayBaseDir, worker.writerChannel)
@@ -224,7 +211,6 @@ func (l *Listener)Init()  {
 			l.workers=append(l.workers, worker)
 			l.packetChannels[i]=make(chan gopacket.Packet,l.channelSize)
 			worker.Init()
-
 		}
 
 	}

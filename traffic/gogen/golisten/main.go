@@ -33,11 +33,21 @@ func main()  {
 
 	delayBaseDir:=flag.String("delay_dir","/tmp/rxdelay","Base dir to store delay stats")
 	pktLossBaseDir:=flag.String("loss_dir","/tmp/rxloss","Base dir to store loss stats")
-	enableLossStats:=flag.Bool("loss",false,"Whether enable packet loss stats")
+	enableLossStats:=flag.Bool("loss",true,"Whether enable packet loss stats")
 	items:=flag.Int64("items",20,"Number of items per file")
+
+	enablePeriodFlush:=flag.Bool("flush",false,"Whether enable period flush")
+	flushPeriod:=flag.Int64("interval",5,"Interval between two consecutive flush, in seconds")
 
 
 	flag.Parse()
+
+
+	enablePeriodicalFlush=*enablePeriodFlush
+	if *enablePeriodFlush{
+		flushTimeout =*flushPeriod
+		log.Printf("Enable period flush with interval %d\n", flushTimeout)
+	}
 	if *items<=0{
 		log.Fatalf("Invalid args for items per file %d\n",items)
 	}
@@ -89,8 +99,6 @@ func main()  {
 	if err!=nil{
 		log.Fatalf("Cannot create dir for pkt loss stats %s\n",*pktLossBaseDir)
 	}
-
-
 
 
 	if *enableWorkers&&!(*nworker>0){

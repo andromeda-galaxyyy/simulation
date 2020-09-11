@@ -9,6 +9,7 @@ import (
 	"math"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type worker struct {
@@ -26,20 +27,36 @@ type worker struct {
 	writerChannel      chan *common.FlowDesc
 	fiveTupleToFDesc map[[5]string]*common.FlowDesc
 	enablePktLossStats bool
+
+	tickerToWorkerSigChan chan common.Signal
+	workerToWriterSigChan chan common.Signal
+	sigChan chan common.Signal
+
+	//是否启动定时刷新
+	enablePeriodFlush bool
+	//刷新间隔
+	flushInterval int64
+
 }
 
 func (w *worker) Init(){
 	w.fiveTupleToFDesc=make(map[[5]string]*common.FlowDesc)
 	w.writerChannel=make(chan *common.FlowDesc,102400)
 	w.flowWriter=NewDefaultWriter(w.id, w.writerChannel)
+	w.sigChan=make(chan common.Signal,10)
+
+	w.tickerToWorkerSigChan =make(chan common.Signal,10)
+	w.workerToWriterSigChan =make(chan common.Signal,10)
+	w.flowWriter.sigChan =w.workerToWriterSigChan
+
+	w.flowDelay=make(map[[5]string][]int64)
+	w.flowDelayFinished=utils.NewSpecifierSet()
+
 }
 
 func (w *worker) processPacket(packet *gopacket.Packet) {
 	specifier := [5]string{}
 	ipLayer := (*packet).Layer(layers.LayerTypeIPv4)
-	//meta := (*packet).Metadata()
-	//captureInfo := meta.CaptureInfo
-	//captureTime := captureInfo.Timestamp.UnixNano() / 1e6
 	if ipLayer == nil {
 		return
 	}
@@ -94,7 +111,6 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 		w.fiveTupleToFtype[specifier] = flowType
 	}
 
-	//sendTime := utils.BytesToInt64(l4Payload[:8])
 	delay:=utils.BytesToInt64(l4Payload[:8])
 
 	w.flowDelay[specifier] = append(w.flowDelay[specifier], delay)
@@ -124,7 +140,7 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 
 	if flowFinished {
 		//must copied
-		go w.processPktStats(specifier, utils.CopyInt64Slice(w.flowDelay[specifier]))
+		go w.processPktStats(desc,utils.CopyInt64Slice(w.flowDelay[specifier]))
 		log.Println("flow finished")
 		delete(w.flowDelay, specifier)
 		delete(w.fiveTupleToFtype, specifier)
@@ -134,25 +150,91 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 func (w *worker) start(packetChannel chan gopacket.Packet, wg *sync.WaitGroup) {
 	go w.flowWriter.Start()
 	defer wg.Done()
-	for packet := range packetChannel {
-		w.processPacket(&packet)
+	if w.enablePeriodFlush{
+		log.Printf("Writer id: %d enable period flush, timeout:%d\n",w.id,w.flushInterval)
+		stopped:=false
+		// 每五分钟刷新一次
+		ticker:=time.NewTicker(time.Duration(w.flushInterval)* time.Second)
+		stop2tickerChan:=make(chan common.Signal,1)
+		//启动定时器
+		go func() {
+			for{
+				select {
+				case <-ticker.C:
+					w.tickerToWorkerSigChan <- common.FlushSignal
+					continue
+
+				case <-stop2tickerChan:
+					ticker.Stop()
+					return
+				}
+			}
+		}()
+
+		for{
+			if stopped{
+				break
+			}
+			select {
+			case packet:=<-packetChannel:
+				w.processPacket(&packet)
+				continue
+			case <-w.tickerToWorkerSigChan:
+				//todo 刷新
+				// 暂时停止收包，将所有的包打包送给writer
+				log.Println("period flush")
+				for specifier,delays:=range w.flowDelay{
+					desc:=w.fiveTupleToFDesc[specifier]
+					w.processPktStats(desc,delays)
+				}
+
+				//reset data structure
+				w.flowDelay=make(map[[5]string][]int64)
+				w.flowDelayFinished=utils.NewSpecifierSet()
+				w.fiveTupleToFDesc=make(map[[5]string]*common.FlowDesc)
+				w.workerToWriterSigChan<-common.FlushSignal
+				continue
+			case sig:=<-w.sigChan:
+				if common.IsStopSignal(sig){
+					log.Printf("Worker id: %d stop requested",w.id)
+					//给ticker发送信号，停止计时
+					log.Printf("Worker id %d sending signal to ticker",w.id)
+					stop2tickerChan<- common.StopSignal
+					stopped=true
+					break
+				}else if common.IsFlushSig(sig){
+					log.Printf("Worker id:%d received flush signal from dispatcher,not implemented yet \n",w.id)
+
+				}
+
+			}
+		}
+	}else{
+		for packet:=range packetChannel{
+			w.processPacket(&packet)
+		}
 	}
-	log.Printf("worker %d completeFlush cache...\n", w.id)
+
+
+
+	log.Printf("worker %d complete Flush cache...\n", w.id)
 	w.completeFlush()
 	//time.Sleep(10 * time.Second)
 	log.Printf("Shutting down worker %d...Closing writer channel...\n", w.id)
 	close(w.writerChannel)
+	w.workerToWriterSigChan<-common.StopSignal
 }
 
 //程序截止的时候，停止完全flush
 func (w *worker) completeFlush() {
 	for specifier, delays := range w.flowDelay {
-		w.processPktStats(specifier, delays)
+		desc:=w.fiveTupleToFDesc[specifier]
+		w.processPktStats(desc,delays)
 	}
 }
 
 
-func (w *worker) processPktStats(specifier [5]string, delays []int64) {
+func (w *worker) processPktStats(desc *common.FlowDesc,delays []int64) {
 	//find min,max,average,stdvar
 	min := int64(math.MaxInt64)
 	max := int64(math.MinInt64)
@@ -177,21 +259,11 @@ func (w *worker) processPktStats(specifier [5]string, delays []int64) {
 	s /= float64(l)
 	std = math.Sqrt(s)
 
-	if desc,exists:= w.fiveTupleToFDesc[specifier];!exists{
-		return
-	}else{
-		desc.MinDelay=min
-		desc.MaxDelay=max
-		desc.StdVarDelay=std
-		desc.MeanDelay=mean
-		desc.RxEndTs=utils.NowInMilli()
+	desc.MinDelay=min
+	desc.MaxDelay=max
+	desc.StdVarDelay=std
+	desc.MeanDelay=mean
+	desc.RxEndTs=utils.NowInMilli()
 
-		fType:=0
-		if _, exists := w.fiveTupleToFtype[specifier]; exists {
-			fType = w.fiveTupleToFtype[specifier]
-		}
-		desc.FlowType=fType
-		w.writerChannel <-desc
-	}
-
+	w.writerChannel <-desc
 }

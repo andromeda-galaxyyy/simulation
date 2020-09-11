@@ -99,6 +99,10 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 			}
 		}
 	}
+	// send all we return
+	if payloadSize==0{
+		return nil
+	}
 
 
 	if payloadSize<9{

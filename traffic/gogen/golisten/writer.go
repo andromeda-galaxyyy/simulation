@@ -32,6 +32,7 @@ type writer struct {
 	cache []*common.FlowDesc
 
 	enablePktLossStats bool
+	sigChan            chan common.Signal
 }
 
 
@@ -68,26 +69,61 @@ func (w *writer)Flush()  {
 		fn:=path.Join(w.pktLossStatsDir,filename)
 		w.writePktLossStats(w.cache,fn)
 	}
+	w.cache=make([]*common.FlowDesc,0)
+}
+
+
+func (w *writer) acceptDesc(f *common.FlowDesc){
+	if nil==f{
+		return
+	}
+	w.cache=append(w.cache,f)
+	if int64(len(w.cache))>=w.numItemsPerFile{
+		fn:=path.Join(w.delayStatsDir,fmt.Sprintf("%d.%d.%s",lid,w.id,utils.NowInString()))
+		log.Printf("Write pkt delay stats to file %s\n",fn)
+		w.writeDelayStats(w.cache,fn)
+
+		if enablePktLossStats{
+			fn:=path.Join(w.pktLossStatsDir,fmt.Sprintf("%d.%d.%s",lid,w.id,utils.NowInString()))
+			log.Printf("Write pkt loss stats to file %s\n",fn)
+			w.writePktLossStats(w.cache,fn)
+		}
+		w.cache=make([]*common.FlowDesc,0)
+	}
 }
 
 
 func (w *writer) Start()  {
 	defer w.Flush()
-	for f:=range w.flowChannel {
-		w.cache=append(w.cache,f)
-		if int64(len(w.cache))>=w.numItemsPerFile{
-				fn:=path.Join(w.delayStatsDir,fmt.Sprintf("%d.%d.%s",lid,w.id,utils.NowInString()))
-				log.Printf("Write pkt delay stats to file %s\n",fn)
-				w.writeDelayStats(w.cache,fn)
-
-				if enablePktLossStats{
-					fn:=path.Join(w.pktLossStatsDir,fmt.Sprintf("%d.%d.%s",lid,w.id,utils.NowInString()))
-					log.Printf("Write pkt loss stats to file %s\n",fn)
-					w.writePktLossStats(w.cache,fn)
+	if enablePeriodicalFlush{
+		stopped:=false
+		for{
+			if stopped{
+				break
+			}
+			select {
+			case sig:=<-w.sigChan:
+				if sig.Type==common.StopSignal.Type{
+					log.Printf("Writer id :%d stop requested",w.id)
+					stopped=true
+					break
+				}else if sig.Type==common.FlushSignal.Type{
+					log.Printf("Writer id: %d periodical flush",w.id)
+					w.Flush()
 				}
-				w.cache=make([]*common.FlowDesc,0)
+				break
+			case f:=<-w.flowChannel:
+				w.acceptDesc(f)
+				break
+
+			}
+		}
+	}else{
+		for f:=range w.flowChannel {
+			w.acceptDesc(f)
 		}
 	}
+	
 }
 
 //perform writeDelayStats
