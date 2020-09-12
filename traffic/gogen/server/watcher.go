@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/fsnotify/fsnotify"
 	"log"
+	"strings"
 )
 
 
@@ -14,7 +15,7 @@ var (
 )
 
 func IsDelayFile(fn string) bool{
-	return true
+	return strings.Contains(fn,"delay")
 }
 
 
@@ -48,7 +49,6 @@ func (w *Watcher) Init()  {
 	worker,err:=fsnotify.NewWatcher()
 	if nil!=err{
 		log.Fatalf("Watcher:%d Cannot create file watcher\n",w.id)
-
 	}
 	w.worker=worker
 
@@ -60,6 +60,7 @@ func (w *Watcher) Init()  {
 		if err!=nil{
 			log.Fatalf("Watcher")
 		}
+		log.Printf("%s watch %s",w,dir)
 	}
 
 	log.Println("Watcher initiated")
