@@ -181,5 +181,9 @@ traffic/gogen/pkts
 traffic/gogen/bin/gogen
 traffic/gogen/bin/golisten
 traffic/gogen/bin/goserver
+goserver
+golisten
+gogen
+db.sqlite3
 *.hostids
 *targetids

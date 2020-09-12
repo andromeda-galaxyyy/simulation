@@ -11,7 +11,10 @@ func FileExist(fn string) bool  {
 		return false
 	}
 	return !info.IsDir()
+}
 
+func IsFile(fn string) bool  {
+	return FileExist(fn)
 }
 
 func DirExists(dirname string) bool{
@@ -20,6 +23,10 @@ func DirExists(dirname string) bool{
 		return false
 	}
 	return info.IsDir()
+}
+
+func IsDir(dirname string) bool  {
+	return DirExists(dirname)
 }
 
 func ReadLines(fpath string) (res []string,err error) {

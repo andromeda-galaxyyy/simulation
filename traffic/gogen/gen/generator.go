@@ -146,7 +146,7 @@ func (g *Generator) flushPktLossStats() {
 
 func (g *Generator) Start() (err error) {
 
-	log.Printf("Start to generate")
+	log.Printf("DemoStart to generate")
 	nDsts := len(g.DestinationIDs)
 	log.Printf("# dsts %d\n", nDsts)
 	utils.ShuffleInts(g.DestinationIDs)
@@ -215,11 +215,11 @@ func (g *Generator) Start() (err error) {
 	utils.ShuffleStrings(pktFns)
 
 	pktFileIdx := 0
-	log.Println("Start to sleep for random time")
+	log.Println("DemoStart to sleep for random time")
 	if g.Delay {
 		time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
 	}
-	log.Println("Sleep over.Start injection")
+	log.Println("Sleep over.DemoStart injection")
 
 	stopped := false
 	for {
@@ -484,7 +484,7 @@ func (g *Generator) Init() {
 	go func() {
 		sig := <-sigs
 		log.Printf("Generator received signal %s\n", sig)
-		log.Println("Start to shutdown sender")
+		log.Println("DemoStart to shutdown sender")
 		g.stopChannel <- struct{}{}
 	}()
 
