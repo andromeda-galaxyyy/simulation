@@ -79,12 +79,12 @@ func (w *writer) acceptDesc(f *common.FlowDesc){
 	}
 	w.cache=append(w.cache,f)
 	if int64(len(w.cache))>=w.numItemsPerFile{
-		fn:=path.Join(w.delayStatsDir,fmt.Sprintf("%d.%d.%s",lid,w.id,utils.NowInString()))
+		fn:=path.Join(w.delayStatsDir,fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"delay"))
 		log.Printf("Write pkt delay stats to file %s\n",fn)
 		w.writeDelayStats(w.cache,fn)
 
 		if enablePktLossStats{
-			fn:=path.Join(w.pktLossStatsDir,fmt.Sprintf("%d.%d.%s",lid,w.id,utils.NowInString()))
+			fn:=path.Join(w.pktLossStatsDir,fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"loss"))
 			log.Printf("Write pkt loss stats to file %s\n",fn)
 			w.writePktLossStats(w.cache,fn)
 		}
