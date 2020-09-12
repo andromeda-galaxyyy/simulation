@@ -60,12 +60,12 @@ func (w *writer)Flush()  {
 			log.Printf("writer :%d,No need to completeFlush\n",w.id)
 			return
 	}
-	filename:=fmt.Sprintf("%d.%d.%s",lid,w.id,utils.NowInString())
+	filename:=fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"delay")
 	fn:=path.Join(w.delayStatsDir,filename)
 	w.writeDelayStats(w.cache,fn)
 
 	if enablePktLossStats{
-		filename:=fmt.Sprintf("%d.%d.%s",lid,w.id,utils.NowInString())
+		filename:=fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"loss")
 		fn:=path.Join(w.pktLossStatsDir,filename)
 		w.writePktLossStats(w.cache,fn)
 	}
