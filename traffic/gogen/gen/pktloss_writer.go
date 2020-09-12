@@ -28,7 +28,7 @@ func NewPktLossWriter(fPerFile int,dir string,channel chan *common.FlowDesc) *pk
 }
 
 func (w *pktlosswriter)generateFn() string  {
-	return path.Join(w.dir,fmt.Sprintf("%d.%s",w.id,utils.NowInString()))
+	return path.Join(w.dir,fmt.Sprintf("%d.%s.%s",w.id,utils.NowInString(),"loss"))
 }
 
 func (w *pktlosswriter)start()  {
@@ -38,7 +38,7 @@ func (w *pktlosswriter)start()  {
 		if w.flowsPerFile<=len(w.cache){
 			//write to file
 			fn:=w.generateFn()
-			w.write(w.cache,w.generateFn())
+			w.write(w.cache,fn)
 			log.Printf("Write pkt loss stats to file %s\n",fn)
 			w.cache=make([]*common.FlowDesc,0)
 		}
