@@ -17,6 +17,7 @@ import (
 
 func main()  {
 	ds:=flag.String("dirs","/tmp/foo","Directory to watch")
+	flag.Parse()
 	dd:=strings.Split(*ds," ")
 	for _,d:=range dd{
 		if !utils.IsDir(d){
