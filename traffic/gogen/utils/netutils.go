@@ -61,8 +61,21 @@ func GenerateIP(id int) (string,error){
 		return fmt.Sprintf("10.0.%d.%d",id/254,id%254),nil
 	}
 	return "",errors.New("cannot support id addresss given a too large id")
-
 }
+
+
+func IdFromIP(ip string)(int,error){
+	digits:=strings.Split(ip,".")
+	if len(digits)!=4{
+		return -1,errors.New("Error when parsing ip "+ip)
+	}
+	id,err:=strconv.Atoi(digits[3])
+	if err!=nil{
+		return -1,errors.New("Error when parsing ip "+ip)
+	}
+	return id-1,nil
+}
+
 
 func reverse(strs []string){
 	for i:=len(strs)/2-1;i>=0;i--{
