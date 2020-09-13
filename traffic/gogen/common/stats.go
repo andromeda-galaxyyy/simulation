@@ -1,6 +1,11 @@
 package common
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 const (
 	IoT=iota
@@ -31,6 +36,7 @@ type FlowDesc struct {
 }
 
 
+
 func (f *FlowDesc) ToRxLossStats() string{
 	return fmt.Sprintf("%d %d %d %s %d %s %d %s %d",
 		f.RxStartTs,
@@ -44,6 +50,48 @@ func (f *FlowDesc) ToRxLossStats() string{
 		f.FlowType,
 	)
 }
+
+
+func DescFromRxLossStats(desc *FlowDesc,line string) error{
+	if nil==desc{
+		return errors.New("dst is nil")
+	}
+	contents:=strings.Split(line," ")
+	if len(contents)!=9{
+		return errors.New("error parsing line")
+	}
+	var err error
+	desc.RxStartTs,err=strconv.ParseInt(contents[0],10,64)
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+
+	desc.RxEndTs,err=strconv.ParseInt(contents[1],10,64)
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.Packets,err=strconv.ParseInt(contents[2],10,64)
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.SrcIP=contents[3]
+	desc.SrcPort,err=strconv.Atoi(contents[4])
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.DstIP=contents[5]
+	desc.DstPort,err=strconv.Atoi(contents[6])
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.Proto=contents[7]
+	desc.FlowType,err=strconv.Atoi(contents[8])
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	return nil
+}
+
 func RxLossHeader() string{
 	return "RxStartTs RxEndTs #packets sip sport dip dport proto flowtype"
 }
@@ -66,7 +114,9 @@ func TxLossHeader() string  {
 }
 
 func (f *FlowDesc) ToDelayStats() string  {
-	return fmt.Sprintf("%s %d %s %d %s %d %d %.2f %.2f %d",
+	return fmt.Sprintf("%d %d %s %d %s %d %s %d %d %.2f %.2f %d",
+		f.RxStartTs,
+		f.RxEndTs,
 		f.SrcIP,
 		f.SrcPort,
 		f.DstIP,
@@ -79,8 +129,63 @@ func (f *FlowDesc) ToDelayStats() string  {
 		f.FlowType,
 	)
 }
+
+func DescFromDelayStats(desc *FlowDesc,line string) error  {
+	if nil==desc{
+		return errors.New("dst is nil")
+	}
+	contents:=strings.Split(line," ")
+	if len(contents)!=12{
+		return errors.New("error parsing line")
+	}
+	var err error
+	desc.RxStartTs,err=strconv.ParseInt(contents[0],10,64)
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+
+	desc.RxEndTs,err=strconv.ParseInt(contents[1],10,64)
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+
+	desc.SrcIP=contents[2]
+	desc.SrcPort,err=strconv.Atoi(contents[3])
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.DstIP=contents[4]
+	desc.DstPort,err=strconv.Atoi(contents[5])
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.Proto=contents[6]
+	desc.MinDelay,err=strconv.ParseInt(contents[7],10,64)
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.MaxDelay,err=strconv.ParseInt(contents[8],10,64)
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.MeanDelay,err=strconv.ParseFloat(contents[9],10)
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.StdVarDelay,err=strconv.ParseFloat(contents[10],10)
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+
+	desc.FlowType,err=strconv.Atoi(contents[11])
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	return nil
+}
+
 func RxDelayStatsHeader()string  {
-	return "sip sport dip dport proto min max mean stdvar flowtype"
+	return "RxStartTs RxEndTs sip sport dip dport proto min max mean stdvar flowtype"
 }
 
 func (f *FlowDesc) String() string{
