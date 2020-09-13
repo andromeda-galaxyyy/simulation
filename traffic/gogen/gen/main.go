@@ -100,18 +100,15 @@ func main(){
 				//log.Fatalf("Use default directory name\n");
 
 			}
-			if utils.DirExists(*pktLossDir){
-				err:=utils.RMDir(*pktLossDir)
+			if !utils.DirExists(*pktLossDir){
+				err:=utils.CreateDir(*pktLossDir)
 				if err!=nil{
-					log.Fatalf("Cannot remove pkt loss stats dir %s\n",*pktLossDir)
+					log.Fatalf("Cannot create pkt loss stats dir %s\n",*pktLossDir)
 				}
 			}
-
-			err:=utils.CreateDir(*pktLossDir)
-			if err!=nil{
-				log.Fatalf("Cannot create pkt loss stats dir %s\n",*pktLossDir)
-			}
 		}
+		//
+
 
 		if !utils.FileExist(*dstIdFn){
 			log.Fatal(fmt.Sprintf("File not exists %s\n", *dstIdFn))
@@ -165,6 +162,4 @@ func main(){
 			log.Fatalln(err)
 		}
 	}
-
-
 }
