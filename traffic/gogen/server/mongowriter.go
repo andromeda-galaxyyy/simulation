@@ -8,7 +8,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
-	"time"
 )
 
 type MongoInitiator func(ctx context.Context, client *mongo.Client)
@@ -18,10 +17,10 @@ func DefaultInitiator(ctx context.Context,client *mongo.Client)  {
 		db:=client.Database(dbname)
 		err:=db.Drop(ctx)
 		if err!=nil{
-			log.Fatalf("%s error drop db %s\n","MongoWriter","test")
+			log.Fatalf("%s error drop db %s %s\n","MongoWriter",dbname,err)
 		}
 
-		log.Printf("%s drop db %s successfully\n","MongoWriter","test")
+		log.Printf("%s drop db %s successfully\n","MongoWriter",dbname)
 		for i:=0;i<66;i++{
 			err:=db.CreateCollection(ctx,fmt.Sprintf("stats%d",i))
 			if err!=nil{
@@ -47,7 +46,7 @@ func (writer *MongoWriter)String() string {
 	return "MongoWriter"
 }
 
-func NewMysqlWriter(ip string,port int) *MongoWriter {
+func NewMongoWriter(ip string,port int) *MongoWriter {
 	return &MongoWriter{
 		ip: ip,
 		port: port,
@@ -67,12 +66,13 @@ func (writer *MongoWriter)Write(line string)error  {
 }
 
 func (writer *MongoWriter)Start()  {
-	ctx,cancel:=context.WithTimeout(context.Background(),10*time.Second)
-	defer cancel()
+	//ctx=context.WithTimeout(context.Background())
+	ctx:=context.Background()
 	err:=writer.client.Connect(ctx)
 	if err!=nil{
 		log.Fatalf("Mongowriter cannot connect to %s:%d",writer.ip,writer.port)
 	}
+	defer writer.client.Disconnect(ctx)
 
 	log.Println("Connect to mongo successfully")
 

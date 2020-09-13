@@ -38,11 +38,12 @@ func main()  {
 
 
 
-	dbWriter:=NewMysqlWriter("localhost",3306)
+	dbWriter:= NewMongoWriter("10.211.55.2",27017)
 	dbWriter.delayChan=delayChan
 	dbWriter.lossChan=lossChan
 	dbWriter.fileChan=fileChan
 	dbWriter.done=doneChanToWriter
+	dbWriter.initiator=DefaultInitiator
 
 	dbWriter.Init()
 	go dbWriter.Start()
@@ -72,10 +73,13 @@ func main()  {
 		quit<-common.StopSignal
 	}()
 	//start server
-	router:=gin.Default()
+	router=gin.Default()
 	router.GET("/", func(context *gin.Context) {
 		context.String(http.StatusOK,"Hello world")
 	})
+
+	router.GET("/helloworld",GinHelloWorld)
+
 	server:=&http.Server{
 		Addr: ":8083",
 		Handler: router,
@@ -84,6 +88,7 @@ func main()  {
 		if err:=server.ListenAndServe();err!=nil{
 			log.Fatalln("Cannot start server")
 		}
+		log.Println("server started")
 	}()
 
 	<-quit
