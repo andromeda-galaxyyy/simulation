@@ -136,6 +136,18 @@ func Copy(dst []byte,dstStart int,src []byte,srcStart,n int){
 	}
 }
 
+func Filter(dst,src []interface{},pred func(e interface{}) bool)  {
+	for _,i:=range src{
+		if pred(i){
+			dst=append(dst,i)
+		}
+	}
+}
+
+
+
+
+
 //func CopyMap(m map[string]interface{}) map[string]interface{} {
 //	cp := make(map[string]interface{})
 //	for k, v := range m {

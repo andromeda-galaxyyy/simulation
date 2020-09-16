@@ -78,3 +78,4 @@ func MinMax(nums []int64)(min,max int64)  {
 func Average(nums []int64)  {
 
 }
+

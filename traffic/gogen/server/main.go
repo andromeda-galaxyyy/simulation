@@ -5,7 +5,9 @@ import (
 	"chandler.com/gogen/utils"
 	"context"
 	"flag"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"net/http"
 	"os"
@@ -15,9 +17,51 @@ import (
 	"time"
 )
 
+var (
+	defaultDirs string
+	rport int=6379
+	rip string="localhost"
+)
+
+func setUpRedisHandle(ip string,port int) error  {
+
+	ctx:=context.Background()
+	delayHandle =redis.NewClient(&redis.Options{
+		Addr:fmt.Sprintf("%s:%d",ip,port),
+		Password: "",
+		DB:0,
+	})
+	_,err:=delayHandle.Ping(ctx).Result()
+	if err!=nil{
+		return err
+	}
+	lossHandle=redis.NewClient(&redis.Options{
+		Addr:fmt.Sprintf("%s:%d",ip,port),
+		Password: "",
+		DB:1,
+	})
+	_,err=delayHandle.Ping(ctx).Result()
+	if err!=nil{
+		return err
+	}
+	return nil
+}
+
+
 func main()  {
-	ds:=flag.String("dirs","/tmp/foo","Directory to watch")
+	ds:=flag.String("dirs","/tmp/rxdelay","Directory to watch")
+	serverPort:=flag.Int("port",10086,"Server listening port")
+	redisPort:=flag.Int("rport",6379,"Redis instance port")
+	redisIp:=flag.String("rip","10.211.55.2","Redis instance ip")
+
 	flag.Parse()
+	rport=*redisPort
+	rip=*redisIp
+	err:=setUpRedisHandle(rip,rport)
+	if err!=nil{
+		log.Fatalf("Cannot connect to redis instance %s:%d",rip,rport)
+	}
+
 	dd:=strings.Split(*ds," ")
 	for _,d:=range dd{
 		if !utils.IsDir(d){
@@ -36,17 +80,17 @@ func main()  {
 	signal.Notify(sigs,syscall.SIGINT,syscall.SIGTERM,syscall.SIGKILL)
 
 
+	redisWriter := NewDefaultRedisWriter(*redisIp,*redisPort)
+	redisWriter.delayChan=delayChan
+	redisWriter.lossChan=lossChan
+	redisWriter.fileChan=fileChan
+	redisWriter.doneChan=doneChanToWriter
 
-
-	dbWriter:= NewMongoWriter("10.211.55.2",27017)
-	dbWriter.delayChan=delayChan
-	dbWriter.lossChan=lossChan
-	dbWriter.fileChan=fileChan
-	dbWriter.done=doneChanToWriter
-	dbWriter.initiator=DefaultInitiator
-
-	dbWriter.Init()
-	go dbWriter.Start()
+	err=redisWriter.Init()
+	if err!=nil{
+		log.Fatalf("Error when connect to redis instance")
+	}
+	go redisWriter.Start()
 
 	watcher:=&Watcher{
 		id:        0,
@@ -81,7 +125,7 @@ func main()  {
 	router.GET("/helloworld",GinHelloWorld)
 
 	server:=&http.Server{
-		Addr: ":8083",
+		Addr: fmt.Sprintf(":%d",*serverPort),
 		Handler: router,
 	}
 	go func() {

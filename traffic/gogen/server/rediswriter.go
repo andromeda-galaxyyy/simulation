@@ -10,7 +10,7 @@ import (
 )
 
 type Writer interface {
-	Init()
+	Init() (err error)
 	Start()
 	Write(line string, ts int64) error
 	BatchWrite(lines []string, ts int64) error
@@ -26,8 +26,7 @@ type redisWriter struct {
 	doneChan chan common.Signal
 	// redis采用多副本，以src为key和以dst为key
 	// 方便debug和查询
-	delayDb string
-	lossDb string
+
 }
 
 func NewDefaultRedisWriter(ip string,port int) *redisWriter {
@@ -39,8 +38,6 @@ func NewDefaultRedisWriter(ip string,port int) *redisWriter {
 		delayChan: nil,
 		fileChan:  nil,
 		doneChan:  nil,
-		delayDb:   "delay",
-		lossDb:    "loss",
 	}
 }
 
@@ -84,12 +81,18 @@ func (r *redisWriter)BatchWrite(lines []string, ts int64) error {
 	return nil
 }
 
-func (r *redisWriter) Init() {
+func (r *redisWriter) Init() error {
 	r.handle=redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%d",r.ip, r.port),
 		Password: "",
 		DB: 0,
 	})
+	ctx:=context.Background()
+	_,err:=r.handle.Ping(ctx).Result()
+	if err!=nil{
+		return err
+	}
+	return nil
 }
 
 func (r *redisWriter) Start() {
