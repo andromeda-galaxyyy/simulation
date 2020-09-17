@@ -141,7 +141,7 @@ def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
 	delay_loss = "tc qdisc add dev {} parent 5:1 handle 10: netem".format(interface)
 	if delay is not None:
 		delay_loss += " delay {}ms".format(delay)
-	if loss is not None:
+	if loss is not None and int(loss) != 0:
 		delay_loss += " loss {}".format(loss)
 	os.system(delay_loss)
 
@@ -166,7 +166,7 @@ def change_tc(interface: str, delay=None, bandwidth=None, loss=None):
 	delay_loss = "tc qdisc change dev {} parent 5:1 handle 10: netem".format(interface)
 	if delay is not None:
 		delay_loss += " delay {}ms".format(delay)
-	if loss is not None:
+	if loss is not None and int(loss) != 0:
 		delay_loss += " loss {}".format(loss)
 	os.system(delay_loss)
 
