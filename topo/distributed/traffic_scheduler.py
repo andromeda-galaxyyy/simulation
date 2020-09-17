@@ -90,10 +90,11 @@ class BasicTrafficScheduler:
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else "")
 		)
-		# fp=open(log_fn,"w")
+		fp=open(log_fn,"w")
 
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
-		pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
+		# pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
+		pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
 		return pid, self.generator_id
 
 	def _do_start_traffic_to_target(self, hid, target_id, flow_type) -> (int, int):

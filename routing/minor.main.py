@@ -3,8 +3,10 @@ from utils.file_utils import *
 from utils.log_utils import debug, info, err
 from argparse import ArgumentParser
 from multiprocessing import Process
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple,Any
 import numpy as np
+from routing.instance import ILPInput
+from routing.instance import ILPInstance,map_instance
 
 # 多进程使用gpu
 # https://docs.nvidia.com/deploy/mps/index.html
@@ -25,8 +27,9 @@ def load_ilp_dataset(fn: str):
 	return dataset
 
 
-def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset: List[Tuple],
-                 ratio=0.7):
+def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset:List[ILPInstance],
+                 ratio=0.7,shuffle=False):
+
 	'''
 	dataset中每个instance
 	N=66
@@ -34,21 +37,33 @@ def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset
 	流量矩阵 流量种类*N*(N-1)
 	路径选择 流量种类*N*(N-1)
 	'''
+	def mapper(instance:ILPInstance)->Tuple[List,List]:
+		traffic_matrix=[]
+		labels=[]
+		traffic_matrix.extend(instance.video)
+		labels.extend(instance.labels["video"])
+		traffic_matrix.extend(instance.iot)
+		labels.extend(instance.labels["iot"])
+		traffic_matrix.extend(instance.voip)
+		labels.extend(instance.labels["voip"])
+		traffic_matrix.extend(instance.ar)
+		labels.extend(instance.labels["ar"])
+		return traffic_matrix, labels
+
 
 	info("# instances {}".format(len(dataset)))
 	traffic = np.asarray([d[0] for d in dataset])
 	choices = np.asarray([d[1] for d in dataset])
+	train,test=map_instance(dataset,mapper,ratio,shuffle)
 
 	# number of train instances
-	num_train = int(ratio * len(traffic))
-	x = traffic[:num_train]
-	xx = traffic[num_train:]
+
 
 	for id_ in ids:
 		assert len(traffic[0]) == n_flows * n_nodes * (n_nodes - 1)
 		choice = choices[:, id_ * n_flows * (n_nodes - 1):(id_ + 1) * n_flows * (n_nodes - 1)]
 		assert len(choice[0]) == n_flows * (n_nodes - 1)
-		y = choice[:num_train]
+		y =
 		y = np.reshape(y, (-1, n_flows, n_nodes - 1))
 		yy = choice[num_train:]
 		yy = np.reshape(yy, (-1, n_flows, n_nodes - 1))
@@ -81,12 +96,12 @@ def main():
 	dataset_fn = ""
 	parser = ArgumentParser()
 	default_ids = ",".join(list(range(n_nodes)))
+	#"0,1,2,3,4,5"
 	parser.add_argument("--ids", type=str, default=default_ids)
 	args = parser.parse_args()
 	dataset = load_ilp_dataset(dataset_fn)
 	processes = []
 
-	info("Not use partition")
 	# read ids and runner
 	ids = list(map(int, args.ids.split(",")))
 

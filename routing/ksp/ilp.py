@@ -23,7 +23,8 @@ from tmgen.models import random_gravity_tm
 
 cache_dir = os.path.join(get_prj_root(), "cache")
 satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
-static_dir=os.path.join(get_prj_root(),"static")
+static_dir = os.path.join(get_prj_root(), "static")
+
 
 def is_connected(topo, i, j):
 	if not is_digit(topo[i][j]):
@@ -36,7 +37,7 @@ def link_switch_cost(inter: float):
 
 
 def read_statellite_topo():
-	satellite_topos=[]
+	satellite_topos = []
 	fn = os.path.join(satellite_topo_dir, "delaygraph_py3_v2.txt")
 	old_topos = load_pkl(fn)
 	intervals = []
@@ -51,7 +52,7 @@ def read_statellite_topo():
 	for old_topo_idx, old_topo in enumerate(old_topos):
 		links = set()
 		nodes = len(old_topo)
-		new_topo = [[[-1,-1,-1,-1] for _ in range(nodes)] for _ in range(nodes)]
+		new_topo = [[[-1, -1, -1, -1] for _ in range(nodes)] for _ in range(nodes)]
 
 		for i in range(nodes):
 			for j in range(i + 1, nodes):
@@ -59,13 +60,13 @@ def read_statellite_topo():
 					continue
 				links.add((i, j))
 				# capacity = uniform(4000, 7000)
-				capacity=100
+				capacity = 100
 				delay = float(old_topo[i][j])
-				delay*=1000
-				delay=int(delay)
+				delay *= 1000
+				delay = int(delay)
 
 				# 容量，延迟、loss,switch_cost
-				spec = [capacity, delay, 0,0]
+				spec = [capacity, delay, 0, 0]
 				next_iterval = 0
 				idx2 = old_topo_idx
 				always_connected = False
@@ -93,15 +94,15 @@ def read_statellite_topo():
 		# print(len(links))
 		new_topos.append(deepcopy(new_topo))
 		satellite_topos.append({
-			"topo":new_topo,
-			"duration":intervals[old_topo_idx]
+			"topo": new_topo,
+			"duration": intervals[old_topo_idx]
 		})
-	assert len(satellite_topos)==44
+	assert len(satellite_topos) == 44
 
 	topo_fn = os.path.join(cache_dir, "topo.pkl")
 
 	save_pkl(topo_fn, new_topos)
-	save_pkl(os.path.join(static_dir,"satellite_overall.pkl"),satellite_topos)
+	save_pkl(os.path.join(static_dir, "satellite_overall.pkl"), satellite_topos)
 	debug("satellite topo saved")
 
 
@@ -118,10 +119,11 @@ class NetworkTopo:
 		g.add_nodes_from(list(range(num_nodes)))
 		for i in range(num_nodes):
 			for j in range(i + 1, num_nodes):
-				if -1 in topo[i][j]:continue
-				capacity, delay, loss,sc = topo[i][j]
+				if -1 in topo[i][j]: continue
+				capacity, delay, loss, sc = topo[i][j]
 				assert capacity >= 0
-				g.add_edge(i, j, weight=4000 / capacity, capacity=capacity, delay=delay, sc=sc,loss=loss)
+				g.add_edge(i, j, weight=4000 / capacity, capacity=capacity, delay=delay, sc=sc,
+				           loss=loss)
 
 		return g
 
@@ -547,7 +549,7 @@ def generate_raw_labels():
 				res_.extend(max_idxs2)
 				res_.append(res[-2])
 				res_.append(res[-1])
-				save_pkl(fn, (tms,res_,obj))
+				save_pkl(fn, (tms, res_, obj))
 
 			except cplex.exceptions.CplexSolverError as exc:
 				err(exc)

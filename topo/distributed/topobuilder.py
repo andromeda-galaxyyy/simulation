@@ -548,6 +548,7 @@ class TopoBuilder:
 
 	def _set_up_nat(self):
 		debug("Setting up nat")
+		os.system("echo '1' > /proc/sys/net/ipv4/ip_forward")
 		intf = self.inetintf
 
 		worker_id = self.id
