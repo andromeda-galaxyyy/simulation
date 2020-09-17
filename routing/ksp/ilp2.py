@@ -1,50 +1,37 @@
 import matplotlib
 
-matplotlib.use('agg')
 import numpy as np
-from utils.common_utils import load_pkl, save_pkl, save_json, is_digit, check_file, check_dir, \
-	file_exsit, dir_exsit
+from utils.common_utils import load_pkl, save_pkl, is_digit, file_exsit, dir_exsit
 import matplotlib.pyplot as plt
 import networkx as nx
 from itertools import islice
 import pathlib
-import random
 from collections import Counter
-from typing import List, Tuple, Dict, DefaultDict
+from typing import List, Tuple, Dict
 import cplex
 from utils.common_utils import debug, info, err
-from utils.num_utils import gaussion, uniform
 import os
 from path_utils import get_prj_root
-from copy import deepcopy
 from argparse import ArgumentParser
-import tmgen
 from tmgen.models import random_gravity_tm
-from routing.instance import ILPInput,ILPOutput
+from routing.instance import ILPInput, ILPOutput
 
+matplotlib.use('agg')
 cache_dir = os.path.join(get_prj_root(), "cache")
 satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
 static_dir = os.path.join(get_prj_root(), "static")
 
 
-def is_connected(topo, i, j):
-	if not is_digit(topo[i][j]):
-		return False
-	return float(topo[i][j]) > 0
-
-
-def link_switch_cost(inter: float):
-	return 10 / np.exp(inter / 100)
 
 
 class NetworkTopo:
-	def __init__(self, topo: List[List[List]]):
+	def __init__(self, topo: List[List[Tuple]]):
 		self.g = self.__gen_graph(topo)
 		self.weights = []
 
 	# self.plot()
 
-	def __gen_graph(self, topo: List[List[List]]):
+	def __gen_graph(self, topo: List[List[Tuple]]):
 		g = nx.Graph()
 		num_nodes = len(topo)
 		g.add_nodes_from(list(range(num_nodes)))
@@ -63,8 +50,6 @@ class NetworkTopo:
 		if u not in path: return False
 		if v not in path: return False
 		return abs(path.index(u) - path.index(v)) == 1
-
-
 
 	def plot(self):
 		g = self.g
@@ -92,7 +77,7 @@ class ILPModel:
 		self.ksp = self.__cal_ksp()
 		# 流量要求 （带宽、时延）
 		self.demands: List[Tuple] = None
-		self.input:List[ILPInput]=None
+		self.input: List[ILPInput] = None
 		self.lu_w = 0
 		self.prob: cplex.Cplex = None
 		self.ijk: List[List[List[List]]] = self.__cal_ijk()
@@ -114,8 +99,6 @@ class ILPModel:
 		prob.parameters.mip.tolerances.mipgap.set(0.0008)
 
 		self.prob = prob
-
-
 
 	def set_lu_weight(self, w: int):
 		self.lu_w = w
@@ -310,8 +293,8 @@ class ILPModel:
 						ijk[i][j][k][1] = 1
 		return ijk
 
-	def solve(self,ilpinputs:List[ILPInput])->List[ILPOutput]:
-		self.input=ilpinputs
+	def solve(self, ilpinputs: ILPInput) -> ILPOutput:
+		self.input = ilpinputs
 		assert self.demands is not None
 		assert self.lu_w != 0
 		self.__build_problem()

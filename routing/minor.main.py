@@ -77,15 +77,16 @@ def predict_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, datas
 
 
 def test_runner():
-	ids = list(range(66))
-	dataset = []
-
-	for _ in range(100):
-		matrix = np.random.rand(3 * 66 * 65).tolist()
-		path = [1 for _ in range(3 * 65 * 66)]
-		data = (matrix, path)
-		dataset.append(data)
-	train_runner(ids, 3, 66, 3, dataset)
+	pass
+	# ids = list(range(66))
+	# dataset = []
+	#
+	# for _ in range(100):
+	# 	matrix = np.random.rand(3 * 66 * 65).tolist()
+	# 	path = [1 for _ in range(3 * 65 * 66)]
+	# 	data = (matrix, path)
+	# 	dataset.append(data)
+	# train_runner(ids, 3, 66, 3, dataset)
 
 
 def main():
