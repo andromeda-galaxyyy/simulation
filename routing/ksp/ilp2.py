@@ -22,8 +22,6 @@ satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
 static_dir = os.path.join(get_prj_root(), "static")
 
 
-
-
 class NetworkTopo:
 	def __init__(self, topo: List[List[Tuple]]):
 		self.g = self.__gen_graph(topo)
@@ -70,15 +68,14 @@ class ILPModel:
 	def __init__(self, topo: NetworkTopo, id=0):
 		self.network = topo
 		self.id = id
-		self.K = 5
+		self.K = 3
 		self.nodes = list(range(self.network.g.number_of_nodes()))
 		tmp = [(s, d) for s in self.nodes for d in self.nodes]
 		self.src_dsts = list(filter(lambda x: x[0] != x[1], tmp))
 		self.ksp = self.__cal_ksp()
 		# 流量要求 （带宽、时延）
 		self.demands: List[Tuple] = None
-		self.input: List[ILPInput] = None
-		self.lu_w = 0
+		self.input: ILPInput = None
 		self.prob: cplex.Cplex = None
 		self.ijk: List[List[List[List]]] = self.__cal_ijk()
 
@@ -88,57 +85,50 @@ class ILPModel:
 		demand_num = len(self.src_dsts)
 		# 决策变量2*N(N-1)
 		# 0代表第一类流，1代表第二类流
-		var_names = ['x{}_{}_{}'.format(0, d, k) for d in range(demand_num) for k in range(self.K)]
-		var_names.extend(
-			['x{}_{}_{}'.format(1, d, k) for d in range(demand_num) for k in range(self.K)])
+		var_names = []
+		for idx in range(4):
+			var_names.extend(
+				['x{}_{}_{}'.format(idx, d, k) for d in range(demand_num) for k in range(self.K)])
 
-		# todo fix capacity vars
-		prob.variables.add(names=var_names, types="I" * demand_num * self.K * 2)
-		prob.variables.add(obj=[self.lu_w], names=["u"])
+		prob.variables.add(names=var_names, types="I" * demand_num * self.K * 4)
+		prob.variables.add(obj=[1], names=["u"])
 		prob.parameters.simplex.limits.iterations.set(100000)
 		prob.parameters.mip.tolerances.mipgap.set(0.0008)
 
 		self.prob = prob
 
-	def set_lu_weight(self, w: int):
-		self.lu_w = w
-
 	def __build_var_constraints(self):
 		path_rows = []
 		num_src_dsts = len(self.src_dsts)
 
-		for i in range(num_src_dsts):
-			large_volume_vars = ["x{}_{}_{}".format(0, i, k) for k in range(self.K)]
-			path_rows.append([large_volume_vars, [1 for _ in range(self.K)]])
-			low_latency_vars = ["x{}_{}_{}".format(1, i, k) for k in range(self.K)]
-			path_rows.append([low_latency_vars, [1 for _ in range(self.K)]])
+		for idx in range(4):
+			for i in range(num_src_dsts):
+				volume_vars = ["x{}_{}_{}".format(idx, i, k) for k in range(self.K)]
+				path_rows.append([volume_vars, [1 for _ in range(self.K)]])
 
 		names = []
-		names.extend(['path{}_{}var_con'.format(0, d) for d in range(num_src_dsts)])
-		names.extend(["path{}_{}var_con".format(1, d) for d in range(num_src_dsts)])
+		for idx in range(4):
+			names.extend(['path{}_{}var_con'.format(idx, d) for d in range(num_src_dsts)])
+
 		self.prob.linear_constraints.add(lin_expr=path_rows,
-		                                 senses="E" * num_src_dsts * 2,
-		                                 rhs=[1 for _ in range(num_src_dsts * 2)],
+		                                 senses="E" * num_src_dsts * 4,
+		                                 rhs=[1 for _ in range(num_src_dsts * 4)],
 		                                 names=names)
 
 		# xik>=0
 		# -xik<=0
 		greater_than_zero = []
+		constraint_names = []
 		for i in range(num_src_dsts):
 			for k in range(self.K):
-				greater_than_zero.append([["x{}_{}_{}".format(0, i, k)], [-1]])
-				greater_than_zero.append([["x{}_{}_{}".format(1, i, k)], [-1]])
-		constraint_names = []
-		constraint_names.extend(
-			["greater_than_zero_x{}_{}_{}con".format(0, i, k) for i in range(num_src_dsts) for k in
-			 range(self.K)])
-		constraint_names.extend(
-			["greater_than_zero_x{}_{}_{}con".format(1, i, k) for i in range(num_src_dsts) for k in
-			 range(self.K)])
+				for idx in range(4):
+					greater_than_zero.append([["x{}_{}_{}".format(idx, i, k)], [-1]])
+					constraint_names.append("greater_than_zero_x{}_{}_{}con".format(idx, i, k))
+
 		self.prob.linear_constraints.add(
 			lin_expr=greater_than_zero,
-			senses="L" * num_src_dsts * self.K * 2,
-			rhs=[0 for _ in range(num_src_dsts * self.K * 2)],
+			senses="L" * num_src_dsts * self.K * 4,
+			rhs=[0 for _ in range(num_src_dsts * self.K * 4)],
 			names=constraint_names
 		)
 		# link utility constraint
@@ -155,14 +145,17 @@ class ILPModel:
 		self.__build_var_constraints()
 		info("build capacity constraints")
 		self.__build_capacity_constraints()
-		# info("build delay constraints")
-		# self.__build_delay_constraints()
 		info("build constraints done")
 
 	def __build_capacity_constraints(self):
 		net = self.network
 		num_src_dsts = len(self.src_dsts)
+		ilp_input: ILPInput = self.input
 		# list[0]=volume
+		video_demands = ilp_input.video
+		iot_demands = ilp_input.iot
+		voip_demands = ilp_input.voip
+		ar_demands = ilp_input.ar
 		large_volume_demands = self.demands[0:num_src_dsts]
 		low_latency_demands = self.demands[num_src_dsts:]
 		large_volumes = [d[0] for d in large_volume_demands]
@@ -172,10 +165,11 @@ class ILPModel:
 		for u, v, d in net.g.edges(data=True):
 			capacities.append(d['capacity'])
 		# varss = ['x{}{}'.format(d, k) for d in range(demand_nums) for k in range(self.K)]
-		var_names = ['x{}_{}_{}'.format(0, d, k) for d in range(num_src_dsts) for k in
-		             range(self.K)]
-		var_names.extend(
-			['x{}_{}_{}'.format(1, d, k) for d in range(num_src_dsts) for k in range(self.K)])
+		var_names = []
+		for flow_idx in range(4):
+			for d in range(num_src_dsts):
+				for k in range(self.K):
+					var_names.append('x{}_{}_{}'.format(flow_idx, d, k))
 
 		capacity_rows = []
 		ijk = self.ijk
@@ -183,14 +177,23 @@ class ILPModel:
 		for j in range(net.g.number_of_edges()):
 			coeffs = []
 			for i in range(num_src_dsts):
-				demand = large_volumes[i]
+				demand = video_demands[i]
 				for k in range(self.K):
 					coeffs.append(demand * ijk[i][j][k][0])
 
 			for i in range(num_src_dsts):
-				demand = low_latency_volumes[i]
+				demand = iot_demands[i]
 				for k in range(self.K):
 					coeffs.append(demand * ijk[i][j][k][1])
+
+			for i in range(num_src_dsts):
+				demand = voip_demands[i]
+				for k in range(self.K):
+					coeffs.append(demand * ijk[i][j][k][2])
+			for i in range(num_src_dsts):
+				demand = ar_demands[i]
+				for k in range(self.K):
+					coeffs.append(demand * ijk[i][j][k][3])
 
 			capacity_rows.append([var_names, coeffs])
 
@@ -206,15 +209,12 @@ class ILPModel:
 		utility_rows = []
 		for j in range(net.g.number_of_edges()):
 			coeffs = []
-			for i in range(num_src_dsts):
-				demand = large_volumes[i]
-				for k in range(self.K):
-					coeffs.append(demand * ijk[i][j][k][0])
-
-			for i in range(num_src_dsts):
-				demand = low_latency_volumes[i]
-				for k in range(self.K):
-					coeffs.append(demand * ijk[i][j][k][1])
+			for flow_idx, demands in enumerate(
+					[video_demands, iot_demands, voip_demands, ar_demands]):
+				for i in range(num_src_dsts):
+					demand = demands[i]
+					for k in range(self.K):
+						coeffs.append(demand * ijk[i][j][k][flow_idx])
 
 			coeffs.append(-capacities[j])
 			utility_rows.append([varss, coeffs])
@@ -225,29 +225,6 @@ class ILPModel:
 			rhs=[0 for _ in range(self.network.g.number_of_edges())],
 			names=['utilitycons{}'.format(j) for j in range(net.g.number_of_edges())]
 		)
-
-	def __build_delay_constraints(self):
-		net = self.network
-		num_src_dsts = len(self.src_dsts)
-
-		link_delays = []
-		for u, v, d in net.g.edges(data=True):
-			link_delays.append(d['delay'])
-
-		varss = ['x{}_{}_{}'.format(1, i, k) for i in range(num_src_dsts) for k in range(self.K)]
-		varss.append("delay")
-		coeffs = []
-		for i, (src, dst) in enumerate(self.src_dsts):
-			paths = self.ksp[(src, dst)][1]
-			for k in range(self.K):
-				coeffs.append(net.get_path_switch_cost(paths[k]) * net.get_path_delay(paths[k]))
-		coeffs.append(-1)
-
-		self.prob.linear_constraints.add(lin_expr=[[varss, coeffs]],
-		                                 senses="L",
-		                                 rhs=[0],
-		                                 names=["weighted_delay_constraint"]
-		                                 )
 
 	def __cal_ksp(self) -> Dict[Tuple, Tuple]:
 		'''
@@ -264,8 +241,8 @@ class ILPModel:
 		res = {}
 		for s, d in self.src_dsts:
 			large_volume_paths = net.ksp(s, d, self.K)
-			low_latence_paths = net.ksp(s, d, self.K, "delay")
-			res[(s, d)] = (large_volume_paths, low_latence_paths)
+			low_latency_paths = net.ksp(s, d, self.K, "delay")
+			res[(s, d)] = (large_volume_paths, low_latency_paths)
 		save_pkl(ksp_file, res)
 		return res
 
@@ -277,7 +254,8 @@ class ILPModel:
 		"""
 		net = self.network
 		topo = net.g
-		ijk = [[[[0, 0] for _ in range(self.K)] for _ in range(topo.number_of_edges())] for _ in
+		ijk = [[[[0, 0, 0, 0] for _ in range(self.K)] for _ in range(topo.number_of_edges())] for _
+		       in
 		       range(len(self.src_dsts))]
 		for i, (src, dst) in enumerate(self.src_dsts):
 			large_volume_paths, low_latency_paths = self.ksp[(src, dst)]
@@ -289,187 +267,60 @@ class ILPModel:
 					if net.edge_in_path(u, v, p):
 						ijk[i][j][k][0] = 1
 					p = low_latency_paths[k]
+					# 对于iot，voip，ar来说，ijk是一样的
 					if net.edge_in_path(u, v, p):
 						ijk[i][j][k][1] = 1
+						ijk[i][j][k][2] = 1
+						ijk[i][j][k][3] = 1
 		return ijk
 
-	def solve(self, ilpinputs: ILPInput) -> ILPOutput:
-		self.input = ilpinputs
-		assert self.demands is not None
-		assert self.lu_w != 0
+	def solve(self, ilp_input: ILPInput) -> ILPOutput:
+		self.input = ilp_input
 		self.__build_problem()
 		self.__build_constraints()
 		try:
 			self.prob.solve()
+			actions = self.prob.solution.get_values()[:-1]
+			assert len(actions) == len(self.src_dsts) * self.K * 4
+			n_demand = len(self.src_dsts)
+			# video,iot,voip,ar
+
+			video_res = None
+			iot_res = None
+			voip_res = None
+			ar_res = None
+			for flow_idx in range(4):
+				action = actions[flow_idx * n_demand * 4:(flow_idx + 1) * n_demand * 4]
+				values = []
+				for demand_idx in range(n_demand):
+					tmp = action[demand_idx * 4:(demand_idx + 1) * 4]
+					assert sum(tmp) == 1
+					values.append(tmp.index(max(tmp)))
+					if demand_idx == 0:
+						video_res = values
+					elif demand_idx == 1:
+						iot_res = values
+					elif demand_idx == 2:
+						voip_res = values
+					else:
+						ar_res = values
+
+			return ILPOutput(video_res, iot_res, voip_res, ar_res)
 		except cplex.exceptions.CplexSolverError as exc:
 			err(exc)
 			raise exc
 
-		return self.prob.solution
-
-	def solve_demo(self):
-		assert self.demands is not None
-		assert self.lu_w != 0
-		if self.prob is not None:
-			del self.prob
-		self.__build_problem()
-		self.__build_constraints()
-		self.prob.solve()
-		self.prob.get_stats()
-		obj = self.prob.solution.get_objective_value()
-		print(obj)
-
-		res = self.prob.solution.get_values()
-
-		# utility,delay
-		debug("link utility {},weighted delay {}".format(res[-2], res[-1]))
-
-		# print(res[-2], res[-1])
-		# action
-		res = res[:-2]
-		assert len(res) == 66 * 65 * self.K * 2
-		large_volume_res = res[0:66 * 65 * self.K]
-		low_latency_res = res[66 * 65 * self.K:]
-
-		max_idxs = []
-		for i in range(0, len(large_volume_res), self.K):
-			tmp = large_volume_res[i:i + self.K]
-			max_idxs.append(tmp.index(max(tmp)))
-
-		counter = Counter(max_idxs)
-		debug("Large volume res {}".format(counter))
-
-		max_idxes = []
-		for i in range(0, len(low_latency_res), self.K):
-			tmp = low_latency_res[i:i + self.K]
-			max_idxes.append(tmp.index(max(tmp)))
-		counter = Counter(max_idxes)
-		debug("Low latency res:{}".format(counter))
 
 
-def demo_ilp():
+
+def test_ilp():
 	topos_fn = os.path.join(cache_dir, "topo.pkl")
 	topo = load_pkl(topos_fn)[0]
 	n_nodes = len(topo)
-	demands = []
-	large_volume_tms = random_gravity_tm(n_nodes, 66 * 65 * 10).at_time(0).tolist()
-	low_latency_tms = random_gravity_tm(n_nodes, 66 * 65 * 2).at_time(0).tolist()
-	for src in range(n_nodes):
-		for dst in range(n_nodes):
-			if src == dst: continue
-			demands.append((large_volume_tms[src][dst], 0))
-	for src in range(n_nodes):
-		for dst in range(n_nodes):
-			if src == dst: continue
-			demands.append((low_latency_tms[src][dst], 0))
-
-	net = NetworkTopo(topo)
-	model = ILPModel(net)
-	model.set_lu_weight(5)
-	model.set_demand(demands)
-	model.solve_demo()
 
 
-def generate_raw_labels():
-	'''
-	save raw labels, only save max idx
-	:return:
-	'''
-	limit = 2000
-	'''
-	生成训练数据（未处理）
-	:return: void
-	'''
-	raw_labels_dir = os.path.join(get_prj_root(), "routing/raw_labels")
-	topo_file = os.path.join(get_prj_root(), "cache/topo.pkl")
-	if not file_exsit(topo_file):
-		err("Cannot find satellite topo file")
-		exit(-1)
-	topos = load_pkl(topo_file)
-	n_nodes = len(topos[0])
-	for idx, topo in enumerate(topos):
-		dir_n = os.path.join(raw_labels_dir, str(idx))
-		if not dir_exsit(dir_n):
-			os.mkdir(dir_n)
-		mask = [0 for _ in range(limit)]
-		for f in os.listdir(dir_n):
-			if ".pkl" not in f: continue
-			mask[int(f[:-4])] = 1
-		network = NetworkTopo(topo)
-		model = ILPModel(network, idx)
-		model.set_lu_weight(15)
-		tms = []
-		for i in range(limit):
-			if mask[i] == 1: continue
-			fn = os.path.join(dir_n, "{}.pkl".format(i))
-			large_volume_all = n_nodes * (n_nodes - 1) * 5
-			low_latency_all = n_nodes * (n_nodes - 1) * 1
 
-			large_volume_tm = random_gravity_tm(n_nodes, large_volume_all).at_time(0).tolist()
-			low_latency_tm = random_gravity_tm(n_nodes, low_latency_all).at_time(0).tolist()
-			for src in range(n_nodes):
-				for dst in range(n_nodes):
-					if src == dst: continue
-					tms.append((large_volume_tm[src][dst], 0))
-
-			for src in range(n_nodes):
-				for dst in range(n_nodes):
-					if src == dst: continue
-					tms.append((low_latency_tm[src][dst], 0))
-			model.set_demand(tms)
-			debug("Start to solve ilp model")
-			try:
-				n_src_dst = n_nodes * (n_nodes - 1)
-				solution = model.solve()
-				obj = solution.get_objective_value()
-				res = solution.get_values()
-				print(res[-2], res[-1], obj)
-				action = res[:-2]
-
-				large_volume_actions = action[0:n_src_dst]
-				low_latency_actions = action[n_src_dst:]
-				max_idxs1 = []
-				for k in range(0, len(large_volume_actions), 5):
-					tmp = large_volume_actions[k:k + 5]
-					max_idxs1.append(tmp.index(max(tmp)))
-
-				counter = Counter(max_idxs1)
-				info("Large volume actions stats:\n {}".format(counter))
-
-				max_idxs2 = []
-				for k in range(0, len(low_latency_actions), 5):
-					tmp = low_latency_actions[k:k + 5]
-					max_idxs2.append(tmp.index(max(tmp)))
-
-				counter = Counter(max_idxs2)
-
-				info("Low latency actions stats:\n {}".format(counter))
-				res_ = []
-				res_.extend(max_idxs1)
-				res_.extend(max_idxs2)
-				res_.append(res[-2])
-				res_.append(res[-1])
-				save_pkl(fn, (tms, res_, obj))
-
-			except cplex.exceptions.CplexSolverError as exc:
-				err(exc)
 
 
 if __name__ == '__main__':
-	print("running mode:\n"
-	      "1 read and save topo\n"
-	      "2 generate raw labels\n"
-	      "3 run demo ilp model")
-	parser = ArgumentParser()
-	parser.add_argument("--mode", type=int, default=1, help="running mode")
-	args = parser.parse_args()
-	mode = int(args.mode)
-	if mode == 1:
-		pass
-	elif mode == 2:
-		generate_raw_labels()
-	elif mode == 3:
-		demo_ilp()
-	else:
-		err("Invalid argument")
-		exit(-1)
+	test_ilp()
