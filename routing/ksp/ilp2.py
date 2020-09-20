@@ -15,7 +15,8 @@ from path_utils import get_prj_root
 from argparse import ArgumentParser
 from tmgen.models import random_gravity_tm
 from routing.instance import ILPInput, ILPOutput
-
+import random
+from copy import deepcopy
 matplotlib.use('agg')
 cache_dir = os.path.join(get_prj_root(), "cache")
 satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
@@ -86,9 +87,9 @@ class ILPModel:
 		# 决策变量2*N(N-1)
 		# 0代表第一类流，1代表第二类流
 		var_names = []
-		for idx in range(4):
+		for flow_idx in range(4):
 			var_names.extend(
-				['x{}_{}_{}'.format(idx, d, k) for d in range(demand_num) for k in range(self.K)])
+				['x{}_{}_{}'.format(flow_idx, d, k) for d in range(demand_num) for k in range(self.K)])
 
 		prob.variables.add(names=var_names, types="I" * demand_num * self.K * 4)
 		prob.variables.add(obj=[1], names=["u"])
@@ -101,14 +102,14 @@ class ILPModel:
 		path_rows = []
 		num_src_dsts = len(self.src_dsts)
 
-		for idx in range(4):
+		for flow_idx in range(4):
 			for i in range(num_src_dsts):
-				volume_vars = ["x{}_{}_{}".format(idx, i, k) for k in range(self.K)]
+				volume_vars = ["x{}_{}_{}".format(flow_idx, i, k) for k in range(self.K)]
 				path_rows.append([volume_vars, [1 for _ in range(self.K)]])
 
 		names = []
-		for idx in range(4):
-			names.extend(['path{}_{}var_con'.format(idx, d) for d in range(num_src_dsts)])
+		for flow_idx in range(4):
+			names.extend(['path{}_{}var_con'.format(flow_idx, d) for d in range(num_src_dsts)])
 
 		self.prob.linear_constraints.add(lin_expr=path_rows,
 		                                 senses="E" * num_src_dsts * 4,
@@ -121,9 +122,9 @@ class ILPModel:
 		constraint_names = []
 		for i in range(num_src_dsts):
 			for k in range(self.K):
-				for idx in range(4):
-					greater_than_zero.append([["x{}_{}_{}".format(idx, i, k)], [-1]])
-					constraint_names.append("greater_than_zero_x{}_{}_{}con".format(idx, i, k))
+				for flow_idx in range(4):
+					greater_than_zero.append([["x{}_{}_{}".format(flow_idx, i, k)], [-1]])
+					constraint_names.append("greater_than_zero_x{}_{}_{}con".format(flow_idx, i, k))
 
 		self.prob.linear_constraints.add(
 			lin_expr=greater_than_zero,
@@ -156,10 +157,10 @@ class ILPModel:
 		iot_demands = ilp_input.iot
 		voip_demands = ilp_input.voip
 		ar_demands = ilp_input.ar
-		large_volume_demands = self.demands[0:num_src_dsts]
-		low_latency_demands = self.demands[num_src_dsts:]
-		large_volumes = [d[0] for d in large_volume_demands]
-		low_latency_volumes = [d[0] for d in low_latency_demands]
+		# large_volume_demands = self.demands[0:num_src_dsts]
+		# low_latency_demands = self.demands[num_src_dsts:]
+		# large_volumes = [d[0] for d in large_volume_demands]
+		# low_latency_volumes = [d[0] for d in low_latency_demands]
 
 		capacities = []
 		for u, v, d in net.g.edges(data=True):
@@ -281,6 +282,8 @@ class ILPModel:
 		try:
 			self.prob.solve()
 			actions = self.prob.solution.get_values()[:-1]
+			print(self.prob.solution.get_values()[-1])
+			print(len(actions))
 			assert len(actions) == len(self.src_dsts) * self.K * 4
 			n_demand = len(self.src_dsts)
 			# video,iot,voip,ar
@@ -290,11 +293,13 @@ class ILPModel:
 			voip_res = None
 			ar_res = None
 			for flow_idx in range(4):
-				action = actions[flow_idx * n_demand * 4:(flow_idx + 1) * n_demand * 4]
+				action = actions[flow_idx * n_demand * self.K:(flow_idx + 1) * n_demand * self.K]
 				values = []
 				for demand_idx in range(n_demand):
-					tmp = action[demand_idx * 4:(demand_idx + 1) * 4]
-					assert sum(tmp) == 1
+					tmp = action[demand_idx * self.K:(demand_idx + 1) * self.K]
+					tmp=[round(t) for t in tmp]
+					# print(tmp)
+					# assert sum(tmp) == 1
 					values.append(tmp.index(max(tmp)))
 					if demand_idx == 0:
 						video_res = values
@@ -311,16 +316,14 @@ class ILPModel:
 			raise exc
 
 
-
-
 def test_ilp():
 	topos_fn = os.path.join(cache_dir, "topo.pkl")
 	topo = load_pkl(topos_fn)[0]
 	n_nodes = len(topo)
-
-
-
-
+	tmp=[0.001 for _ in range(66*65)]
+	ilp_input=ILPInput(video=deepcopy(tmp),iot=deepcopy(tmp),voip=deepcopy(tmp),ar=deepcopy(tmp))
+	ilp_model=ILPModel(NetworkTopo(topo))
+	ilp_output=ilp_model.solve(ilp_input)
 
 if __name__ == '__main__':
 	test_ilp()

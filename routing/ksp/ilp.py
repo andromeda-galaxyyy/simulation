@@ -20,6 +20,7 @@ from copy import deepcopy
 from argparse import ArgumentParser
 import tmgen
 from tmgen.models import random_gravity_tm
+import random
 
 cache_dir = os.path.join(get_prj_root(), "cache")
 satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
