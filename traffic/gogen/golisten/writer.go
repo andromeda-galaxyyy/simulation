@@ -25,11 +25,13 @@ type writer struct {
 	delayStatsDir   string
 	pktLossStatsDir string
 
-	numItemsPerFile   int64
-	dirnameGenerator  DirNameGenerator
-	flowChannel       chan *common.FlowDesc
+	numItemsPerFile  int64
+	dirnameGenerator DirNameGenerator
+	descChannel      chan *common.FlowDesc
+	lossChannel      chan *common.FlowDesc
 
-	cache []*common.FlowDesc
+	delayCache []*common.FlowDesc
+	lossCache []*common.FlowDesc
 
 	enablePktLossStats bool
 	sigChan            chan common.Signal
@@ -40,12 +42,12 @@ type writer struct {
 
 func NewWriter(id int, delayBaseDir string,lossBaseDir string,itemsPerFile int64,channel chan *common.FlowDesc) *writer {
 	w:=&writer{
-		id:               id,
-		delayStatsDir:    delayBaseDir,
-		pktLossStatsDir:  lossBaseDir,
-		numItemsPerFile:  itemsPerFile,
-		flowChannel:      channel,
-		cache:            make([]*common.FlowDesc,0),
+		id:              id,
+		delayStatsDir:   delayBaseDir,
+		pktLossStatsDir: lossBaseDir,
+		numItemsPerFile: itemsPerFile,
+		descChannel:     channel,
+		delayCache:      make([]*common.FlowDesc,0),
 	}
 
 	return w
@@ -55,42 +57,69 @@ func NewDefaultWriter(id int,channel chan *common.FlowDesc)*writer {
 	return NewWriter(id,delayBaseDir,pktLossBaseDir,itemsPerFile,channel)
 }
 
-func (w *writer)Flush()  {
-	if len(w.cache)==0{
-			log.Printf("writer :%d,No need to completeFlush\n",w.id)
-			return
+func (w *writer) FlushDelayStats()  {
+	if len(w.delayCache)==0&&len(w.lossCache)==0{
+		log.Printf("writer :%d,No need to completeFlush\n",w.id)
+		return
 	}
 	filename:=fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"delay")
 	fn:=path.Join(w.delayStatsDir,filename)
-	w.writeDelayStats(w.cache,fn)
+	w.writeDelayStats(w.delayCache,fn)
 
 	if enablePktLossStats{
 		filename:=fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"loss")
 		fn:=path.Join(w.pktLossStatsDir,filename)
-		w.writePktLossStats(w.cache,fn)
+		w.writePktLossStats(w.lossCache,fn)
 	}
-	w.cache=make([]*common.FlowDesc,0)
+	w.delayCache =make([]*common.FlowDesc,0)
+	w.lossCache=make([]*common.FlowDesc,0)
+}
+
+func (w *writer)FlushLossStats()  {
+	if len(w.lossCache)==0{
+		log.Printf("writer :%d,No need to completeFlush\n",w.id)
+		return
+	}
+
+	filename:=fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"loss")
+	fn:=path.Join(w.pktLossStatsDir,filename)
+	w.writePktLossStats(w.lossCache,fn)
+	w.lossCache=make([]*common.FlowDesc,0)
+}
+
+func (w *writer)Flush()  {
+	w.FlushDelayStats()
+	w.FlushLossStats()
 }
 
 
-func (w *writer) acceptDesc(f *common.FlowDesc){
+func (w *writer) acceptDelayDesc(f *common.FlowDesc){
 	if nil==f{
 		return
 	}
-	w.cache=append(w.cache,f)
-	if int64(len(w.cache))>=w.numItemsPerFile{
+	w.delayCache =append(w.delayCache,f)
+	if int64(len(w.delayCache))>=w.numItemsPerFile{
 		fn:=path.Join(w.delayStatsDir,fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"delay"))
 		log.Printf("Write pkt delay stats to file %s\n",fn)
-		w.writeDelayStats(w.cache,fn)
-
-		if enablePktLossStats{
-			fn:=path.Join(w.pktLossStatsDir,fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"loss"))
-			log.Printf("Write pkt loss stats to file %s\n",fn)
-			w.writePktLossStats(w.cache,fn)
-		}
-		w.cache=make([]*common.FlowDesc,0)
+		w.writeDelayStats(w.delayCache,fn)
+		w.delayCache =make([]*common.FlowDesc,0)
 	}
 }
+
+
+func (w *writer) acceptLossDesc(f *common.FlowDesc){
+	if nil==f{
+		return
+	}
+	w.lossCache =append(w.lossCache,f)
+	if int64(len(w.lossCache))>=w.numItemsPerFile{
+		fn:=path.Join(w.pktLossStatsDir,fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"loss"))
+		log.Printf("Write pkt loss stats to file %s\n",fn)
+		w.writePktLossStats(w.lossCache,fn)
+		w.lossCache =make([]*common.FlowDesc,0)
+	}
+}
+
 
 
 func (w *writer) Start()  {
@@ -110,20 +139,41 @@ func (w *writer) Start()  {
 				}else if sig.Type==common.FlushSignal.Type{
 					log.Printf("Writer id: %d periodical flush",w.id)
 					w.Flush()
+					//w.FlushDelayStats()
+					break
 				}
+			case f:=<-w.descChannel:
+				w.acceptDelayDesc(f)
 				break
-			case f:=<-w.flowChannel:
-				w.acceptDesc(f)
+			case f:=<-w.lossChannel:
+				w.acceptLossDesc(f)
 				break
-
 			}
 		}
 	}else{
-		for f:=range w.flowChannel {
-			w.acceptDesc(f)
+		stopped:=false
+	loop:
+		for {
+			if stopped{
+				break
+			}
+			select {
+			case sig:=<-w.sigChan:
+				if sig.Type==common.StopSignal.Type{
+					stopped=true
+					break loop
+				}
+			case f:=<-w.descChannel:
+				w.acceptDelayDesc(f)
+				break
+			case f:=<-w.lossChannel:
+				w.acceptLossDesc(f)
+				break
+			}
 		}
+
 	}
-	
+
 }
 
 //perform writeDelayStats

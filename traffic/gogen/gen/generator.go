@@ -404,25 +404,25 @@ func (g *Generator) Start() (err error) {
 					if g.enablePktLossStats {
 						if _, exists := g.flowIDToFlowDesc[flowId]; !exists {
 							fd := &common.FlowDesc{
-								SrcIP:       g.ipStr,
-								SrcPort:     srcPort,
-								DstIP:       dstIPStr,
-								DstPort:     dstPort,
-								Proto:       proto,
-								TxStartTs:   utils.NowInMilli(),
-								TxEndTs:     0,
-								FlowType:    fType,
-								Packets:     0,
-								MinDelay:    0,
-								MaxDelay:    0,
-								MeanDelay:   0,
-								StdVarDelay: 0,
+								SrcIP:           g.ipStr,
+								SrcPort:         srcPort,
+								DstIP:           dstIPStr,
+								DstPort:         dstPort,
+								Proto:           proto,
+								TxStartTs:       utils.NowInMilli(),
+								TxEndTs:         0,
+								FlowType:        fType,
+								ReceivedPackets: 0,
+								MinDelay:        0,
+								MaxDelay:        0,
+								MeanDelay:       0,
+								StdVarDelay:     0,
 							}
 							g.flowIDToFlowDesc[flowId] = fd
 						}
 
 						fDesc := g.flowIDToFlowDesc[flowId]
-						fDesc.Packets += 1
+						fDesc.ReceivedPackets += 1
 
 						if isLastL4Payload {
 							fDesc.TxEndTs = utils.NowInMilli()

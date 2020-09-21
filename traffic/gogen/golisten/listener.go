@@ -26,6 +26,7 @@ var (
 	lid                   int   =0
 	enablePeriodicalFlush bool  =false
 	flushTimeout          int64 =300
+	unixTimeThreshold int64=1600000000000
 )
 
 type Listener struct {
@@ -116,7 +117,7 @@ func (l *Listener)startDispatcher(sigChan chan common.Signal)  {
 				}
 				return
 			}else if sig.Type==common.FlushSignal.Type{
-				log.Println("Flush signal")
+				log.Println("FlushDelayStats signal")
 			}
 		case packet:=<-packetSource.Packets():
 			meta := packet.Metadata()
@@ -128,7 +129,12 @@ func (l *Listener)startDispatcher(sigChan chan common.Signal)  {
 					continue
 				}
 				sendTime := utils.BytesToInt64(l4Payload[:8])
-				utils.Copy(l4Payload,0,utils.Int64ToBytes(captureTime-sendTime),0,8)
+				if sendTime>=unixTimeThreshold{
+					utils.Copy(l4Payload,0,utils.Int64ToBytes(captureTime-sendTime),0,8)
+				}else{
+					// 特殊的标志包 时间戳为0
+					//utils.Copy(l4Payload,0,utils.Int64ToBytes(0),0,8)
+				}
 				if !stopRequested{
 					l.packetChannels[int(net.NetworkFlow().FastHash())&(l.NWorker-1)]<-packet
 				}
@@ -197,17 +203,16 @@ func (l *Listener)Init()  {
 		for i:=0;i<l.NWorker;i++{
 			worker :=&worker{
 				id:i,
-				delaySampleSize:   l.delaySampleSize,
 				flushInterval: flushTimeout,
 				enablePeriodFlush: enablePeriodicalFlush,
 				//flowDelay:         make(map[[5]string][]int64),
 				//flowDelayFinished: utils.NewSpecifierSet(),
 			}
 
-			//worker.flowWriter=NewDefaultWriter(i,l.DelayBaseDir, worker.writerChannel)
+			//worker.flowWriter=NewDefaultWriter(i,l.DelayBaseDir, worker.delayChannel)
 			delayBaseDir=l.DelayBaseDir
 			pktLossBaseDir=l.PktLossDir
-			worker.fiveTupleToFtype =make(map[[5]string]int)
+			worker.fTypeRecord =make(map[[5]string]int)
 			l.workers=append(l.workers, worker)
 			l.packetChannels[i]=make(chan gopacket.Packet,l.channelSize)
 			worker.Init()

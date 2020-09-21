@@ -27,8 +27,8 @@ func main()  {
 	srcHostIp:=flag.String("src_ips_file","","File which contains source host ip to be captured")
 	//dstHostIp:=flag.String("dst_ips_file","","File which contains dst host ip to be captured")
 
-	sportRange:=flag.String("srange","1500-65535","Source port range")
-	dportRange:=flag.String("drange","1500-65535","Destination port range")
+	sportRange:=flag.String("srange","1400-65535","Source port range")
+	dportRange:=flag.String("drange","1400-65535","Destination port range")
 
 
 	delayBaseDir:=flag.String("delay_dir","/tmp/rxdelay","Base dir to store delay stats")

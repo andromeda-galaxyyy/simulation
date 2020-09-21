@@ -26,8 +26,12 @@ type FlowDesc struct {
 	RxStartTs int64
 	RxEndTs   int64
 
-	FlowType int
-	Packets  int64
+	FlowType        int
+
+	ReceivedPackets int64
+	Loss            float64
+	PeriodPackets   int64
+	PeriodLoss      float64
 
 	MinDelay    int64
 	MaxDelay    int64
@@ -38,10 +42,11 @@ type FlowDesc struct {
 
 
 func (f *FlowDesc) ToRxLossStats() string{
-	return fmt.Sprintf("%d %d %d %s %d %s %d %s %d",
+	return fmt.Sprintf("%d %d %d %.2f %s %d %s %d %s %d",
 		f.RxStartTs,
 		f.RxEndTs,
-		f.Packets,
+		f.ReceivedPackets,
+		f.PeriodLoss,
 		f.SrcIP,
 		f.SrcPort,
 		f.DstIP,
@@ -70,22 +75,29 @@ func DescFromRxLossStats(desc *FlowDesc,line string) error{
 	if err!=nil{
 		return errors.New("error parsing line")
 	}
-	desc.Packets,err=strconv.ParseInt(contents[2],10,64)
+
+	desc.ReceivedPackets,err=strconv.ParseInt(contents[2],10,64)
 	if err!=nil{
 		return errors.New("error parsing line")
 	}
-	desc.SrcIP=contents[3]
-	desc.SrcPort,err=strconv.Atoi(contents[4])
+
+	desc.PeriodLoss,err=strconv.ParseFloat(contents[3],10)
 	if err!=nil{
 		return errors.New("error parsing line")
 	}
-	desc.DstIP=contents[5]
-	desc.DstPort,err=strconv.Atoi(contents[6])
+
+	desc.SrcIP=contents[4]
+	desc.SrcPort,err=strconv.Atoi(contents[5])
 	if err!=nil{
 		return errors.New("error parsing line")
 	}
-	desc.Proto=contents[7]
-	desc.FlowType,err=strconv.Atoi(contents[8])
+	desc.DstIP=contents[6]
+	desc.DstPort,err=strconv.Atoi(contents[7])
+	if err!=nil{
+		return errors.New("error parsing line")
+	}
+	desc.Proto=contents[8]
+	desc.FlowType,err=strconv.Atoi(contents[9])
 	if err!=nil{
 		return errors.New("error parsing line")
 	}
@@ -93,14 +105,14 @@ func DescFromRxLossStats(desc *FlowDesc,line string) error{
 }
 
 func RxLossHeader() string{
-	return "RxStartTs RxEndTs #packets sip sport dip dport proto flowtype"
+	return "RxStartTs RxEndTs #packets #periodloss sip sport dip dport proto flowtype"
 }
 
 func (f *FlowDesc) ToTxLossStats() string{
 	return fmt.Sprintf("%d %d %d %s %d %s %d %s %d",
 		f.TxStartTs,
 		f.TxEndTs,
-		f.Packets,
+		f.ReceivedPackets,
 		f.SrcIP,
 		f.SrcPort,
 		f.DstIP,
@@ -189,10 +201,10 @@ func RxDelayStatsHeader()string  {
 }
 
 func (f *FlowDesc) String() string{
-	return fmt.Sprintf("start:%d,end:%d,Packets:%d,SrcIP:%s,SrcPort:%d,DstPort:%s,DstPort:%d,proto:%s,flow_type:%d,min_delay:%d,max_delay:%d,mean_delay:%.2f,stdvar_delay:%.2f",
+	return fmt.Sprintf("start:%d,end:%d,ReceivedPackets:%d,SrcIP:%s,SrcPort:%d,DstPort:%s,DstPort:%d,proto:%s,flow_type:%d,min_delay:%d,max_delay:%d,mean_delay:%.2f,stdvar_delay:%.2f",
 	f.TxStartTs,
 	f.TxEndTs,
-	f.Packets,
+	f.ReceivedPackets,
 	f.SrcIP,
 	f.SrcPort,
 	f.DstIP,
