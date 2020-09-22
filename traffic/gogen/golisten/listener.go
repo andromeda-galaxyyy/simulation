@@ -205,8 +205,6 @@ func (l *Listener)Init()  {
 				id:i,
 				flushInterval: flushTimeout,
 				enablePeriodFlush: enablePeriodicalFlush,
-				//flowDelay:         make(map[[5]string][]int64),
-				//flowDelayFinished: utils.NewSpecifierSet(),
 			}
 
 			//worker.flowWriter=NewDefaultWriter(i,l.DelayBaseDir, worker.delayChannel)

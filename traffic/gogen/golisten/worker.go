@@ -49,11 +49,14 @@ type worker struct {
 // 考虑到writer的职责应该尽量单一，状态维护放到worker处
 func (w *worker) Init(){
 	w.fiveTupleToFDescForDelay =make(map[[5]string]*common.FlowDesc)
+	w.fiveTupleToFDescForLoss=make(map[[5]string]*common.FlowDesc)
 	w.delayChannel =make(chan *common.FlowDesc,102400)
 	w.lossChannel=make(chan *common.FlowDesc,102400)
 
 	w.flowWriter=NewDefaultWriter(w.id, w.delayChannel)
+
 	w.flowWriter.lossChannel=w.lossChannel
+	//w.flowWriter.delayChannel=w.delayChannel
 	w.sigChan=make(chan common.Signal,10)
 
 	w.tickerToWorkerSigChan =make(chan common.Signal,10)
@@ -61,10 +64,14 @@ func (w *worker) Init(){
 	w.flowWriter.sigChan =w.workerToWriterSigChan
 
 	w.flowDelay=make(map[[5]string][]int64)
+	w.seqRecord=make(map[[5]string]int64)
 
 }
 
 func (w *worker) processPacket(packet *gopacket.Packet) {
+	if nil==packet{
+		return
+	}
 	specifier := [5]string{}
 	ipLayer := (*packet).Layer(layers.LayerTypeIPv4)
 	if ipLayer == nil {
@@ -89,9 +96,7 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 		dport := strconv.Itoa(int(tcp.DstPort))
 		specifier[0] = sip
 		specifier[1] = sport
-		if sp==1499{
-			isSeqPkt=true
-		}
+
 		specifier[2] = dip
 		specifier[3] = dport
 		specifier[4] = "TCP"
@@ -100,9 +105,7 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 		if udpLayer != nil {
 			udp, _ := udpLayer.(*layers.UDP)
 			sp=int(udp.SrcPort)
-			if sp==1499{
-				isSeqPkt=true
-			}
+
 			dp=int(udp.DstPort)
 			sport := strconv.Itoa(int(udp.SrcPort))
 			dport := strconv.Itoa(int(udp.DstPort))
@@ -111,9 +114,11 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 			specifier[2] = dip
 			specifier[3] = dport
 			specifier[4] = "UDP"
+		}else{
+			return
 		}
 	}
-	if len(l4Payload) < 9 {
+	if len(l4Payload) <9 {
 		return
 	}
 
@@ -121,17 +126,22 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 
 	// 获取流类型
 	l4Payload[8] = utils.UnsetBit(l4Payload[8], 7)
+	isSeqPkt= utils.GetBit(l4Payload[8],2)==1
+	l4Payload[8]=utils.UnsetBit(l4Payload[8],2)
 	flowType := int(l4Payload[8])
-
-	//记录流类型
-	if _, exists := w.fTypeRecord[specifier]; !exists {
-		w.fTypeRecord[specifier] = flowType
+	if flowType>3{
+		log.Fatalf("Invalid flow type %d\n", flowType)
 	}
 
+	//记录流类型
+	if !isSeqPkt{
+		if _, exists := w.fTypeRecord[specifier]; !exists {
+			w.fTypeRecord[specifier] = flowType
+		}
+	}
+
+
 	delayOrSeqNum :=utils.BytesToInt64(l4Payload[:8])
-
-
-
 
 	if _,exists:= w.fiveTupleToFDescForDelay[specifier];!exists{
 		w.fiveTupleToFDescForDelay[specifier]=&common.FlowDesc{
@@ -180,19 +190,21 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 
 	lossDesc:=w.fiveTupleToFDescForLoss[specifier]
 	delayDesc := w.fiveTupleToFDescForDelay[specifier]
+
 	if isSeqPkt{
 		seq:=delayOrSeqNum
-		w.seqRecord[specifier]=seq
 		periodLoss,_:=computeLoss(lossDesc,w.seqRecord[specifier],seq)
+		w.seqRecord[specifier]=seq
 		lossDesc.PeriodLoss=periodLoss
 		w.lossChannel<- lossDesc
 		delete(w.fiveTupleToFDescForLoss,specifier)
-
 	}else{
 		delay:=delayOrSeqNum
 		w.flowDelay[specifier] = append(w.flowDelay[specifier], delay)
 		delayDesc.ReceivedPackets +=1
 		lossDesc.PeriodPackets+=1
+		lossDesc.ReceivedPackets+=1
+
 	}
 
 
@@ -203,7 +215,6 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 		log.Println("flow finished")
 		delete(w.flowDelay, specifier)
 		delete(w.fTypeRecord, specifier)
-		//delete(w.pktCountRecord,specifier)
 		delete(w.seqRecord,specifier)
 		delete(w.fiveTupleToFDescForLoss,specifier)
 		delete(w.fiveTupleToFDescForDelay,specifier)
@@ -323,9 +334,9 @@ func computeLoss(desc *common.FlowDesc, lastSeqNum int64,currSeqNum int64)(float
 		//seq 包乱序
 		estimated=estimated2
 	}else{
-		// seq包丢失
 		estimated=estimated1
 	}
+	//log.Printf("%d\n",estimated)
 	return 1-float64(desc.PeriodPackets)/float64(estimated),nil
 }
 
@@ -342,6 +353,9 @@ func (w *worker) processPktStats(desc *common.FlowDesc,delays []int64) {
 	l := len(delays)
 	s := 0.0
 	for _, v := range delays {
+		if v<=0{
+			continue
+		}
 		if v > max {
 			max = v
 		}
@@ -351,12 +365,16 @@ func (w *worker) processPktStats(desc *common.FlowDesc,delays []int64) {
 		mean += float64(v) / float64(l)
 	}
 	for _, v := range delays {
+		if v<=0{
+			continue
+		}
 		d := float64(v)
 		diff := d - mean
 		s += diff * diff
 	}
 	s /= float64(l)
 	std = math.Sqrt(s)
+
 
 	desc.MinDelay=min
 	desc.MaxDelay=max

@@ -17,6 +17,9 @@ func BytesToInt64(bytes []byte)(res int64)  {
 	return res
 }
 
+/**
+start from zero
+ */
 func SetBit(b byte,n int) byte{
 	if n>=8{
 		log.Fatalf("n cannot greater than 7, given %d\n",n)

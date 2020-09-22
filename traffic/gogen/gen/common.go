@@ -157,30 +157,18 @@ func sendSeq(handle *pcap.Handle,
 	seqNum int64,
 	) (err error){
 
-	seqSrcPort:=1499
-	//保存原有的src port
-	var originalPort int
-
-	//restore port
-	defer func() {
-		if isTCP{
-			tcp.SrcPort=layers.TCPPort(originalPort)
-		}else{
-			udp.SrcPort=layers.UDPPort(originalPort)
-		}
-	}()
 
 
-	payload:=rawData[:8]
+
+	payload:=rawData[:9]
 	//reset to zero
-	for i:=0;i<8;i++{
+	for i:=0;i<9;i++{
 		payload[i]=byte(0)
 	}
 	utils.Copy(payload,0,utils.Int64ToBytes(seqNum),0,8)
+	payload[8]=utils.SetBit(payload[8],2)
 
 	if isTCP{
-		originalPort=int(tcp.SrcPort)
-		tcp.SrcPort=layers.TCPPort(seqSrcPort)
 		err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,tcp,gopacket.Payload(payload))
 		if err!=nil{
 			return err
@@ -193,8 +181,6 @@ func sendSeq(handle *pcap.Handle,
 
 	}
 
-	originalPort=int(udp.SrcPort)
-	udp.SrcPort=layers.UDPPort(seqSrcPort)
 	err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,udp,gopacket.Payload(payload))
 	if err!=nil{
 		return err

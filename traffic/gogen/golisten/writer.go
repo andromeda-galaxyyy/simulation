@@ -27,7 +27,7 @@ type writer struct {
 
 	numItemsPerFile  int64
 	dirnameGenerator DirNameGenerator
-	descChannel      chan *common.FlowDesc
+	delayChannel     chan *common.FlowDesc
 	lossChannel      chan *common.FlowDesc
 
 	delayCache []*common.FlowDesc
@@ -46,7 +46,7 @@ func NewWriter(id int, delayBaseDir string,lossBaseDir string,itemsPerFile int64
 		delayStatsDir:   delayBaseDir,
 		pktLossStatsDir: lossBaseDir,
 		numItemsPerFile: itemsPerFile,
-		descChannel:     channel,
+		delayChannel:    channel,
 		delayCache:      make([]*common.FlowDesc,0),
 	}
 
@@ -142,7 +142,7 @@ func (w *writer) Start()  {
 					//w.FlushDelayStats()
 					break
 				}
-			case f:=<-w.descChannel:
+			case f:=<-w.delayChannel:
 				w.acceptDelayDesc(f)
 				break
 			case f:=<-w.lossChannel:
@@ -163,7 +163,7 @@ func (w *writer) Start()  {
 					stopped=true
 					break loop
 				}
-			case f:=<-w.descChannel:
+			case f:=<-w.delayChannel:
 				w.acceptDelayDesc(f)
 				break
 			case f:=<-w.lossChannel:
