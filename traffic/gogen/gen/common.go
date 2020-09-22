@@ -157,15 +157,13 @@ func sendSeq(handle *pcap.Handle,
 	seqNum int64,
 	) (err error){
 
-
-
-
 	payload:=rawData[:9]
 	//reset to zero
 	for i:=0;i<9;i++{
 		payload[i]=byte(0)
 	}
 	utils.Copy(payload,0,utils.Int64ToBytes(seqNum),0,8)
+	// 第二位设置1
 	payload[8]=utils.SetBit(payload[8],2)
 
 	if isTCP{
