@@ -3,6 +3,7 @@ package main
 import (
 	"chandler.com/gogen/common"
 	"chandler.com/gogen/utils"
+	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"log"
@@ -69,6 +70,12 @@ func (w *worker) Init(){
 }
 
 func (w *worker) processPacket(packet *gopacket.Packet) {
+	//todo check panic reason
+	defer func() {
+		if r:=recover();r!=nil{
+			fmt.Println("Recover from panic")
+		}
+	}()
 	if nil==packet{
 		return
 	}

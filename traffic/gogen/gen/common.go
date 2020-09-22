@@ -63,10 +63,7 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 	for ;count>0;count--{
 		//_ = buffer.Clear()
 		payLoadPerPacket:=rawData[:payloadPerPacketSize]
-		if addTs{
-			nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
-			utils.Copy(payLoadPerPacket,0,nowMilliSeconds,0,8)
-		}
+
 		//如果是整数倍,而且这是最后一个
 		if payloadSizeBk%payloadPerPacketSize==0&&count==1{
 			if lastPayload{
@@ -75,6 +72,10 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 				//log.Println("Unset bit")
 				payLoadPerPacket[8]=utils.UnsetBit(payLoadPerPacket[8],7)
 			}
+		}
+		if addTs{
+			nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
+			utils.Copy(payLoadPerPacket,0,nowMilliSeconds,0,8)
 		}
 
 		payloadSize-=payloadPerPacketSize
@@ -109,10 +110,7 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 	}
 
 	leftPayload :=rawData[:payloadSize]
-	if addTs{
-		nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
-		utils.Copy(leftPayload,0,nowMilliSeconds,0,8)
-	}
+
 
 	if lastPayload{
 		//log.Println("Last payload, Set bit")
@@ -120,6 +118,11 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 	}else{
 		//log.Println("Unset bit")
 		leftPayload[8]=utils.UnsetBit(leftPayload[8],7)
+	}
+
+	if addTs{
+		nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
+		utils.Copy(leftPayload,0,nowMilliSeconds,0,8)
 	}
 
 	if isTCP{
@@ -254,10 +257,7 @@ func sendWithSeq(handle *pcap.Handle,
 	for ;count>0;count--{
 		//_ = buffer.Clear()
 		payLoadPerPacket:=rawData[:payloadPerPacketSize]
-		if addTs{
-			nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
-			utils.Copy(payLoadPerPacket,0,nowMilliSeconds,0,8)
-		}
+
 		//如果是整数倍,而且这是最后一个
 		if payloadSizeBk%payloadPerPacketSize==0&&count==1{
 			if lastPayload{
@@ -269,6 +269,11 @@ func sendWithSeq(handle *pcap.Handle,
 		}
 
 		payloadSize-=payloadPerPacketSize
+
+		if addTs{
+			nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
+			utils.Copy(payLoadPerPacket,0,nowMilliSeconds,0,8)
+		}
 		if isTCP{
 			err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,tcp,gopacket.Payload(payLoadPerPacket))
 			if err!=nil{
@@ -312,10 +317,7 @@ func sendWithSeq(handle *pcap.Handle,
 	}
 
 	leftPayload :=rawData[:payloadSize]
-	if addTs{
-		nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
-		utils.Copy(leftPayload,0,nowMilliSeconds,0,8)
-	}
+
 
 	if lastPayload{
 		//log.Println("Last payload, Set bit")
@@ -325,6 +327,10 @@ func sendWithSeq(handle *pcap.Handle,
 		leftPayload[8]=utils.UnsetBit(leftPayload[8],7)
 	}
 
+	if addTs{
+		nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
+		utils.Copy(leftPayload,0,nowMilliSeconds,0,8)
+	}
 	if isTCP{
 		err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,tcp,gopacket.Payload(leftPayload))
 		if err!=nil{
