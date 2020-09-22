@@ -22,6 +22,8 @@ import (
 	"time"
 )
 
+//type Specifier [5]string
+//type Seq int64
 
 
 type Generator struct {
@@ -68,6 +70,10 @@ type Generator struct {
 	flowIDToFlowDesc  map[int]*common.FlowDesc
 	writerChan        chan *common.FlowDesc
 	writer            *pktlosswriter
+
+	flowIdToSeq map[int]int64
+	periodPktCount map[int]int64
+
 }
 
 func processStats(nums []float64) (min, max, mean float64) {
@@ -353,17 +359,74 @@ func (g *Generator) Start() (err error) {
 						tcp.SrcPort = layers.TCPPort(srcPort)
 						tcp.DstPort = layers.TCPPort(dstPort)
 						ipv4.Protocol = 6
-						err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, true, true, isLastL4Payload)
-						if err != nil {
-							log.Fatal(err)
+
+						if g.enablePktLossStats{
+							updatedPeriodPktCount,updatedSeqNum,err:=sendWithSeq(
+								handle,
+								g.buffer,
+								g.rawData,
+								size,
+								g.MTU-g.EmptySize,
+								ether,
+								vlan,
+								ipv4,
+								tcp,
+								udp,
+								true,
+								true,
+								isLastL4Payload,
+								g.flowIdToSeq[flowId],
+								g.periodPktCount[flowId],
+								)
+							if err != nil {
+								log.Fatal(err)
+							}
+							g.periodPktCount[flowId]=updatedPeriodPktCount%100
+							g.flowIdToSeq[flowId]=updatedSeqNum
+						}else{
+							err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, true, true, isLastL4Payload)
+							if err != nil {
+								log.Fatal(err)
+							}
 						}
+
 					} else {
 						udp.SrcPort = layers.UDPPort(srcPort)
 						udp.DstPort = layers.UDPPort(dstPort)
 						ipv4.Protocol = 17
-						err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, false, true, isLastL4Payload)
-						if err != nil {
-							log.Fatal(err)
+						//err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, false, true, isLastL4Payload)
+						//if err != nil {
+						//	log.Fatal(err)
+						//}
+
+						if g.enablePktLossStats{
+							updatedPeriodPktCount,updatedSeqNum,err:=sendWithSeq(
+								handle,
+								g.buffer,
+								g.rawData,
+								size,
+								g.MTU-g.EmptySize,
+								ether,
+								vlan,
+								ipv4,
+								tcp,
+								udp,
+								true,
+								true,
+								isLastL4Payload,
+								g.flowIdToSeq[flowId],
+								g.periodPktCount[flowId],
+							)
+							if err != nil {
+								log.Fatal(err)
+							}
+							g.periodPktCount[flowId]=updatedPeriodPktCount%100
+							g.flowIdToSeq[flowId]=updatedSeqNum
+						}else{
+							err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, true, true, isLastL4Payload)
+							if err != nil {
+								log.Fatal(err)
+							}
 						}
 					}
 
@@ -497,6 +560,8 @@ func (g *Generator) Init() {
 			g.writer.start()
 		}()
 	}
+	g.flowIdToSeq=make(map[int]int64)
+	g.periodPktCount=make(map[int]int64)
 }
 
 func (g *Generator) reset() {
@@ -507,5 +572,8 @@ func (g *Generator) reset() {
 	g.statsToReport = make(map[int]map[string][]float64)
 
 	g.flowIDToFiveTuple = make(map[int][5]string)
+
+	g.flowIdToSeq=make(map[int]int64)
+	g.periodPktCount=make(map[int]int64)
 
 }
