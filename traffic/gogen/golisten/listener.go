@@ -176,7 +176,7 @@ func (l *Listener)Start()  {
 	wg.Wait()
 	//休息60s
 	log.Println("Wait for 10 seconds to exit gracefully")
-	time.Sleep(time.Duration(15)*time.Second)
+	time.Sleep(time.Duration(10)*time.Second)
 	log.Println("All Work done,exiting")
 }
 
