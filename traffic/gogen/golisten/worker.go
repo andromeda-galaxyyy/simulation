@@ -54,9 +54,10 @@ func (w *worker) Init(){
 	w.delayChannel =make(chan *common.FlowDesc,102400)
 	w.lossChannel=make(chan *common.FlowDesc,102400)
 
-	w.flowWriter=NewDefaultWriter(w.id, w.delayChannel)
+	w.flowWriter=NewDefaultWriter(w.id)
 
 	w.flowWriter.lossChannel=w.lossChannel
+	w.flowWriter.delayChannel=w.delayChannel
 	//w.flowWriter.delayChannel=w.delayChannel
 	w.sigChan=make(chan common.Signal,10)
 

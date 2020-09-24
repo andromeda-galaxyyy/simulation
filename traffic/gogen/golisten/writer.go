@@ -33,28 +33,27 @@ type writer struct {
 	delayCache []*common.FlowDesc
 	lossCache []*common.FlowDesc
 
-	enablePktLossStats bool
 	sigChan            chan common.Signal
 }
 
 
 
 
-func NewWriter(id int, delayBaseDir string,lossBaseDir string,itemsPerFile int64,channel chan *common.FlowDesc) *writer {
+func NewWriter(id int, delayBaseDir string,lossBaseDir string,itemsPerFile int64) *writer {
 	w:=&writer{
 		id:              id,
 		delayStatsDir:   delayBaseDir,
 		pktLossStatsDir: lossBaseDir,
 		numItemsPerFile: itemsPerFile,
-		delayChannel:    channel,
 		delayCache:      make([]*common.FlowDesc,0),
+		lossCache: make([]*common.FlowDesc,0),
 	}
 
 	return w
 }
 
-func NewDefaultWriter(id int,channel chan *common.FlowDesc)*writer {
-	return NewWriter(id,delayBaseDir,pktLossBaseDir,itemsPerFile,channel)
+func NewDefaultWriter(id int)*writer {
+	return NewWriter(id,delayBaseDir,pktLossBaseDir,itemsPerFile)
 }
 
 func (w *writer) FlushDelayStats()  {
