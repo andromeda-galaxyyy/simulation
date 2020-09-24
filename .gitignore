@@ -187,3 +187,4 @@ gogen
 db.sqlite3
 *.hostids
 *targetids
+*.txt
