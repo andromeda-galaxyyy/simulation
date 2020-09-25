@@ -150,7 +150,7 @@ if __name__ == '__main__':
 	traffic_fn = os.path.join(cache_dir, "traffic/ilp_inputs.pkl")
 	topo_fn = os.path.join(cache_dir, "topo.unlimited.pkl")
 	topo = topo_loader(topo_fn)
-	n_workers = 1
+	n_workers = 40
 	processes = []
 	ilpinputs = ilpinput_loader(traffic_fn)
 	# for _ in range(5):

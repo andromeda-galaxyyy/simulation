@@ -12,8 +12,6 @@ import cplex
 from utils.common_utils import debug, info, err
 import os
 from path_utils import get_prj_root
-from argparse import ArgumentParser
-from tmgen.models import random_gravity_tm
 from routing.instance import ILPInput, ILPOutput
 import random
 from copy import deepcopy
