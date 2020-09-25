@@ -90,12 +90,15 @@ class BasicTrafficScheduler:
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else "")
 		)
-		enable_log=(int(self.config["enable_traffic_generator_log"])==1)
+
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
+
+		enable_log=(int(self.config["enable_traffic_generator_log"])==1)
 		if enable_log:
 			fp=open(log_fn,"w")
 			pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
 		else:
+			# /dev/null
 			pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
 		return pid, self.generator_id
 
@@ -148,10 +151,17 @@ class BasicTrafficScheduler:
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else "")
 		)
-		fp=open(log_fn,"w")
 
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
-		pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
+		enable_log=(int(self.config["enable_traffic_generator_log"])==1)
+		if enable_log:
+			fp=open(log_fn,"w")
+			pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
+		else:
+			# /dev/null
+			pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
+
+		# pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
 		return pid, self.generator_id
 
 	def _do_traffic_schedule(self):
