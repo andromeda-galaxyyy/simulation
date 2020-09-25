@@ -55,6 +55,12 @@ iot list 66
 ILPInput=namedtuple("ILPInput",["video","iot","voip","ar"])
 ILPOutput=namedtuple("ILPOutput",["video","iot","voip","ar"])
 
+
+def log_ilpoutput(output:ILPOutput):
+	pass
+
+
+
 if __name__ == '__main__':
 	instance = ILPInstance([], [], [], [], {})
 	save_pkl("/tmp/demo.pkl", instance)

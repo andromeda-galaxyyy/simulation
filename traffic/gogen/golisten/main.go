@@ -36,7 +36,7 @@ func main()  {
 	enableLossStats:=flag.Bool("loss",true,"Whether enable packet loss stats")
 	items:=flag.Int64("items",20,"Number of items per file")
 
-	enablePeriodFlush:=flag.Bool("flush",false,"Whether enable period flush")
+	enablePeriodFlush:=flag.Bool("flush",true,"Whether enable period flush")
 	flushPeriod:=flag.Int64("interval",5,"Interval between two consecutive flush, in seconds")
 
 

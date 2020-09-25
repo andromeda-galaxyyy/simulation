@@ -198,7 +198,6 @@ func (w *writer) writeDelayStats(flows [] *common.FlowDesc, delayStatsFn string)
 	if err != nil {
 		log.Fatalf("cannot flush pkt delay stats file:%s\n", delayStatsFn)
 	}
-
 }
 
 func (w *writer) writePktLossStats(flows [] *common.FlowDesc,pktLossStatsFn string) {

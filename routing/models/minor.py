@@ -205,8 +205,6 @@ class Minor(Routing):
 		return tf.metrics.sparse_categorical_crossentropy(y_true,y_predict)
 
 
-class MinorDataLoader:
-	pass
 
 
 
