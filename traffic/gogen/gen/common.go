@@ -161,6 +161,9 @@ func sendSeq(handle *pcap.Handle,
 	) (err error){
 
 	payload:=rawData[:9]
+	defer func() {
+		payload[8]=utils.UnsetBit(payload[8],2)
+	}()
 	//reset to zero
 	for i:=0;i<9;i++{
 		payload[i]=byte(0)

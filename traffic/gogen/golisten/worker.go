@@ -129,13 +129,18 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 	if len(l4Payload) <9 {
 		return
 	}
-
+	isSeqPkt= utils.GetBit(l4Payload[8],2)==1
+	if isSeqPkt{
+		log.Printf("received seq packet: specifier %s,seq:%d\n,flag byte:%d\n",specifier,utils.BytesToInt64(l4Payload[:8]),l4Payload[8])
+	}
+	l4Payload[8]=utils.UnsetBit(l4Payload[8],2)
 	flowFinished := utils.GetBit(l4Payload[8], 7) == 1
+	l4Payload[8] = utils.UnsetBit(l4Payload[8], 7)
+
+
+
 
 	// 获取流类型
-	l4Payload[8] = utils.UnsetBit(l4Payload[8], 7)
-	isSeqPkt= utils.GetBit(l4Payload[8],2)==1
-	l4Payload[8]=utils.UnsetBit(l4Payload[8],2)
 	flowType := int(l4Payload[8])
 	if flowType>3{
 		log.Fatalf("Invalid flow type %d\n", flowType)
@@ -200,7 +205,14 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 	delayDesc := w.fiveTupleToFDescForDelay[specifier]
 
 	if isSeqPkt{
+		log.Printf("Specifier %s,packet len %d\n",specifier,len(l4Payload))
 		seq:=delayOrSeqNum
+		if w.seqRecord[specifier]==seq{
+			log.Fatalf("Worker %d:possible duplicate seq number %d\b",w.id,seq)
+		}
+		if w.seqRecord[specifier]>seq{
+			log.Fatalf("Worker %d:invalid seq number %d>%d\n",w.id,w.seqRecord[specifier],seq)
+		}
 		periodLoss,_:=computeLoss(lossDesc,w.seqRecord[specifier],seq)
 		w.seqRecord[specifier]=seq
 		lossDesc.PeriodLoss=periodLoss
@@ -220,7 +232,7 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 	if flowFinished {
 		//must copied
 		go w.processPktStats(delayDesc,utils.CopyInt64Slice(w.flowDelay[specifier]))
-		log.Println("flow finished")
+		//log.Println("flow finished")
 		delete(w.flowDelay, specifier)
 		delete(w.fTypeRecord, specifier)
 		delete(w.seqRecord,specifier)
@@ -263,7 +275,7 @@ func (w *worker) start(packetChannel chan gopacket.Packet, wg *sync.WaitGroup) {
 				continue
 			case <-w.tickerToWorkerSigChan:
 				// loss 统计无法跟时钟同步，但是writer的刷新行为可以跟时钟同步
-				log.Printf("Worker %d period flush",w.id)
+				//log.Printf("Worker %d period flush",w.id)
 
 				for specifier,delays:=range w.flowDelay{
 					desc:=w.fiveTupleToFDescForDelay[specifier]
@@ -277,9 +289,9 @@ func (w *worker) start(packetChannel chan gopacket.Packet, wg *sync.WaitGroup) {
 				continue
 			case sig:=<-w.sigChan:
 				if common.IsStopSignal(sig){
-					log.Printf("Worker id: %d stop requested",w.id)
+					//log.Printf("Worker id: %d stop requested",w.id)
 					//给ticker发送信号，停止计时
-					log.Printf("Worker id %d sending signal to ticker",w.id)
+					//log.Printf("Worker id %d sending signal to ticker",w.id)
 					stop2tickerChan<- common.StopSignal
 					stopped=true
 					break
@@ -329,23 +341,23 @@ only implement period loss now
  */
 func computeLoss(desc *common.FlowDesc, lastSeqNum int64,currSeqNum int64)(float64,error){
 	estimated1 :=100*(currSeqNum-lastSeqNum)
-	estimated2:=int64(0)
-
-	estimated:=int64(0)
-	if desc.PeriodPackets%100==0{
-		estimated2=desc.PeriodPackets
-	}else{
-		estimated2=(desc.PeriodPackets/100+1)*100
-	}
-
-	if desc.PeriodPackets>estimated1{
-		//seq 包乱序
-		estimated=estimated2
-	}else{
-		estimated=estimated1
-	}
+	//estimated2:=int64(0)
+	//
+	//estimated:=int64(0)
+	//if desc.PeriodPackets%100==0{
+	//	estimated2=desc.PeriodPackets
+	//}else{
+	//	estimated2=(desc.PeriodPackets/100+1)*100
+	//}
+	//
+	//if desc.PeriodPackets>estimated1{
+	//	//seq 包乱序
+	//	estimated=estimated2
+	//}else{
+	//	estimated=estimated1
+	//}
 	//log.Printf("%d\n",estimated)
-	return 1-float64(desc.PeriodPackets)/float64(estimated),nil
+	return 1-float64(desc.PeriodPackets)/float64(estimated1),nil
 }
 
 

@@ -132,7 +132,6 @@ func (l *Listener)startDispatcher(sigChan chan common.Signal)  {
 				if sendTime>=unixTimeThreshold{
 					utils.Copy(l4Payload,0,utils.Int64ToBytes(captureTime-sendTime),0,8)
 				}else{
-					// 特殊的标志包 时间戳为0
 					//utils.Copy(l4Payload,0,utils.Int64ToBytes(0),0,8)
 				}
 				if !stopRequested{

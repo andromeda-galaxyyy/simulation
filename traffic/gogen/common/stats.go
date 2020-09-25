@@ -45,7 +45,7 @@ func (f *FlowDesc) ToRxLossStats() string{
 	return fmt.Sprintf("%d %d %d %.2f %s %d %s %d %s %d",
 		f.RxStartTs,
 		f.RxEndTs,
-		f.ReceivedPackets,
+		f.PeriodPackets,
 		f.PeriodLoss,
 		f.SrcIP,
 		f.SrcPort,

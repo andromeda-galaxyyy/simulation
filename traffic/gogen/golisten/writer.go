@@ -58,7 +58,7 @@ func NewDefaultWriter(id int)*writer {
 
 func (w *writer) FlushDelayStats()  {
 	if len(w.delayCache)==0&&len(w.lossCache)==0{
-		log.Printf("writer :%d,No need to completeFlush\n",w.id)
+		//log.Printf("writer :%d,No need to completeFlush\n",w.id)
 		return
 	}
 	filename:=fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"delay")
@@ -76,7 +76,7 @@ func (w *writer) FlushDelayStats()  {
 
 func (w *writer)FlushLossStats()  {
 	if len(w.lossCache)==0{
-		log.Printf("writer :%d,No need to completeFlush\n",w.id)
+		//log.Printf("writer :%d,No need to completeFlush\n",w.id)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (w *writer) acceptDelayDesc(f *common.FlowDesc){
 	w.delayCache =append(w.delayCache,f)
 	if int64(len(w.delayCache))>=w.numItemsPerFile{
 		fn:=path.Join(w.delayStatsDir,fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"delay"))
-		log.Printf("Write pkt delay stats to file %s\n",fn)
+		//log.Printf("Write pkt delay stats to file %s\n",fn)
 		w.writeDelayStats(w.delayCache,fn)
 		w.delayCache =make([]*common.FlowDesc,0)
 	}
@@ -113,7 +113,7 @@ func (w *writer) acceptLossDesc(f *common.FlowDesc){
 	w.lossCache =append(w.lossCache,f)
 	if int64(len(w.lossCache))>=w.numItemsPerFile{
 		fn:=path.Join(w.pktLossStatsDir,fmt.Sprintf("%d.%d.%s.%s",lid,w.id,utils.NowInString(),"loss"))
-		log.Printf("Write pkt loss stats to file %s\n",fn)
+		//log.Printf("Write pkt loss stats to file %s\n",fn)
 		w.writePktLossStats(w.lossCache,fn)
 		w.lossCache =make([]*common.FlowDesc,0)
 	}
@@ -132,11 +132,11 @@ func (w *writer) Start()  {
 			select {
 			case sig:=<-w.sigChan:
 				if sig.Type==common.StopSignal.Type{
-					log.Printf("Writer id :%d stop requested",w.id)
+					//log.Printf("Writer id :%d stop requested",w.id)
 					stopped=true
 					break
 				}else if sig.Type==common.FlushSignal.Type{
-					log.Printf("Writer id: %d periodical flush",w.id)
+						//log.Printf("Writer id: %d periodical flush",w.id)
 					w.Flush()
 					//w.FlushDelayStats()
 					break
