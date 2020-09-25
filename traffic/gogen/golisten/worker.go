@@ -129,10 +129,8 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 	if len(l4Payload) <9 {
 		return
 	}
+
 	isSeqPkt= utils.GetBit(l4Payload[8],2)==1
-	if isSeqPkt{
-		log.Printf("received seq packet: specifier %s,seq:%d\n,flag byte:%d\n",specifier,utils.BytesToInt64(l4Payload[:8]),l4Payload[8])
-	}
 	l4Payload[8]=utils.UnsetBit(l4Payload[8],2)
 	flowFinished := utils.GetBit(l4Payload[8], 7) == 1
 	l4Payload[8] = utils.UnsetBit(l4Payload[8], 7)
@@ -205,13 +203,13 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 	delayDesc := w.fiveTupleToFDescForDelay[specifier]
 
 	if isSeqPkt{
-		log.Printf("Specifier %s,packet len %d\n",specifier,len(l4Payload))
+		//log.Printf("Specifier %s,packet len %d\n",specifier,len(l4Payload))
 		seq:=delayOrSeqNum
 		if w.seqRecord[specifier]==seq{
-			log.Fatalf("Worker %d:possible duplicate seq number %d\b",w.id,seq)
+			log.Printf("Worker %d:possible duplicate seq number %d\b",w.id,seq)
 		}
 		if w.seqRecord[specifier]>seq{
-			log.Fatalf("Worker %d:invalid seq number %d>%d\n",w.id,w.seqRecord[specifier],seq)
+			log.Printf("Worker %d:invalid seq number %d>%d\n",w.id,w.seqRecord[specifier],seq)
 		}
 		periodLoss,_:=computeLoss(lossDesc,w.seqRecord[specifier],seq)
 		w.seqRecord[specifier]=seq
