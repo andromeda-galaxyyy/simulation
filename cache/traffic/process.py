@@ -5,6 +5,7 @@ from path_utils import get_prj_root
 import os
 from routing.instance import ILPInput
 from itertools import product
+import random
 
 traffic_dir=os.path.join(get_prj_root(),"cache/traffic")
 files={
@@ -52,6 +53,9 @@ num=50
 res=[
 	ILPInput(video=a,iot=b,voip=c,ar=d) for a in traffic["video"][:num] for b in traffic["iot"][:num] for c in traffic["voip"][:num] for d in traffic["video"][:num]
 ]
+
+for _ in range(5):
+	random.shuffle(res)
 
 
 res_fn=os.path.join(traffic_dir,"ilp_inputs.pkl")

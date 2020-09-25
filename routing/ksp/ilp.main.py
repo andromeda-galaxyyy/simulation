@@ -1,7 +1,7 @@
 from routing.ksp.ilp2 import ILPModel
 from routing.instance import ILPInstance
 from routing.instance import ILPInput
-from routing.instance import ILPOutput
+from routing.instance import ILPOutput, log_ilpoutput
 from typing import List, Tuple, Callable
 from utils.log_utils import debug, info, err
 from routing.ksp.ilp2 import NetworkTopo
@@ -55,6 +55,7 @@ def generate_labels(worker_id: int, traffic_fn: str, topo_fn: str,
 	for idx, inp in enumerate(inputs):
 		start = now_in_seconds()
 		out = model.solve(inp)
+		log_ilpoutput(out)
 		end = now_in_seconds()
 		if out is None: continue
 		info("Solve {}th problem use seconds {}".format(idx, end - start))
@@ -82,6 +83,20 @@ def generate_labels(worker_id: int, traffic_fn: str, topo_fn: str,
 		debug("save to file {}".format(fn))
 
 
+def get_process(worker_id: int):
+	fn=os.path.join(cache_dir,"traffic/{}.process".format(worker_id))
+	if not file_exsit(fn):
+		return -1
+	with open(fn, "r") as fp:
+		return int(fp.readline())
+
+
+def save_process(worker_id: int, p: int):
+	fn=os.path.join(cache_dir,"traffic/{}.process".format(worker_id))
+	with open(fn, "w") as fp:
+		fp.write("{}\n".format(p))
+
+
 def generate_labels_worker(worker_id: int, inputs: List[ILPInput], topo: List[List[Tuple]]):
 	'''
 	:param worker_id:
@@ -89,53 +104,57 @@ def generate_labels_worker(worker_id: int, inputs: List[ILPInput], topo: List[Li
 	:param topo
 	:return:
 	'''
-	partition_idx = 0
-	partition_size = 512
+	partition_size = 128
 
+
+	last_p = get_process(worker_id)
+	info("Last process {}".format(last_p))
 	info("Loads {} ksp inputs".format(len(inputs)))
-	model = ILPModel(NetworkTopo(topo), 0)
-	output: List[ILPInstance] = []
-	for idx, inp in enumerate(inputs):
-		start = now_in_seconds()
-		out = model.solve(inp)
-		end = now_in_seconds()
-		if out is None: continue
-		info("Solve {}th problem use seconds {}".format(idx, end - start))
-		instance = ILPInstance(video=inp.video, iot=inp.iot, voip=inp.voip, ar=inp.ar, labels={
-			"video": out.video,
-			"iot": out.iot,
-			"ar": out.iot,
-			"voip": out.voip
-		})
-		output.append(instance)
-		if len(output) >= partition_size:
-			fn = os.path.join(cache_dir, "traffic/ilpoutput.{}.partition.{}.pkl".format(worker_id,
-			                                                                            partition_idx))
-			save_pkl(fn, output)
-			debug("save to file {}".format(fn))
-			partition_idx += 1
-			output = []
-		if idx == len(inputs) - 1:
-			save_pkl(
-				os.path.join(cache_dir, "traffic/ilpoutput.{}.partition.{}.pkl".format(worker_id,
-				                                                                       partition_idx)),
-				output)
 
-			fn = os.path.join(cache_dir,
-			                  "traffic/ilpoutput.{}.partition.{}.pkl".format(worker_id,
-			                                                                 partition_idx))
-			debug("save to file {}".format(fn))
+	n_partitions = len(inputs) // partition_size
+	inputs = inputs[:n_partitions * partition_size]
+
+	model = ILPModel(NetworkTopo(topo), 0)
+
+	for partition_idx in range(n_partitions):
+		if partition_idx <= last_p: continue
+		partition_inputs = inputs[
+		                   partition_idx * partition_size:(partition_idx + 1) * partition_size]
+
+		output: List[ILPInstance] = []
+		for idx, inp in enumerate(partition_inputs):
+			start = now_in_seconds()
+			out = model.solve(inp)
+			end = now_in_seconds()
+			if out is None: continue
+			log_ilpoutput(out)
+			info("Solve {}th problem use seconds {}".format(idx + partition_idx * partition_size,
+			                                                end - start))
+			instance = ILPInstance(video=inp.video, iot=inp.iot, voip=inp.voip, ar=inp.ar, labels={
+				"video": out.video,
+				"iot": out.iot,
+				"ar": out.iot,
+				"voip": out.voip
+			})
+			output.append(instance)
+
+		fn = os.path.join(cache_dir,
+		                  "traffic/ilpoutput.{}.partition.{}.pkl".format(worker_id,
+		                                                                 partition_idx))
+		save_pkl(fn, output)
+		debug("save to file {}".format(fn))
+		save_process(worker_id, partition_idx)
 
 
 if __name__ == '__main__':
 	traffic_fn = os.path.join(cache_dir, "traffic/ilp_inputs.pkl")
 	topo_fn = os.path.join(cache_dir, "topo.unlimited.pkl")
 	topo = topo_loader(topo_fn)
-	n_workers = 5
+	n_workers = 1
 	processes = []
 	ilpinputs = ilpinput_loader(traffic_fn)
-	for _ in range(5):
-		random.shuffle(ilpinputs)
+	# for _ in range(5):
+	# 	random.shuffle(ilpinputs)
 
 	info("loaded {} ilpinputs".format(len(ilpinputs)))
 	n_inputs_per_worker = len(ilpinputs) // n_workers

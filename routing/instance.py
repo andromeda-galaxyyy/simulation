@@ -1,8 +1,9 @@
 from collections import namedtuple
 from utils.file_utils import save_pkl, load_pkl
 from utils.log_utils import debug, info
-from typing import Callable, Any,List
+from typing import Callable, Any, List
 from utils.container_utils import shuffle_list
+from collections import Counter
 
 '''
 video 66*65
@@ -20,7 +21,7 @@ ILPInstance = namedtuple("ILPInstance", ["video", "iot", "voip", "ar", "labels"]
 
 
 def map_instance(instances: [ILPInstance], map_func: Callable[[ILPInstance], Any], ratio=0.7,
-                 shuffle=False)->(List[Any],List[Any]):
+                 shuffle=False) -> (List[Any], List[Any]):
 	'''
 
 	:param instances: list of ilpinstance
@@ -38,26 +39,30 @@ def map_instance(instances: [ILPInstance], map_func: Callable[[ILPInstance], Any
 	n_test = n_instances - n_train
 	info("#train:{},#test:{}", n_train, n_test)
 
-	train=[]
-	test=[]
+	train = []
+	test = []
 	for i in instances[:n_train]:
 		train.append(map_func(i))
 
 	for i in instances[n_train:]:
 		test.append(map_func(i))
-	return train,test
+	return train, test
+
 
 '''
 ilpinput
 video list 66*65
 iot list 66
 '''
-ILPInput=namedtuple("ILPInput",["video","iot","voip","ar"])
-ILPOutput=namedtuple("ILPOutput",["video","iot","voip","ar"])
+ILPInput = namedtuple("ILPInput", ["video", "iot", "voip", "ar"])
+ILPOutput = namedtuple("ILPOutput", ["video", "iot", "voip", "ar"])
 
 
-def log_ilpoutput(output:ILPOutput):
-	pass
+def log_ilpoutput(output: ILPOutput):
+	info("video: {}".format(Counter(output.video)))
+	info("iot: {}".format(Counter(output.iot)))
+	info("voip: {}".format(Counter(output.voip)))
+	info("ar: {}".format(Counter(output.ar)))
 
 
 

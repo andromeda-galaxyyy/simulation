@@ -82,6 +82,7 @@ class ILPModel:
 		self.ijk: List[List[List[List]]] = self.__cal_ijk()
 
 	def __build_problem(self):
+		info("build problem")
 		prob = cplex.Cplex()
 		prob.objective.set_sense(prob.objective.sense.minimize)
 		demand_num = len(self.src_dsts)
@@ -229,7 +230,7 @@ class ILPModel:
 		计算ksp
 		:return:
 		'''
-		ksp_file = "ksp_{}.pkl".format(self.id)
+		# ksp_file = "ksp_{}.pkl".format(self.id)
 		# ksp_file = os.path.join(cache_dir, ksp_file)
 		# if pathlib.Path(ksp_file).is_file():
 		# 	debug("find cached ksp for {}".format(self.id))
@@ -241,7 +242,7 @@ class ILPModel:
 			large_volume_paths = net.ksp(s, d, self.K)
 			low_latency_paths = net.ksp(s, d, self.K, "delay")
 			res[(s, d)] = (large_volume_paths, low_latency_paths)
-		save_pkl(ksp_file, res)
+		# save_pkl(ksp_file, res)
 		return res
 
 	def __cal_ijk(self) -> List[List[List[List]]]:
@@ -253,8 +254,8 @@ class ILPModel:
 		net = self.network
 		topo = net.g
 		ijk = [[[[0, 0, 0, 0] for _ in range(self.K)] for _ in range(topo.number_of_edges())] for _
-		       in
-		       range(len(self.src_dsts))]
+		       in range(len(self.src_dsts))]
+
 		for i, (src, dst) in enumerate(self.src_dsts):
 			large_volume_paths, low_latency_paths = self.ksp[(src, dst)]
 			edges = list(topo.edges(data=True))
@@ -279,8 +280,7 @@ class ILPModel:
 		try:
 			self.prob.solve()
 			actions = self.prob.solution.get_values()[:-1]
-			print(self.prob.solution.get_values()[-1])
-			print(len(actions))
+			# print(self.prob.solution.get_values()[-1])
 			assert len(actions) == len(self.src_dsts) * self.K * 4
 			n_demand = len(self.src_dsts)
 			# video,iot,voip,ar
@@ -294,15 +294,13 @@ class ILPModel:
 				values = []
 				for demand_idx in range(n_demand):
 					tmp = action[demand_idx * self.K:(demand_idx + 1) * self.K]
-					tmp = [round(t) for t in tmp]
-					# print(tmp)
-					# assert sum(tmp) == 1
+
 					values.append(tmp.index(max(tmp)))
-					if demand_idx == 0:
+					if flow_idx == 0:
 						video_res = values
-					elif demand_idx == 1:
+					elif flow_idx == 1:
 						iot_res = values
-					elif demand_idx == 2:
+					elif flow_idx == 2:
 						voip_res = values
 					else:
 						ar_res = values
@@ -316,14 +314,45 @@ class ILPModel:
 def test_ilp():
 	topos_fn = os.path.join(cache_dir, "topo.pkl")
 	topo = load_pkl(topos_fn)[0]
-	n_nodes = len(topo)
-	tmp = [0.001 for _ in range(66 * 65)]
+	tmp = [np.random.random()*0.02 for _ in range(66 * 65)]
 	ilp_input = ILPInput(video=deepcopy(tmp), iot=deepcopy(tmp), voip=deepcopy(tmp),
 	                     ar=deepcopy(tmp))
+	network = NetworkTopo(topo)
 	ilp_model = ILPModel(NetworkTopo(topo))
-	ilp_output = ilp_model.solve(ilp_input)
+	ilp_output= ilp_model.solve(ilp_input)
+	utility = ilp_model.prob.solution.get_values()[-1]
+	print(utility)
+	expected = -1
 
+	ksp = ilp_model.ksp
+	edges = list(network.g.edges(data=True))
+	src_dsts = ilp_model.src_dsts
+	for j in range(network.g.number_of_edges()):
+		edge_utility = 0
+		u, v, d = edges[j]
+		for i, (src, dst) in enumerate(src_dsts):
+			large_volume_paths, low_latency_paths = ksp[(src, dst)]
+			# video
+			path = large_volume_paths[ilp_output.video[i]]
+			if network.edge_in_path(u, v, path):
+				edge_utility += ilp_input.video[i]
 
+			path = low_latency_paths[ilp_output.iot[i]]
+			if network.edge_in_path(u, v, path):
+				edge_utility += ilp_input.iot[i]
+
+			path = low_latency_paths[ilp_output.voip[i]]
+			if network.edge_in_path(u, v, path):
+				edge_utility += ilp_input.voip[i]
+
+			path = low_latency_paths[ilp_output.ar[i]]
+			if network.edge_in_path(u, v, path):
+				edge_utility += ilp_input.ar[i]
+
+		expected = max(expected, edge_utility / 100)
+
+	print("fuck")
+	print(expected)
 
 
 if __name__ == '__main__':

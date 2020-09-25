@@ -188,3 +188,5 @@ db.sqlite3
 *.hostids
 *targetids
 *.txt
+
+*.zip
