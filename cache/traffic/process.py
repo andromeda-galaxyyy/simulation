@@ -51,7 +51,10 @@ debug("sorted done")
 num=50
 
 res=[
-	ILPInput(video=a,iot=b,voip=c,ar=d) for a in traffic["video"][:num] for b in traffic["iot"][:num] for c in traffic["voip"][:num] for d in traffic["video"][:num]
+	ILPInput(video=a,iot=b,voip=c,ar=d) for a in traffic["video"][:100]
+	for b in traffic["iot"][:25]
+	for c in traffic["voip"][:25]
+	for d in traffic["video"][:100]
 ]
 
 for _ in range(5):

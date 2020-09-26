@@ -10,6 +10,7 @@ from utils.file_utils import *
 from path_utils import get_prj_root
 from multiprocessing import Process
 import random
+from argparse import ArgumentParser
 
 cache_dir = os.path.join(get_prj_root(), "cache")
 satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
@@ -67,14 +68,14 @@ def generate_labels(worker_id: int, traffic_fn: str, topo_fn: str,
 		})
 		output.append(instance)
 		if len(output) >= partition_size:
-			fn = os.path.join(cache_dir, "traffic/ilpoutput.{}.partition.{}.pkl".format(worker_id,
+			fn = os.path.join(cache_dir, "traffic/ilpinstance.{}.partition.{}.pkl".format(worker_id,
 			                                                                            partition_idx))
 			save_pkl(fn, output)
 			debug("save to file {}".format(fn))
 			partition_idx += 1
 			output = []
 
-		save_pkl(os.path.join(cache_dir, "traffic/ilpoutput.{}.partition.{}.pkl".format(worker_id,
+		save_pkl(os.path.join(cache_dir, "traffic/ilpinstance.{}.partition.{}.pkl".format(worker_id,
 		                                                                                partition_idx)),
 		         output)
 
@@ -133,8 +134,8 @@ def generate_labels_worker(worker_id: int, inputs: List[ILPInput], topo: List[Li
 			instance = ILPInstance(video=inp.video, iot=inp.iot, voip=inp.voip, ar=inp.ar, labels={
 				"video": out.video,
 				"iot": out.iot,
+				"voip": out.voip,
 				"ar": out.iot,
-				"voip": out.voip
 			})
 			output.append(instance)
 
@@ -147,18 +148,24 @@ def generate_labels_worker(worker_id: int, inputs: List[ILPInput], topo: List[Li
 
 
 if __name__ == '__main__':
+	parser=ArgumentParser()
+	parser.add_argument("--workers",type=int,help="number of workers",default=2)
+	parser.add_argument("--id",type=int,help="id",default=0)
+	args=parser.parse_args()
 	traffic_fn = os.path.join(cache_dir, "traffic/ilp_inputs.pkl")
 	topo_fn = os.path.join(cache_dir, "topo.unlimited.pkl")
 	topo = topo_loader(topo_fn)
-	n_workers = 40
+	n_process = 20
 	processes = []
 	ilpinputs = ilpinput_loader(traffic_fn)
-	# for _ in range(5):
-	# 	random.shuffle(ilpinputs)
+	id_=int(args.id)
+	n_worker=int(args.workers)
+	task_per_worker=len(ilpinputs)//n_worker
+	ilpinputs=ilpinputs[id_*task_per_worker:(id_+1)*task_per_worker]
 
 	info("loaded {} ilpinputs".format(len(ilpinputs)))
-	n_inputs_per_worker = len(ilpinputs) // n_workers
-	for wid in range(n_workers):
+	n_inputs_per_worker = len(ilpinputs) // n_process
+	for wid in range(n_process):
 		inps = ilpinputs[wid * n_inputs_per_worker:(wid + 1) * n_inputs_per_worker]
 		processes.append(Process(target=generate_labels_worker, args=(wid, inps, topo)))
 
