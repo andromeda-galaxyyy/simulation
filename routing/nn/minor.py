@@ -17,6 +17,7 @@ from keras.models import load_model
 import os
 from path_utils import get_prj_root
 from keras.callbacks import ModelCheckpoint
+from routing.nn.common import persist_dir
 from routing.instance import RoutingInput, RoutingOutput
 from typing import Tuple, List, Dict
 
@@ -30,9 +31,6 @@ from tensorflow.keras.mixed_precision import experimental as mixed_precision
 # K.set_epsilon(1e-4)
 
 tf.config.experimental_run_functions_eagerly(True)
-
-persist_dir = os.path.join(get_prj_root(), "routing", "persist")
-debug("Persist dir {}".format(persist_dir))
 
 
 class Minor(Routing):

@@ -4,11 +4,18 @@ from routing.instance import *
 from typing import Tuple, List, Dict
 from routing.nn.minor import Minor
 import numpy as np
+from routing.nn.common import persist_dir
+from routing.nn.minor import Minor
 
 
 class Predictor:
 	def _load_models(self, model_dir: str):
-		pass
+		for idx in range(len(self.topo[0])):
+			fn = os.path.join(model_dir, "minor.{}.hdf5".format(idx))
+			assert file_exsit(fn)
+			model = Minor(idx, 66, 4, 3)
+			model.load_model(fn)
+			self.models.append(model)
 
 	def __init__(self, model_dir: str, topo: List[List[Tuple]]):
 		self.topo: List[List[Tuple]] = topo
@@ -37,5 +44,3 @@ class Predictor:
 			ar_actions.extend(actions[3])
 
 		return RoutingOutput(video=video_actions, iot=iot_actions, voip=voip_actions, ar=ar_actions)
-
-
