@@ -161,8 +161,7 @@ class Minor(Routing):
 		info("Predict input {} instances".format(len(data)))
 		# return shape
 		# (instance,n_flows,N-1)
-		retv = [[[-1 for _ in range(self.n_nodes - 1)] for _ in range(self.n_flows)] for _ in
-		        range(len(data))]
+
 		raw = self.model.predict(data, batch_size=4, verbose=1)
 		raw = np.asarray(raw)
 		# print(raw.shape)
@@ -239,9 +238,6 @@ class Minor(Routing):
 		# return K.softmax(tmp, -1)
 		return K.reshape(K.softmax(tmp, -1), (-1, (self.n_nodes - 1) * self.n_ksp))
 
-	# return K.reshape(tf.nn.softmax(tmp,-1),(-1,(self.n_nodes-1)*self.n_ksp))
-	# return res
-
 	def metric(self, y_true, y_predict):
 		# y_true shape (instance,(n_nodes-1))
 		# y_predict shape(instance,n_nodes-1,ksp)
@@ -250,8 +246,6 @@ class Minor(Routing):
 		# m=tf.keras.metrics.SparseCategoricalAccuracy()
 		# m.update_state(y_true,y_predict)
 		return tf.metrics.sparse_categorical_crossentropy(y_true, y_predict)
-
-
 
 
 if __name__ == '__main__':
@@ -280,4 +274,4 @@ if __name__ == '__main__':
 	model.load_model(fn)
 	p = model.predict(x_test)
 	print(p.shape)
-	# print(p.tolist())
+# print(p.tolist())

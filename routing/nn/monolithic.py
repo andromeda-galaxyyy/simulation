@@ -1,3 +1,5 @@
+from abc import ABC
+
 from keras import Sequential
 import keras
 from keras.models import Model
@@ -20,6 +22,7 @@ from argparse import ArgumentParser
 from collections import namedtuple
 from typing import Tuple, List, Dict
 from routing.nn.base import Routing
+import tensorflow as tf
 
 Instance = namedtuple("Instance", "features labels")
 
@@ -28,96 +31,71 @@ module_dir = os.path.join(get_prj_root(), "routing")
 models_dir = os.path.join(get_prj_root(), "routing/nn")
 
 
-class Dumb(Routing):
-	def __init__(self, id_="dumb"):
-		super(Dumb, self).__init__(id_)
+class Monolithic(Routing):
+	def __init__(self, id_, num_nodes: int, num_flows: int, num_ksp: int):
+		super(Monolithic, self).__init__(id_)
+		self.n_nodes: int = num_nodes
+		self.n_flows: int = num_flows
+		self.n_ksp: int = num_ksp
+		self.model: Model = None
 
-	def fit(self, train, test):
-		pass
+	def softmax(self, data):
+		# data ninstance,(n_ndoes-1)*n_nodes*k
+		k = self.n_ksp
+		N = self.n_nodes
+		tmp = K.reshape(data, (-1, (N - 1) * N, k))
+		return K.reshape(K.softmax(tmp, -1), (-1, (N - 1) * N * k))
 
-	def predict(self, data=None):
-		res1 = []
-		res2 = []
-		demands = 66 * 65
-		k = 5
-		n_samples = 66 * 65 * 2
-		n_classes = k
-		x = np.zeros((n_samples, n_classes))
-		J = np.random.choice(n_classes, n_samples)
-		x[np.arange(n_samples), J] = 1
-		return x[0:66 * 65], x[66 * 65:]
+	def metric(self, y_true, y_predict):
+		k = self.n_ksp
+		N = self.n_nodes
+		y_true = K.reshape(y_true, (-1, N * (N - 1)))
+		y_predict = K.reshape(y_predict, (-1, N * (N - 1), k))
+		return tf.metrics.sparse_categorical_crossentropy(y_true, y_predict)
 
-	def save_model(self, fn):
-		pass
+	def cost(self, y_true, y_predict):
+		k = self.n_ksp
+		N = self.n_nodes
+		y_true = K.reshape(y_true, (-1, (N - 1) * N))
+		y_predict = K.reshape(y_predict, (-1, N * (N - 1), k))
+		return K.sum(K.sparse_categorical_crossentropy(y_true, y_predict))
 
-	def load_model(self, fn):
-		pass
-
-
-class NN(Routing):
-	def __init__(self, num_of_action=66 * 65 * 2, id_="NN", mode="train"):
-		super(NN, self).__init__(id_)
-		self.num_of_action = num_of_action
-		self.action_dim = 5
-		self.model: keras.models.Model = None
-		if mode == "train":
-			self.__build_model()
-		else:
-			fn = os.path.join(models_dir, "{}.hdf5".format(self.id))
-			self.load_model(fn)
-
-	def __build_model(self):
-		feature_dim = self.num_of_action
+	def build(self):
+		feature_dim = self.n_flows * (self.n_nodes - 1) * self.n_nodes
+		output_dim = self.n_nodes * (self.n_nodes - 1) * self.n_ksp
 		inp = Input(shape=(feature_dim,))
-		x = Dense(units=feature_dim * 2, activation="relu", input_shape=(feature_dim,))(inp)
+		x = BatchNormalization()(inp)
+		x = Dense(units=feature_dim//4,
+		          activation="relu",
+		          input_shape=(feature_dim//4,))(x)
+		outputs = {}
+		losses = {}
+		weights = {}
+		metrics = {}
 
-		x = BatchNormalization()(x)
-		x = Dense(units=feature_dim, activation="relu", input_shape=(feature_dim * 2,))(x)
+		for flow_idx in range(self.n_flows):
+			name = "output{}".format(flow_idx)
+			o = Dense(
+				units=output_dim,
+				activation=self.softmax,
+				input_dim=(feature_dim//4,),
+				name="output{}".format(flow_idx)
+			)(x)
+			outputs[name] = o
+			weights[name] = 1
+			losses[name] = self.cost
+			metrics[name] = self.metric
 
-		x = Dense(units=8192, activation="relu", input_shape=(feature_dim,))(x)
-		x = BatchNormalization()(x)
-		x = Dense(units=8192, activation="relu", input_shape=(8192,))(x)
-		x = Dropout(rate=0.1)(x)
-		# model.add(Dense(units=8192,activation="relu",input_shape=(8192,)))
-		# model.add(Dense(units=8192,activation="relu",input_shape=(8192,)))
-
-		x = Dense(units=feature_dim, activation="relu", input_shape=(8192,))(x)
-
-		output1 = Dense(units=feature_dim // 2 * 5, activation=NN.custom_softmax,
-		                input_dim=(feature_dim,), name="output1")(x)
-		output2 = Dense(units=feature_dim // 2 * 5, activation=NN.custom_softmax,
-		                input_dim=(feature_dim,), name="output2")(x)
-		self.model = Model(inp, [output1, output2])
-
-		adam = Adam(lr=0.001, decay=1e-6)
+		self.model = Model(inp, list(outputs.values()))
+		opt = Adam()
 		self.model.compile(
-			loss={"output1": NN.custom_cost, "output2": NN.custom_cost},
-			loss_weights={"output1": 1, "output2": 1},
-			optimizer=adam,
-			metrics=["mse"])
-
-		debug("model compiled")
-
-	@staticmethod
-	def custom_softmax(t):
-		sh = K.shape(t)
-		k = 5
-		partial_sm = []
-		for i in range(66 * 65):
-			partial_sm.append(K.softmax(t[:, i * k:(i + 1) * k]))
-		return K.concatenate(partial_sm)
-
-	@staticmethod
-	def custom_cost(y_true, y_pred):
-		y_true = K.reshape(y_true, (-1, 66 * 65, 5))
-		y_pred = K.reshape(y_pred, (-1, 66 * 65, 5))
-		return K.sum(K.categorical_crossentropy(y_true, y_pred))
-
-	@staticmethod
-	def sparse_cross_entropy_cost(y_true, y_pred):
-		y_pred = K.reshape(y_pred, (-1, 66 * 65, 5))
-		y_true = K.reshape(y_true, (-1, 66 * 65))
-		return K.sum(K.sparse_categorical_crossentropy(y_true, y_pred))
+			loss=losses,
+			loss_weights=weights,
+			optimizer=opt,
+			metrics=metrics,
+		)
+		debug("Monolithic model compiled")
+		self.model.summary()
 
 	def fit(self, train, test):
 		'''
@@ -129,35 +107,51 @@ class NN(Routing):
 		'''
 		x_train, y_train = train
 		assert len(x_train) == len(y_train)
-		y_train_1 = y_train[:, 0:66 * 65 * 5]
-		y_train_2 = y_train[:, 66 * 65 * 5:]
+		self.assert_shape(x_train)
+		self.assert_shape(y_train, False)
 
-		x_test, y_test = test
-		assert len(x_test) == len(y_test)
-		y_test_1 = y_test[:, 0:66 * 65 * 5]
-		y_test_2 = y_test[:, 66 * 65 * 5:]
+		x_validate, y_validate = test
+		assert len(x_validate) == len(y_validate)
+		self.assert_shape(x_validate)
+		self.assert_shape(y_validate, False)
 
 		debug("loaded {} train instances".format(len(x_train)))
-		debug("loaded {} test instances".format(len(x_test)))
-		ckt_fn = os.path.join(models_dir, "{}.hdf5".format(self.id))
+		debug("loaded {} test instances".format(len(x_validate)))
+		ckt_fn = os.path.join(models_dir, "{}.hdf5".format(self.id_))
+
 		checkpoint = ModelCheckpoint(ckt_fn,
 		                             monitor="loss",
 		                             verbose=1, save_best_only=True,
 		                             mode="auto",
 		                             period=1)
 		debug("data prepared starting to fit")
+		outputs = {}
+		validate_outputs = {}
+		for idx in range(self.n_flows):
+			name = "output{}".format(idx)
+			outputs[name] = y_train[:,idx, :]
+			validate_outputs[name] = y_validate[:, idx, :]
+
 		history = self.model.fit(
 			x_train,
-			{"output1": y_train_1, "output2": y_train_2},
+			outputs,
 			epochs=10,
-			validation_data=(x_test, {"output1": y_test_1, "output2": y_test_2}),
+			batch_size=32,
+			validation_data=(x_validate, validate_outputs),
 			callbacks=[checkpoint]
 		)
-		history_fn = os.path.join(models_dir, "history_{}.pkl".format(self.id))
+		history_fn = os.path.join(models_dir, "history_{}.pkl".format(self.id_))
 		save_pkl(history_fn, history.history)
+		debug("Monolithic model {} history saved to {}".format(self.id_, history_fn))
 
 	def predict(self, data):
-		return self.model.predict(data, verbose=1)
+		self.assert_shape(data)
+		info("Predict input {} instances".format(len(data)))
+		raw = self.model.predict(data, batch_size=4, verbose=1)
+		raw = np.asarray(raw)
+		instance = len(data)
+		raw = raw.reshape((instance, self.n_flows, self.n_nodes * (self.n_nodes - 1), self.n_ksp))
+		return raw.argmax(-1)
 
 	def save_model(self, fn=None):
 		if fn is None:
@@ -168,141 +162,42 @@ class NN(Routing):
 		if fn is None:
 			fn = os.path.join(models_dir, "{}.hdf5".format(self.id))
 		check_file(fn)
-		self.model = load_model(fn, custom_objects={"custom_softmax": NN.custom_softmax,
-		                                            "custom_cost": NN.custom_cost})
+		self.model = load_model(fn, custom_objects={"softmax":self.softmax,
+		                                            "cost":self.cost,
+		                                            "metric":self.metric})
 
+	def assert_shape(self, data: np.ndarray, is_x: bool = True):
+		shape = data.shape
+		assert len(data) >= 2
+		if is_x:
+			assert shape[1] == self.n_flows * (self.n_nodes - 1) * self.n_nodes
+			return
 
-def map_to_instance(obj):
-	tms, res, _ = obj
-	assert len(tms) == 66 * 65 * 2
-	assert len(res) == 66 * 65 * 2 + 2
-	# discard utility and weighted
-	res = res[:-2]
-	tms = [t[0] for t in tms]
-	# 归一化
-	tms = normalize(tms)
-	labels1 = []
-	for x in res[0:66 * 65]:
-		tmp = [0 for _ in range(5)]
-		tmp[x] = 1
-		labels1.extend(tmp)
-	labels2 = []
-	for x in res[66 * 65:]:
-		tmp = [0 for _ in range(5)]
-		tmp[x] = 1
-		labels2.extend(tmp)
-	return tms, labels1, labels2
+		# y_shape==(instance,n_flows,(n-1)*n)
+		assert shape[1] == self.n_flows
+		assert shape[2] == self.n_nodes * (self.n_nodes - 1)
 
-
-def generate_instances(model_id="NN", map_func=map_to_instance, ratio=0.7) -> Tuple[
-	Tuple[ndarray, ndarray], Tuple[ndarray, ndarray]]:
-	'''
-	generate nn train and test instances from raw labels
-	:param ratio:
-	:param map_func:
-	:param model_id:
-	:return: train_instances,test_instances
-	train_instances: (features,label1,label2)
-	'''
-	instances_dir = os.path.join(module_dir, "instances/0")
-	instances_fn = os.path.join(instances_dir, "instances_{}".format(model_id))
-	if file_exsit(instances_fn):
-		debug("instances file exists,loading")
-		return load_pkl(instances_fn)
-	# generate instance_fn
-	raw_label_dir = os.path.join(models_dir, "raw_labels/0")
-	'''
-	文件夹下的每个文件都是一个raw instance 
-	'''
-	instances = []
-	for raw_instance_fn in list(os.listdir(raw_label_dir)):
-		if ".pkl" not in raw_instance_fn: continue
-		'''
-		每个raw_instance 的格式为 (tm,res(决策、utility、weighted_delay,obj)
-		'''
-		features, label1, label2 = map_func(load_pkl(os.path.join(raw_label_dir, raw_instance_fn)))
-		# simpy append
-		label1.extend(label2)
-		#
-		assert len(label1) == 66 * 65 * 10
-		instance = Instance(features=features, labels=label1)
-		instances.append(instance)
-	random.shuffle(instances)
-
-	n_train = int(len(instances) * ratio)
-	train_instances = instances[0:n_train]
-	x_train = [ins.features for ins in train_instances]
-	x_train = np.asarray(x_train)
-	y_train = [ins.labels for ins in train_instances]
-	y_train = np.asarray(y_train)
-	test_instances = instances[n_train:]
-	x_test = [ins.features for ins in test_instances]
-	x_test = np.asarray(x_test)
-	y_test = [ins.labels for ins in test_instances]
-	y_test = np.asarray(y_test)
-
-	debug("loaded {} train instances".format(len(train_instances)))
-	debug("loaded {} test instances".format(len(test_instances)))
-
-	save_pkl(instances_fn, ((x_train, y_train), (x_test, y_test)))
-	info("save instances")
-	return (x_train, y_train), (x_test, y_test)
-
-
-def train():
-	debug("Train mode")
-
-
-def test():
-	debug("Test mode")
-
-
-def run_demo():
-	debug("Demo mode")
-	n_instances = 64
-	features = []
-	labels = []
-	for _ in range(n_instances):
-		f = normalize([np.random.uniform(10, 20) for _ in range(66 * 65 * 2)])
-		features.append(f)
-		ll = []
-		for _ in range(66 * 65):
-			for _ in range(2):
-				temp = [0 for _ in range(5)]
-				temp[np.random.randint(0, 5)] = 1
-				ll.extend(temp)
-		labels.append(ll)
-	# labels.append([np.random.randint(0,5) for _ in range(66*65*2)])
-
-	features = np.asarray(features)
-	labels = np.asarray(labels)
-	# assert len(labels[0])==66*65*10
-
-	train = (features[0:50], labels[0:50])
-	test = (features[50:], labels[50:])
-
-	model = NN()
-	model.fit(train, test)
+	def plot(self, fn):
+		pass
 
 
 if __name__ == '__main__':
-	parser = ArgumentParser()
-	print("mode:\n"
-	      "1 generate instances from raw labels\n"
-	      "2 train network\n"
-	      "3 test network\n"
-	      "4 run train network demo")
-	parser.add_argument("--mode", type=int, help="run script in which mode", default=4)
-	args = parser.parse_args()
-	mode = int(args.mode)
-	if mode == 1:
-		generate_instances()
-	elif mode == 2:
-		train()
-	elif mode == 3:
-		test()
-	elif mode == 4:
-		run_demo()
-	else:
-		err("Invalid argument")
-		exit(-1)
+	N = 66
+	n_flows = 4
+	n_instance = 4
+	n_ksp = 3
+	x = 100 * np.random.rand(n_instance, N * (N - 1) * n_flows)
+	y=np.asarray(
+		[[[2 for _ in range(N*(N-1))] for _ in range(n_flows)] for _ in range(n_instance)]
+	)
+	model=Monolithic(1,N,n_flows,n_ksp)
+	model.build()
+	model.fit((x,y),(x,y))
+	fn = "/tmp/model.hdf5"
+	model.save_model(fn)
+
+	model = Monolithic(1, N, n_flows, n_ksp)
+
+	model.load_model(fn)
+	p = model.predict(x)
+	print(p.shape)

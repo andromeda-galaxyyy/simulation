@@ -12,10 +12,11 @@ import cplex
 from utils.common_utils import debug, info, err
 import os
 from path_utils import get_prj_root
-from routing.instance import RoutingInput, RoutingOutput
+from routing.instance import RoutingInput, RoutingOutput,RoutingInstance
 import random
 from copy import deepcopy
 from common.Graph import NetworkTopo
+from routing.evaluator import RoutingEvaluator
 
 matplotlib.use('agg')
 cache_dir = os.path.join(get_prj_root(), "cache")
@@ -278,41 +279,24 @@ def test_ilp():
 	                         voip=[np.random.random()*0.02 for _ in range(66 * 65)],
 	                         ar=[np.random.random()*0.02 for _ in range(66 * 65)])
 	network = NetworkTopo(topo)
-	ilp_model = ILPModel(NetworkTopo(topo))
-	ilp_output= ilp_model.__call__(ilp_input)
+	ilp_model = ILPModel(network)
+	ilp_output= ilp_model(ilp_input)
 	utility = ilp_model.prob.solution.get_values()[-1]
 	print(utility)
-	expected = -1
-
-	ksp = ilp_model.ksp
-	edges = list(network.g.edges(data=True))
-	src_dsts = ilp_model.src_dsts
-	for j in range(network.g.number_of_edges()):
-		edge_utility = 0
-		u, v, d = edges[j]
-		for i, (src, dst) in enumerate(src_dsts):
-			large_volume_paths, low_latency_paths = ksp[(src, dst)]
-			# video
-			path = large_volume_paths[ilp_output.video[i]]
-			if network.edge_in_path(u, v, path):
-				edge_utility += ilp_input.video[i]
-
-			path = low_latency_paths[ilp_output.iot[i]]
-			if network.edge_in_path(u, v, path):
-				edge_utility += ilp_input.iot[i]
-
-			path = low_latency_paths[ilp_output.voip[i]]
-			if network.edge_in_path(u, v, path):
-				edge_utility += ilp_input.voip[i]
-
-			path = low_latency_paths[ilp_output.ar[i]]
-			if network.edge_in_path(u, v, path):
-				edge_utility += ilp_input.ar[i]
-
-		expected = max(expected, edge_utility / 100)
-
+	evaluator=RoutingEvaluator(topo,3)
 	print("fuck")
-	print(expected)
+	print(evaluator(RoutingInstance(
+		video=ilp_input.video,
+		iot=ilp_input.iot,
+		voip=ilp_input.voip,
+		ar=ilp_input.ar,
+		labels={
+			"video":ilp_output.video,
+			"iot":ilp_output.iot,
+			"voip":ilp_output.voip,
+			"ar":ilp_output.ar
+		}
+	)))
 
 
 if __name__ == '__main__':
