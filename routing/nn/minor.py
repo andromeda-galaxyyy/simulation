@@ -1,7 +1,7 @@
 from abc import ABC
 
 import keras
-from routing.models.sgd16 import SGDMultiType
+from routing.nn.sgd16 import SGDMultiType
 from keras.models import Model
 from keras.layers import Dense, Dropout, BatchNormalization, Input
 from keras.optimizers import Adam, Adagrad, Adadelta, SGD
@@ -12,11 +12,14 @@ import numpy  as np
 import tensorflow as tf
 from utils.file_utils import load_json, load_pkl, save_pkl
 from utils.log_utils import debug, info, err
-from routing.models.base import Routing
+from routing.nn.base import Routing
 from keras.models import load_model
 import os
 from path_utils import get_prj_root
 from keras.callbacks import ModelCheckpoint
+from routing.instance import RoutingInput, RoutingOutput
+from typing import Tuple, List, Dict
+
 from tensorflow.keras.mixed_precision import experimental as mixed_precision
 
 # tf.keras.mixed_precision.experimental.set_policy("default_mixed")
@@ -109,12 +112,12 @@ class Minor(Routing):
 		inp = Input(shape=(feature_dim,))
 		x = BatchNormalization()(inp)
 		# x=inp
-		x = Dense(units=feature_dim//16,
+		x = Dense(units=feature_dim // 16,
 		          activation="relu",
 		          input_shape=(feature_dim,), )(x)
-		x = Dense(units=feature_dim//16,
+		x = Dense(units=feature_dim // 16,
 		          activation="relu",
-		          input_shape=(feature_dim//16,), )(x)
+		          input_shape=(feature_dim // 16,), )(x)
 
 		x = Dense(units=feature_dim // 8,
 		          activation="relu",
@@ -251,9 +254,11 @@ class Minor(Routing):
 		return tf.metrics.sparse_categorical_crossentropy(y_true, y_predict)
 
 
+
+
 if __name__ == '__main__':
-	N = 10
-	n_flows = 3
+	N = 66
+	n_flows = 4
 	n_instance = 4
 	n_ksp = 3
 	x_train = 100 * np.random.rand(n_instance, N * (N - 1) * n_flows)
@@ -277,4 +282,4 @@ if __name__ == '__main__':
 	model.load_model(fn)
 	p = model.predict(x_test)
 	print(p.shape)
-	print(p.tolist())
+	# print(p.tolist())

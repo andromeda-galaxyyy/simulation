@@ -9,7 +9,7 @@ from path_utils import get_prj_root
 import numpy as np
 
 random.seed(datetime.now())
-model_dir = os.path.join(get_prj_root(), "classify/models")
+model_dir = os.path.join(get_prj_root(), "classify/nn")
 dt_model_pkl = os.path.join(model_dir, "dt.pkl")
 
 Instance = namedtuple("Instance", ["features", "label"])

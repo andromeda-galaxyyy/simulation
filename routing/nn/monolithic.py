@@ -19,13 +19,13 @@ import random
 from argparse import ArgumentParser
 from collections import namedtuple
 from typing import Tuple, List, Dict
-from routing.models.base import Routing
+from routing.nn.base import Routing
 
 Instance = namedtuple("Instance", "features labels")
 
 module_dir = os.path.join(get_prj_root(), "routing")
 
-models_dir = os.path.join(get_prj_root(), "routing/models")
+models_dir = os.path.join(get_prj_root(), "routing/nn")
 
 
 class Dumb(Routing):

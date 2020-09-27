@@ -1,12 +1,12 @@
-from routing.models.minor import Minor
+from routing.nn.minor import Minor
 from utils.file_utils import *
 from utils.log_utils import debug, info, err
 from argparse import ArgumentParser
 from multiprocessing import Process
 from typing import List, Dict, Tuple, Any
 import numpy as np
-from routing.instance import ILPInput
-from routing.instance import ILPInstance, map_instance
+from routing.instance import RoutingInput,RoutingOutput
+from routing.instance import RoutingInstance, map_instance
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -24,14 +24,14 @@ N=66
 '''
 
 
-def load_ilp_dataset(fn: str) -> List[ILPInstance]:
+def load_ilp_dataset(fn: str) -> List[RoutingInstance]:
 	dataset = load_pkl(fn)
 	return dataset
 
 
-def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset: List[ILPInstance],
+def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset: List[RoutingInstance],
                  ratio=0.7, shuffle=False):
-	def mapper(instance: ILPInstance) -> Tuple[List, List]:
+	def mapper(instance: RoutingInstance) -> Tuple[List, List]:
 		traffic_matrix = []
 		labels = []
 		traffic_matrix.extend(instance.video)

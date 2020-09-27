@@ -12,9 +12,10 @@ import cplex
 from utils.common_utils import debug, info, err
 import os
 from path_utils import get_prj_root
-from routing.instance import ILPInput, ILPOutput
+from routing.instance import RoutingInput, RoutingOutput
 import random
 from copy import deepcopy
+from common.Graph import NetworkTopo
 
 matplotlib.use('agg')
 cache_dir = os.path.join(get_prj_root(), "cache")
@@ -22,46 +23,6 @@ satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
 static_dir = os.path.join(get_prj_root(), "static")
 
 
-class NetworkTopo:
-	def __init__(self, topo: List[List[Tuple]]):
-		self.g = self.__gen_graph(topo)
-		self.weights = []
-
-	# self.plot()
-
-	def __gen_graph(self, topo: List[List[Tuple]]):
-		g = nx.Graph()
-		num_nodes = len(topo)
-		g.add_nodes_from(list(range(num_nodes)))
-		for i in range(num_nodes):
-			for j in range(i + 1, num_nodes):
-				if -1 in topo[i][j]: continue
-				capacity, delay, loss, sc = topo[i][j]
-				assert capacity >= 0
-				g.add_edge(i, j, weight=4000 / capacity, capacity=capacity, delay=delay, sc=sc,
-				           loss=loss)
-
-		return g
-
-	@staticmethod
-	def edge_in_path(u, v, path: List[int]):
-		if u not in path: return False
-		if v not in path: return False
-		return abs(path.index(u) - path.index(v)) == 1
-
-	def plot(self):
-		g = self.g
-		pos = nx.spring_layout(g)
-		nx.draw_networkx_nodes(g, pos, node_size=600)
-		nx.draw_networkx_edges(g, pos, edgelist=[(u, v) for (u, v, d) in g.edges(data=True)])
-		nx.draw_networkx_labels(g, pos)
-		plt.axis('off')
-		plt.show()
-
-	def ksp(self, source, target, k, weight="capacity"):
-		if weight == "capacity":
-			return list(islice((nx.shortest_simple_paths(self.g, source, target, "weight")), k))
-		return list(islice((nx.shortest_simple_paths(self.g, source, target, "delay")), k))
 
 
 class ILPModel:
@@ -75,7 +36,7 @@ class ILPModel:
 		self.ksp = self.__cal_ksp()
 		# 流量要求 （带宽、时延）
 		self.demands: List[Tuple] = None
-		self.input: ILPInput = None
+		self.input: RoutingInput = None
 		self.prob: cplex.Cplex = None
 		self.ijk: List[List[List[List]]] = self.__cal_ijk()
 
@@ -152,7 +113,7 @@ class ILPModel:
 	def __build_capacity_constraints(self):
 		net = self.network
 		num_src_dsts = len(self.src_dsts)
-		ilp_input: ILPInput = self.input
+		ilp_input: RoutingInput = self.input
 		# list[0]=volume
 		video_demands = ilp_input.video
 		iot_demands = ilp_input.iot
@@ -271,7 +232,7 @@ class ILPModel:
 						ijk[i][j][k][3] = 1
 		return ijk
 
-	def solve(self, ilp_input: ILPInput) -> ILPOutput:
+	def __call__(self, ilp_input: RoutingInput) -> RoutingOutput:
 		self.input = ilp_input
 		self.__build_problem()
 		self.__build_constraints()
@@ -303,7 +264,7 @@ class ILPModel:
 					else:
 						ar_res = values
 
-			return ILPOutput(video_res, iot_res, voip_res, ar_res)
+			return RoutingOutput(video_res, iot_res, voip_res, ar_res)
 		except cplex.exceptions.CplexSolverError as exc:
 			err(exc)
 			return None
@@ -312,13 +273,13 @@ class ILPModel:
 def test_ilp():
 	topos_fn = os.path.join(cache_dir, "topo.pkl")
 	topo = load_pkl(topos_fn)[0]
-	ilp_input = ILPInput(video=[np.random.random()*0.02 for _ in range(66 * 65)],
-	                     iot=[np.random.random()*0.02 for _ in range(66 * 65)],
-	                     voip=[np.random.random()*0.02 for _ in range(66 * 65)],
-	                     ar=[np.random.random()*0.02 for _ in range(66 * 65)])
+	ilp_input = RoutingInput(video=[np.random.random() * 0.02 for _ in range(66 * 65)],
+	                         iot=[np.random.random()*0.02 for _ in range(66 * 65)],
+	                         voip=[np.random.random()*0.02 for _ in range(66 * 65)],
+	                         ar=[np.random.random()*0.02 for _ in range(66 * 65)])
 	network = NetworkTopo(topo)
 	ilp_model = ILPModel(NetworkTopo(topo))
-	ilp_output= ilp_model.solve(ilp_input)
+	ilp_output= ilp_model.__call__(ilp_input)
 	utility = ilp_model.prob.solution.get_values()[-1]
 	print(utility)
 	expected = -1

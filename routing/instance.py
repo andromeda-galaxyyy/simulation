@@ -17,10 +17,10 @@ labels=dict{
 "ar":66*65,list
 }
 '''
-ILPInstance = namedtuple("ILPInstance", ["video", "iot", "voip", "ar", "labels"])
+RoutingInstance = namedtuple("RoutingInstance", ["video", "iot", "voip", "ar", "labels"])
 
 
-def map_instance(instances: [ILPInstance], map_func: Callable[[ILPInstance], Any], ratio=0.7,
+def map_instance(instances: [RoutingInstance], map_func: Callable[[RoutingInstance], Any], ratio=0.7,
                  shuffle=False) -> (List[Any], List[Any]):
 	'''
 
@@ -54,11 +54,12 @@ ilpinput
 video list 66*65
 iot list 66
 '''
-ILPInput = namedtuple("ILPInput", ["video", "iot", "voip", "ar"])
-ILPOutput = namedtuple("ILPOutput", ["video", "iot", "voip", "ar"])
+RoutingInput = namedtuple("RoutingInput", ["video", "iot", "voip", "ar"])
+RoutingOutput = namedtuple("RoutingOutput", ["video", "iot", "voip", "ar"])
 
 
-def log_ilpoutput(output: ILPOutput):
+def log_ilpoutput(output: RoutingOutput):
+
 	info("video: {}".format(Counter(output.video)))
 	info("iot: {}".format(Counter(output.iot)))
 	info("voip: {}".format(Counter(output.voip)))
@@ -67,6 +68,6 @@ def log_ilpoutput(output: ILPOutput):
 
 
 if __name__ == '__main__':
-	instance = ILPInstance([], [], [], [], {})
+	instance = RoutingInstance([], [], [], [], {})
 	save_pkl("/tmp/demo.pkl", instance)
 	instance = load_pkl("/tmp/demo.pkl")

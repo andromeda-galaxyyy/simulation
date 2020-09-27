@@ -1,10 +1,10 @@
-from routing.ksp.ilp2 import ILPModel
-from routing.instance import ILPInstance
-from routing.instance import ILPInput
-from routing.instance import ILPOutput, log_ilpoutput
+from routing.ksp.ilp import ILPModel
+from routing.instance import RoutingInstance
+from routing.instance import RoutingInput
+from routing.instance import RoutingOutput, log_ilpoutput
 from typing import List, Tuple, Callable
 from utils.log_utils import debug, info, err
-from routing.ksp.ilp2 import NetworkTopo
+from routing.ksp.ilp import NetworkTopo
 from utils.time_utils import now_in_seconds
 from utils.file_utils import *
 from path_utils import get_prj_root
@@ -17,7 +17,7 @@ satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
 static_dir = os.path.join(get_prj_root(), "static")
 
 
-def ilpinput_loader(fn: str) -> List[ILPInput]:
+def ilpinput_loader(fn: str) -> List[RoutingInput]:
 	'''
 	read file specified by fn,generate ilpinput
 	:param fn:
@@ -36,7 +36,7 @@ def topo_loader(fn: str) -> List[List[Tuple]]:
 
 
 def generate_labels(worker_id: int, traffic_fn: str, topo_fn: str,
-                    traffic_loader_func: Callable[[str], List[ILPInput]],
+                    traffic_loader_func: Callable[[str], List[RoutingInput]],
                     topo_loader_func: Callable[[str], List[List[Tuple]]]):
 	'''
 	:param topo_loader_func:
@@ -47,20 +47,20 @@ def generate_labels(worker_id: int, traffic_fn: str, topo_fn: str,
 	'''
 	partition_idx = 0
 	partition_size = 1024
-	inputs: List[ILPInput] = traffic_loader_func(traffic_fn)
+	inputs: List[RoutingInput] = traffic_loader_func(traffic_fn)
 	info("Loads {} ksp inputs".format(len(inputs)))
 
 	topo = topo_loader_func(topo_fn)
 	model = ILPModel(NetworkTopo(topo), 0)
-	output: List[ILPInstance] = []
+	output: List[RoutingInstance] = []
 	for idx, inp in enumerate(inputs):
 		start = now_in_seconds()
-		out = model.solve(inp)
+		out = model.__call__(inp)
 		log_ilpoutput(out)
 		end = now_in_seconds()
 		if out is None: continue
 		info("Solve {}th problem use seconds {}".format(idx, end - start))
-		instance = ILPInstance(video=inp.video, iot=inp.iot, voip=inp.voip, ar=inp.ar, labels={
+		instance = RoutingInstance(video=inp.video, iot=inp.iot, voip=inp.voip, ar=inp.ar, labels={
 			"video": out.video,
 			"iot": out.iot,
 			"ar": out.iot,
@@ -98,7 +98,7 @@ def save_process(worker_id: int, p: int):
 		fp.write("{}\n".format(p))
 
 
-def generate_labels_worker(worker_id: int, inputs: List[ILPInput], topo: List[List[Tuple]]):
+def generate_labels_worker(worker_id: int, inputs: List[RoutingInput], topo: List[List[Tuple]]):
 	'''
 	:param worker_id:
 	:param inputs:
@@ -122,16 +122,16 @@ def generate_labels_worker(worker_id: int, inputs: List[ILPInput], topo: List[Li
 		partition_inputs = inputs[
 		                   partition_idx * partition_size:(partition_idx + 1) * partition_size]
 
-		output: List[ILPInstance] = []
+		output: List[RoutingInstance] = []
 		for idx, inp in enumerate(partition_inputs):
 			start = now_in_seconds()
-			out = model.solve(inp)
+			out = model.__call__(inp)
 			end = now_in_seconds()
 			if out is None: continue
 			log_ilpoutput(out)
 			info("Solve {}th problem use seconds {}".format(idx + partition_idx * partition_size,
 			                                                end - start))
-			instance = ILPInstance(video=inp.video, iot=inp.iot, voip=inp.voip, ar=inp.ar, labels={
+			instance = RoutingInstance(video=inp.video, iot=inp.iot, voip=inp.voip, ar=inp.ar, labels={
 				"video": out.video,
 				"iot": out.iot,
 				"voip": out.voip,

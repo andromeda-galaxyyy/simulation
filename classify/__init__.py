@@ -5,7 +5,7 @@ from keras.models import Sequential
 from path_utils import get_prj_root
 import os
 
-models_dir=os.path.join(get_prj_root(),"routing/models")
+models_dir=os.path.join(get_prj_root(),"routing/nn")
 
 
 class RoutingModel:

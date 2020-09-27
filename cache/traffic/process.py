@@ -3,7 +3,7 @@ from utils.log_utils import *
 import json
 from path_utils import get_prj_root
 import os
-from routing.instance import ILPInput
+from routing.instance import RoutingInput
 from itertools import product
 import random
 
@@ -51,7 +51,7 @@ debug("sorted done")
 num=50
 
 res=[
-	ILPInput(video=a,iot=b,voip=c,ar=d) for a in traffic["video"][:100]
+	RoutingInput(video=a, iot=b, voip=c, ar=d) for a in traffic["video"][:100]
 	for b in traffic["iot"][:25]
 	for c in traffic["voip"][:25]
 	for d in traffic["video"][:100]
