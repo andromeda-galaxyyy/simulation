@@ -69,14 +69,14 @@ def generate_labels(worker_id: int, traffic_fn: str, topo_fn: str,
 		output.append(instance)
 		if len(output) >= partition_size:
 			fn = os.path.join(cache_dir, "traffic/ilpinstance.{}.partition.{}.pkl".format(worker_id,
-			                                                                            partition_idx))
+			                                                                              partition_idx))
 			save_pkl(fn, output)
 			debug("save to file {}".format(fn))
 			partition_idx += 1
 			output = []
 
 		save_pkl(os.path.join(cache_dir, "traffic/ilpinstance.{}.partition.{}.pkl".format(worker_id,
-		                                                                                partition_idx)),
+		                                                                                  partition_idx)),
 		         output)
 
 		fn = os.path.join(cache_dir,
@@ -85,7 +85,7 @@ def generate_labels(worker_id: int, traffic_fn: str, topo_fn: str,
 
 
 def get_process(worker_id: int):
-	fn=os.path.join(cache_dir,"traffic/{}.process".format(worker_id))
+	fn = os.path.join(cache_dir, "traffic/{}.process".format(worker_id))
 	if not file_exsit(fn):
 		return -1
 	with open(fn, "r") as fp:
@@ -93,7 +93,7 @@ def get_process(worker_id: int):
 
 
 def save_process(worker_id: int, p: int):
-	fn=os.path.join(cache_dir,"traffic/{}.process".format(worker_id))
+	fn = os.path.join(cache_dir, "traffic/{}.process".format(worker_id))
 	with open(fn, "w") as fp:
 		fp.write("{}\n".format(p))
 
@@ -107,12 +107,12 @@ def generate_labels_worker(worker_id: int, inputs: List[ILPInput], topo: List[Li
 	'''
 	partition_size = 128
 
-
 	last_p = get_process(worker_id)
 	info("Last process {}".format(last_p))
 	info("Loads {} ksp inputs".format(len(inputs)))
 
 	n_partitions = len(inputs) // partition_size
+	debug("partitions {}".format(n_partitions))
 	inputs = inputs[:n_partitions * partition_size]
 
 	model = ILPModel(NetworkTopo(topo), 0)
@@ -140,28 +140,28 @@ def generate_labels_worker(worker_id: int, inputs: List[ILPInput], topo: List[Li
 			output.append(instance)
 
 		fn = os.path.join(cache_dir,
-		                  "traffic/ilpoutput.{}.partition.{}.pkl".format(worker_id,
-		                                                                 partition_idx))
+		                  "traffic/ilpinstance.{}.partition.{}.pkl".format(worker_id,
+		                                                                   partition_idx))
 		save_pkl(fn, output)
 		debug("save to file {}".format(fn))
 		save_process(worker_id, partition_idx)
 
 
 if __name__ == '__main__':
-	parser=ArgumentParser()
-	parser.add_argument("--workers",type=int,help="number of workers",default=2)
-	parser.add_argument("--id",type=int,help="id",default=0)
-	args=parser.parse_args()
+	parser = ArgumentParser()
+	parser.add_argument("--workers", type=int, help="number of workers", default=2)
+	parser.add_argument("--id", type=int, help="id", default=0)
+	args = parser.parse_args()
 	traffic_fn = os.path.join(cache_dir, "traffic/ilp_inputs.pkl")
 	topo_fn = os.path.join(cache_dir, "topo.unlimited.pkl")
 	topo = topo_loader(topo_fn)
-	n_process = 20
+	n_process = 10
 	processes = []
 	ilpinputs = ilpinput_loader(traffic_fn)
-	id_=int(args.id)
-	n_worker=int(args.workers)
-	task_per_worker=len(ilpinputs)//n_worker
-	ilpinputs=ilpinputs[id_*task_per_worker:(id_+1)*task_per_worker]
+	id_ = int(args.id)
+	n_worker = int(args.workers)
+	task_per_worker = len(ilpinputs) // n_worker
+	ilpinputs = ilpinputs[id_ * task_per_worker:(id_ + 1) * task_per_worker]
 
 	info("loaded {} ilpinputs".format(len(ilpinputs)))
 	n_inputs_per_worker = len(ilpinputs) // n_process

@@ -1,9 +1,10 @@
 from abc import ABC
 
 import keras
+from routing.models.sgd16 import SGDMultiType
 from keras.models import Model
 from keras.layers import Dense, Dropout, BatchNormalization, Input
-from keras.optimizers import Adam, Adagrad, Adadelta
+from keras.optimizers import Adam, Adagrad, Adadelta, SGD
 import keras.backend as K
 
 from numpy.core.multiarray import ndarray
@@ -16,6 +17,16 @@ from keras.models import load_model
 import os
 from path_utils import get_prj_root
 from keras.callbacks import ModelCheckpoint
+from tensorflow.keras.mixed_precision import experimental as mixed_precision
+
+# tf.keras.mixed_precision.experimental.set_policy("default_mixed")
+# policy = mixed_precision.Policy('mixed_float16')
+# mixed_precision.set_policy(policy)
+
+# K.set_floatx('float16')
+# K.set_epsilon(1e-4)
+
+tf.config.experimental_run_functions_eagerly(True)
 
 persist_dir = os.path.join(get_prj_root(), "routing", "persist")
 debug("Persist dir {}".format(persist_dir))
@@ -29,7 +40,7 @@ class Minor(Routing):
 		self.n_ksp = num_ksp
 		self.model: Model = None
 		self.lr = 0.001
-		self.decay = 1e-6
+		self.decay = 1e-3
 
 	def fit(self, train, test):
 		assert len(train) == 2
@@ -68,16 +79,24 @@ class Minor(Routing):
 			name = "output{}".format(idx)
 			outputs[name] = y[:, idx, :]
 			test_outputs[name] = yy[:, idx, :]
+
+		# def generator(x_,y_,batch_size):
+		# 	n_batch=len(x)//batch_size
+		# 	for i in range(n_batch):
+		# 		yield x_[i*batch_size:(i+1)*batch_size],y_[i*batch_size:(i+1)*batch_size]
+
 		history = self.model.fit(
 			x,
 			outputs,
-			epochs=2,
+			epochs=10,
+			batch_size=32,
 			validation_data=(xx, test_outputs),
 			callbacks=[checkpoint]
 		)
+		# history=self.model.fit_generator(generator(x,outputs,32))
 
 		history_fn = os.path.join(persist_dir, "minor.{}.history.pkl".format(self.id_))
-		save_pkl(history_fn, history)
+		save_pkl(history_fn, history.history)
 		debug("Minor model {} history saved to {}".format(self.id_, history_fn))
 
 	def build(self):
@@ -88,28 +107,47 @@ class Minor(Routing):
 		# output shape
 		# instance,(n_nodes-1)*ksp
 		inp = Input(shape=(feature_dim,))
-		x = Dense(units=feature_dim * 2, activation="relu", input_shape=(feature_dim,))(inp)
-		x = BatchNormalization()(x)
-		x = Dense(units=feature_dim * 2, activation="relu", input_shape=(feature_dim * 2,))(x)
+		x = BatchNormalization()(inp)
+		# x=inp
+		x = Dense(units=feature_dim//16,
+		          activation="relu",
+		          input_shape=(feature_dim,), )(x)
+		x = Dense(units=feature_dim//16,
+		          activation="relu",
+		          input_shape=(feature_dim//16,), )(x)
+
+		x = Dense(units=feature_dim // 8,
+		          activation="relu",
+		          input_shape=(feature_dim // 16,), )(x)
+
+		x = Dense(units=feature_dim // 8,
+		          activation="relu",
+		          input_shape=(feature_dim // 8,), )(x)
 
 		outputs = {}
 		losses = {}
 		weights = {}
+		metrics = {}
 		for idx in range(self.n_flows):
 			name = "output{}".format(idx)
-			o = Dense(units=output_dim, activation=self.softmax,
-			          input_dim=(feature_dim * 2,), name="output{}".format(idx))(x)
+			o = Dense(units=output_dim,
+			          activation=self.softmax,
+			          input_dim=(feature_dim // 8,),
+			          name="output{}".format(idx))(x)
 			outputs[name] = o
 			weights[name] = 1
 			losses[name] = self.cost
+			metrics[name] = self.metric
 
 		self.model = Model(inp, list(outputs.values()))
 		opt = Adam(self.lr, self.decay)
+		# opt=keras.optimizers.Adam(clipnorm=0.001)
+		# opt=SGD(clipvalue=0.5)
 		self.model.compile(
 			loss=losses,
 			loss_weights=weights,
 			optimizer=opt,
-			metrics=[self.metric]
+			metrics=metrics
 		)
 
 		debug("Minor model id: {} compiled".format(self.id_))
@@ -125,12 +163,12 @@ class Minor(Routing):
 		retv = [[[-1 for _ in range(self.n_nodes - 1)] for _ in range(self.n_flows)] for _ in
 		        range(len(data))]
 		raw = self.model.predict(data, batch_size=4, verbose=1)
-		raw=np.asarray(raw)
+		raw = np.asarray(raw)
 		# print(raw.shape)
 
 		instance = len(data)
 		# (instance,n_flows,(N-1),n_ksp)
-		raw = raw.reshape((instance, self.n_flows,self.n_nodes-1,self.n_ksp))
+		raw = raw.reshape((instance, self.n_flows, self.n_nodes - 1, self.n_ksp))
 		# reshape to (instance,n_flows,N-1)
 		return raw.argmax(-1)
 
@@ -138,7 +176,7 @@ class Minor(Routing):
 		if f_n is None:
 			f_n = os.path.join(persist_dir, "minor.{}.hdf5".format(self.id_))
 
-		debug("Minor model id:{} save model to {}".format(self.id_,f_n))
+		debug("Minor model id:{} save model to {}".format(self.id_, f_n))
 		self.model.save(f_n)
 
 	def load_model(self, fn=None):
@@ -147,23 +185,24 @@ class Minor(Routing):
 		self.model = load_model(fn, custom_objects={
 			"cost": self.cost,
 			"softmax": self.softmax,
-			"metric":self.metric
+			"metric": self.metric
 		})
 
 	def plot(self, fn=None):
 		pass
-		# if fn is None:
-		# 	fn = os.path.join(persist_dir, "minor.{}.png".format(self.id_))
-		# tf.keras.utils.plot_model(
-		# 	self.model,
-		# 	to_file=fn,
-		# 	show_shapes=False,
-		# 	# show_dtype=False,
-		# 	show_layer_names=True,
-		# 	rankdir="TB",
-		# 	expand_nested=False,
-		# 	dpi=96,
-		# )
+
+	# if fn is None:
+	# 	fn = os.path.join(persist_dir, "minor.{}.png".format(self.id_))
+	# tf.keras.utils.plot_model(
+	# 	self.model,
+	# 	to_file=fn,
+	# 	show_shapes=False,
+	# 	# show_dtype=False,
+	# 	show_layer_names=True,
+	# 	rankdir="TB",
+	# 	expand_nested=False,
+	# 	dpi=96,
+	# )
 
 	def assert_shape(self, data: np.ndarray, is_x: bool = True):
 		# x shape (n_instance,n_ksp*(n_nodes-1)*n_nodes)
@@ -172,7 +211,8 @@ class Minor(Routing):
 		shape = data.shape
 		assert len(shape) >= 2
 		if is_x:
-			assert shape[1] == n_ksp * (self.n_nodes - 1) * self.n_nodes
+			# print(shape[1])
+			assert shape[1] == self.n_flows * (self.n_nodes - 1) * self.n_nodes
 			return
 
 		# y_shape=(instance,n_flows,N-1)
@@ -184,7 +224,11 @@ class Minor(Routing):
 		# y_predict shape(instance,n_nodes-1,ksp)
 		y_true = K.reshape(y_true, (-1, self.n_nodes - 1))
 		y_predict = K.reshape(y_predict, (-1, self.n_nodes - 1, self.n_ksp))
-		return K.sum(K.sparse_categorical_crossentropy(y_true, y_predict))
+
+		res = K.sum(K.sparse_categorical_crossentropy(y_true, y_predict))
+		# if np.isnan(res):
+		# 	exit(-1)
+		return res
 
 	def softmax(self, t):
 		# instance,(n_nodes-1)*ksp
@@ -192,21 +236,19 @@ class Minor(Routing):
 		tmp = K.reshape(t, (-1, (self.n_nodes - 1), k))
 		# instance,(n_node-1),ksp
 		# return K.softmax(tmp, -1)
-		res = K.reshape(K.softmax(tmp, -1), (-1, (self.n_nodes - 1) * self.n_ksp))
-		return res
+		return K.reshape(K.softmax(tmp, -1), (-1, (self.n_nodes - 1) * self.n_ksp))
 
-	def metric(self,y_true,y_predict):
+	# return K.reshape(tf.nn.softmax(tmp,-1),(-1,(self.n_nodes-1)*self.n_ksp))
+	# return res
+
+	def metric(self, y_true, y_predict):
 		# y_true shape (instance,(n_nodes-1))
 		# y_predict shape(instance,n_nodes-1,ksp)
 		y_true = K.reshape(y_true, (-1, self.n_nodes - 1))
 		y_predict = K.reshape(y_predict, (-1, self.n_nodes - 1, self.n_ksp))
-		m=tf.keras.metrics.SparseCategoricalAccuracy()
-		m.update_state(y_true,y_predict)
-		return tf.metrics.sparse_categorical_crossentropy(y_true,y_predict)
-
-
-
-
+		# m=tf.keras.metrics.SparseCategoricalAccuracy()
+		# m.update_state(y_true,y_predict)
+		return tf.metrics.sparse_categorical_crossentropy(y_true, y_predict)
 
 
 if __name__ == '__main__':
@@ -226,14 +268,13 @@ if __name__ == '__main__':
 	model = Minor(1, N, n_flows, n_ksp)
 	model.build()
 	model.fit((x_train, y_train), (x_test, y_test))
-	fn="/tmp/model.hdf5"
+	fn = "/tmp/model.hdf5"
 	model.save_model(fn)
 	model.plot()
 
-	model=Minor(1,N,n_flows,n_ksp)
+	model = Minor(1, N, n_flows, n_ksp)
 
 	model.load_model(fn)
-	p=model.predict(x_test)
+	p = model.predict(x_test)
 	print(p.shape)
 	print(p.tolist())
-

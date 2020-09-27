@@ -35,7 +35,7 @@ def map_instance(instances: [ILPInstance], map_func: Callable[[ILPInstance], Any
 
 	n_instances = len(instances)
 	info("got {} instances".format(n_instances))
-	n_train = int(n_instances) * ratio
+	n_train = int(n_instances*ratio)
 	n_test = n_instances - n_train
 	info("#train:{},#test:{}", n_train, n_test)
 

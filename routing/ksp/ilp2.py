@@ -312,9 +312,10 @@ class ILPModel:
 def test_ilp():
 	topos_fn = os.path.join(cache_dir, "topo.pkl")
 	topo = load_pkl(topos_fn)[0]
-	tmp = [np.random.random()*0.02 for _ in range(66 * 65)]
-	ilp_input = ILPInput(video=deepcopy(tmp), iot=deepcopy(tmp), voip=deepcopy(tmp),
-	                     ar=deepcopy(tmp))
+	ilp_input = ILPInput(video=[np.random.random()*0.02 for _ in range(66 * 65)],
+	                     iot=[np.random.random()*0.02 for _ in range(66 * 65)],
+	                     voip=[np.random.random()*0.02 for _ in range(66 * 65)],
+	                     ar=[np.random.random()*0.02 for _ in range(66 * 65)])
 	network = NetworkTopo(topo)
 	ilp_model = ILPModel(NetworkTopo(topo))
 	ilp_output= ilp_model.solve(ilp_input)

@@ -61,7 +61,7 @@ def read_statellite_topo():
 					continue
 				links.add((i, j))
 				# capacity = uniform(4000, 7000)
-				capacity = 1000000000
+				capacity = 2000000000
 				delay = float(old_topo[i][j])
 				delay *= 1000
 				delay = int(delay)

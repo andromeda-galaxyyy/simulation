@@ -7,6 +7,8 @@ from typing import List, Dict, Tuple, Any
 import numpy as np
 from routing.instance import ILPInput
 from routing.instance import ILPInstance, map_instance
+from sklearn.preprocessing import MinMaxScaler
+
 
 # 多进程使用gpu
 # https://docs.nvidia.com/deploy/mps/index.html
@@ -29,14 +31,6 @@ def load_ilp_dataset(fn: str) -> List[ILPInstance]:
 
 def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset: List[ILPInstance],
                  ratio=0.7, shuffle=False):
-	'''
-	dataset中每个instance
-	N=66
-	[(流量矩阵,路径选择)]
-	流量矩阵 流量种类*N*(N-1)
-	路径选择 流量种类*N*(N-1)
-	'''
-
 	def mapper(instance: ILPInstance) -> Tuple[List, List]:
 		traffic_matrix = []
 		labels = []
@@ -48,11 +42,15 @@ def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset
 		labels.extend(instance.labels["voip"])
 		traffic_matrix.extend(instance.ar)
 		labels.extend(instance.labels["ar"])
-		return traffic_matrix, labels
 
+		return traffic_matrix,labels
+		# return res, labels
+
+	# train  (matrix,labels)
 	train, test = map_instance(dataset, mapper, ratio, shuffle)
 	train_x = np.asarray([t[0] for t in train])
 	train_y = np.asarray([t[1] for t in train])
+
 	test_x = np.asarray([t[0] for t in test])
 	test_y = np.asarray([t[1] for t in test])
 
@@ -64,7 +62,7 @@ def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset
 
 		yy = test_y[:, id_ * n_flows * (n_nodes - 1):(id_ + 1) * n_flows * (n_nodes - 1)]
 		yy = np.reshape(yy, (-1, n_flows, n_nodes - 1))
-		
+
 		model = Minor(id_, n_nodes, n_flows, n_ksp)
 		model.build()
 		model.fit((train_x, y), (test_x, yy))
@@ -74,19 +72,6 @@ def predict_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, datas
 	# model=Minor(id_,n_nodes,n_flows,n_ksp)
 	# model
 	pass
-
-
-def test_runner():
-	pass
-	# ids = list(range(66))
-	# dataset = []
-	#
-	# for _ in range(100):
-	# 	matrix = np.random.rand(3 * 66 * 65).tolist()
-	# 	path = [1 for _ in range(3 * 65 * 66)]
-	# 	data = (matrix, path)
-	# 	dataset.append(data)
-	# train_runner(ids, 3, 66, 3, dataset)
 
 
 def main():
@@ -119,6 +104,14 @@ def main():
 		p.join()
 
 
+def test_train_runner():
+	ids = [1]
+	fn = "/tmp/ilpinstance.0.partition.2.pkl"
+	instances = load_pkl(fn)
+	info("ILPInstances: {}".format(len(instances)))
+	train_runner(ids, 4, 66, 3, instances)
+
+
 if __name__ == '__main__':
-	test_runner()
+	test_train_runner()
 # main()
