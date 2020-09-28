@@ -245,33 +245,40 @@ class Minor(Routing):
 		y_predict = K.reshape(y_predict, (-1, self.n_nodes - 1, self.n_ksp))
 		# m=tf.keras.metrics.SparseCategoricalAccuracy()
 		# m.update_state(y_true,y_predict)
-		return tf.metrics.sparse_categorical_crossentropy(y_true, y_predict)
+		return tf.metrics.sparse_categorical_accuracy(y_true, y_predict)
+
+
+def test_minor():
+	pass
+
 
 
 if __name__ == '__main__':
-	N = 66
-	n_flows = 4
-	n_instance = 4
-	n_ksp = 3
-	x_train = 100 * np.random.rand(n_instance, N * (N - 1) * n_flows)
-	x_test = 100 * np.random.rand(n_instance, N * (N - 1) * n_flows)
-	# y_train=np.asarray([0.1,0.2,0.7])
+	test_minor()
 
-	# shape (n_instance,n_flows,(N-1))
-	y_train = np.asarray(
-		[[[2 for _ in range(N - 1)] for _ in range(n_flows)] for _ in range(n_instance)])
-	print(y_train.shape)
-	y_test = y_train
-	model = Minor(1, N, n_flows, n_ksp)
-	model.build()
-	model.fit((x_train, y_train), (x_test, y_test))
-	fn = "/tmp/model.hdf5"
-	model.save_model(fn)
-	model.plot()
-
-	model = Minor(1, N, n_flows, n_ksp)
-
-	model.load_model(fn)
-	p = model.predict(x_test)
-	print(p.shape)
-# print(p.tolist())
+# 	N = 66
+# 	n_flows = 4
+# 	n_instance = 4
+# 	n_ksp = 3
+# 	x_train = 100 * np.random.rand(n_instance, N * (N - 1) * n_flows)
+# 	x_test = 100 * np.random.rand(n_instance, N * (N - 1) * n_flows)
+# 	# y_train=np.asarray([0.1,0.2,0.7])
+#
+# 	# shape (n_instance,n_flows,(N-1))
+# 	y_train = np.asarray(
+# 		[[[2 for _ in range(N - 1)] for _ in range(n_flows)] for _ in range(n_instance)])
+# 	print(y_train.shape)
+# 	y_test = y_train
+# 	model = Minor(1, N, n_flows, n_ksp)
+# 	model.build()
+# 	model.fit((x_train, y_train), (x_test, y_test))
+# 	fn = "/tmp/model.hdf5"
+# 	model.save_model(fn)
+# 	model.plot()
+#
+# 	model = Minor(1, N, n_flows, n_ksp)
+#
+# 	model.load_model(fn)
+# 	p = model.predict(x_test)
+# 	print(p.shape)
+# # print(p.tolist())
