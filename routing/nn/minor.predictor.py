@@ -6,6 +6,7 @@ from routing.nn.minor import Minor
 import numpy as np
 from routing.nn.common import persist_dir
 from routing.nn.minor import Minor
+from path_utils import get_prj_root
 
 
 class Predictor:
@@ -44,3 +45,25 @@ class Predictor:
 			ar_actions.extend(actions[3])
 
 		return RoutingOutput(video=video_actions, iot=iot_actions, voip=voip_actions, ar=ar_actions)
+
+
+class SinglePredictor:
+	def __init__(self, id_: int):
+		self.model: Minor = Minor(id_, 66, 4, 3)
+		self.model.load_model()
+
+	def __call__(self, *args, inpt: RoutingInput):
+		traffic_matrix = []
+		traffic_matrix.extend(inpt.video)
+		traffic_matrix.extend(inpt.iot)
+		traffic_matrix.extend(inpt.voip)
+		traffic_matrix.extend(inpt.ar)
+		traffic_matrix = np.asarray([traffic_matrix])
+
+		actions = self.model.predict(traffic_matrix)[0].tolist()
+		return actions
+
+
+
+if __name__ == '__main__':
+	pass

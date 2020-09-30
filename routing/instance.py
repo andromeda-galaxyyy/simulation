@@ -20,7 +20,8 @@ labels=dict{
 RoutingInstance = namedtuple("RoutingInstance", ["video", "iot", "voip", "ar", "labels"])
 
 
-def map_instance(instances: [RoutingInstance], map_func: Callable[[RoutingInstance], Any], ratio=0.7,
+def map_instance(instances: [RoutingInstance], map_func: Callable[[RoutingInstance], Any],
+                 ratio=0.7,
                  shuffle=False) -> (List[Any], List[Any]):
 	'''
 
@@ -35,7 +36,7 @@ def map_instance(instances: [RoutingInstance], map_func: Callable[[RoutingInstan
 
 	n_instances = len(instances)
 	info("got {} instances".format(n_instances))
-	n_train = int(n_instances*ratio)
+	n_train = int(n_instances * ratio)
 	n_test = n_instances - n_train
 	info("#train:{},#test:{}", n_train, n_test)
 
@@ -59,13 +60,16 @@ RoutingOutput = namedtuple("RoutingOutput", ["video", "iot", "voip", "ar"])
 
 
 def log_ilpoutput(output: RoutingOutput):
-
 	info("video: {}".format(Counter(output.video)))
 	info("iot: {}".format(Counter(output.iot)))
 	info("voip: {}".format(Counter(output.voip)))
 	info("ar: {}".format(Counter(output.ar)))
 
 
+# this is for backport
+ILPInstance = RoutingInstance
+ILPOutput = RoutingOutput
+ILPInput = RoutingInput
 
 if __name__ == '__main__':
 	instance = RoutingInstance([], [], [], [], {})

@@ -5,10 +5,12 @@ from argparse import ArgumentParser
 from multiprocessing import Process
 from typing import List, Dict, Tuple, Any
 import numpy as np
-from routing.instance import RoutingInput,RoutingOutput
+from routing.instance import RoutingInput, RoutingOutput, ILPInput, ILPInstance, ILPOutput
 from routing.instance import RoutingInstance, map_instance
 from sklearn.preprocessing import MinMaxScaler
-
+from path_utils import get_prj_root
+import random
+from routing.nn.dataset_generator import ILPGenerator
 
 # 多进程使用gpu
 # https://docs.nvidia.com/deploy/mps/index.html
@@ -25,11 +27,16 @@ N=66
 
 
 def load_ilp_dataset(fn: str) -> List[RoutingInstance]:
-	dataset = load_pkl(fn)
-	return dataset
+	instances = []
+	for path, subdirs, files in os.walk(fn):
+		for file in files:
+			if "ilpinstance" not in file: continue
+			instances.extend(load_pkl(os.path.join(fn, file)))
+	return instances
 
 
-def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset: List[RoutingInstance],
+def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int,
+                 dataset: List[RoutingInstance],
                  ratio=0.7, shuffle=False):
 	def mapper(instance: RoutingInstance) -> Tuple[List, List]:
 		traffic_matrix = []
@@ -43,8 +50,9 @@ def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset
 		traffic_matrix.extend(instance.ar)
 		labels.extend(instance.labels["ar"])
 
-		return traffic_matrix,labels
-		# return res, labels
+		return traffic_matrix, labels
+
+	# return res, labels
 
 	# train  (matrix,labels)
 	train, test = map_instance(dataset, mapper, ratio, shuffle)
@@ -55,63 +63,129 @@ def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset
 	test_y = np.asarray([t[1] for t in test])
 
 	for id_ in ids:
-		assert len(train_x[0]) == n_flows * n_nodes * (n_nodes - 1)
-		y = train_y[:, id_ * n_flows * (n_nodes - 1):(id_ + 1) * n_flows * (n_nodes - 1)]
-		assert len(y[0]) == n_flows * (n_nodes - 1)
-		y = np.reshape(y, (-1, n_flows, n_nodes - 1))
+		# (instance,4,65*66)
+		train_y = np.reshape(train_y, (-1, n_flows, (n_nodes - 1) * n_nodes))
+		test_y = np.reshape(test_y, (-1, n_flows, (n_nodes - 1) * n_nodes))
 
-		yy = test_y[:, id_ * n_flows * (n_nodes - 1):(id_ + 1) * n_flows * (n_nodes - 1)]
-		yy = np.reshape(yy, (-1, n_flows, n_nodes - 1))
+		y = train_y[:, :, id_ * (n_nodes - 1):(id_ + 1) * (n_nodes - 1)]
+		yy = test_y[:, :, id_ * (n_nodes - 1):(id_ + 1) * (n_nodes - 1)]
+		# y = np.reshape(y, (-1, n_flows, n_nodes - 1))
+
+		# yy = test_y[:, id_ * n_flows * (n_nodes - 1):(id_ + 1) * n_flows * (n_nodes - 1)]
+		# yy = np.reshape(yy, (-1, n_flows, n_nodes - 1))
 
 		model = Minor(id_, n_nodes, n_flows, n_ksp)
+		# model.load_model()
 		model.build()
+
 		model.fit((train_x, y), (test_x, yy))
+# # # 统计非0正确性
+# count = 0
+# #
+# random_idx = np.random.randint(0, len(test))
+# xxx = test_x[random_idx]
+#
+# tmp_x = np.reshape(xxx, (-1, 66 * 65, 4))
+# tmp_x = np.reshape(tmp_x[:,id_ * 65:(id_ + 1) * 65, :], (-1, 65 * 4))[0][:65]
+# none_zero = len([y for y in tmp_x if y > 0])
+#
+# print(none_zero)
+#
+# xxx = np.asarray([xxx])
+# yyy = test_y[random_idx]
+# yyy = yyy[id_ * n_flows * (n_nodes - 1):(id_ + 1) * n_flows * (n_nodes - 1)]
+# # yyy = np.asarray(yyy)
+#
+# actions = model.predict(xxx)[0]
+# actions = np.reshape(actions, (-1, n_flows * (n_nodes - 1)))[0]
+#
+# for idx in range(len(actions)):
+# 	if idx>65:continue
+# 	if actions[idx] == yyy[idx]:
+# 		count += 1
+#
+# print(count / none_zero)
 
 
-def predict_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int, dataset: List[Tuple]):
-	# model=Minor(id_,n_nodes,n_flows,n_ksp)
-	# model
-	pass
+default_instance_dir = os.path.join(get_prj_root(), "routing", "instances")
+
+
+def train_with_generator(ids=None,
+                         instance_dir: str = default_instance_dir,
+                         n_nodes: int = 66,
+                         n_flows: int = 4,
+                         n_ksp: int = 3,
+                         ratio=0.7,
+                         ):
+	if ids is None:
+		ids = list(range(66))
+	files = []
+	for file in os.listdir(instance_dir):
+		if "ilpinstance" not in file:continue
+		files.append(os.path.join(instance_dir,file))
+	# for path, subdidrs, files in os.walk(instance_dir):
+	# 	for file in files:
+	# 		if "ilpinstance" not in file: continue
+	# 		files.append(os.path.join(instance_dir, file))
+
+	info("scan file done files {}".format(len(files)))
+	n_train_files=int(len(files)*ratio)
+	n_test_files=len(files)-n_train_files
+	train_files=files[:n_train_files]
+	test_files=files[n_train_files:]
+	info("#train files {}".format(n_train_files))
+	info("#test files {}".format(n_test_files))
+
+	for model_id in ids:
+		train_generator=ILPGenerator(train_files,model_id,n_nodes=n_nodes,n_ksp=n_ksp,n_flows=n_flows,batch_size=32)
+		validate_generator=ILPGenerator(test_files,model_id,n_nodes=n_nodes,n_ksp=n_ksp,n_flows=n_flows,batch_size=32)
+		model=Minor(model_id,n_nodes,n_flows,n_ksp)
+		model.build()
+		info("Model {} start to fit".format(model_id))
+		model.fit_with_generator(train_generator,validate_generator)
+		info("Model {} trained".format(model_id))
+
+
+
 
 
 def main():
 	n_nodes = 66
-	max_jobs_per_worker = 10
-	dataset_fn = ""
+
+	instance_dir = os.path.join(get_prj_root(), "routing", "instances")
+
 	parser = ArgumentParser()
-	default_ids = ",".join(list(range(n_nodes)))
-	# "0,1,2,3,4,5"
-	parser.add_argument("--ids", type=str, default=default_ids)
+	parser.add_argument("--workers", type=int, default=3)
+	parser.add_argument("--id", type=int, default=0)
 	args = parser.parse_args()
-	dataset = load_ilp_dataset(dataset_fn)
-	processes = []
+
+	dataset = load_ilp_dataset(instance_dir)
 
 	# read ids and runner
-	ids = list(map(int, args.ids.split(",")))
+	worker_id = int(args.id)
+	n_workers = int(args.workers)
+	tasks_per_worker = n_nodes // n_workers
 
-	# start new process
-	num_process = 1 + len(ids) // max_jobs_per_worker
-	for idx in range(num_process):
-		if idx != num_process - 1:
-			sub_ids = ids[idx * max_jobs_per_worker:(idx + 1) * max_jobs_per_worker]
-		else:
-			sub_ids = ids[idx * max_jobs_per_worker:]
-		p = Process(target=train_runner, args=(sub_ids, dataset))
-		p.start()
-		processes.append(p)
-
-	for p in processes:
-		p.join()
+	ids = list(range(n_nodes))[worker_id * tasks_per_worker:(worker_id + 1) * tasks_per_worker]
+	train_runner(ids, 4, n_nodes, 3, dataset)
 
 
 def test_train_runner():
-	ids = [1]
-	fn = "/tmp/ilpinstance.0.partition.2.pkl"
-	instances = load_pkl(fn)
+	ids = [24]
+	instances = []
+	instance_dir = os.path.join(get_prj_root(), "routing", "instances")
+	for file in os.listdir(instance_dir):
+		if "ilpinstance" not in file: continue
+		instances.extend(load_pkl(os.path.join(instance_dir, file)))
+
 	info("ILPInstances: {}".format(len(instances)))
-	train_runner(ids, 4, 66, 3, instances)
+	n_instance = len(instances)
+	random.shuffle(instances)
+
+	train_runner(ids, 4, 66, 3, instances[:n_instance])
 
 
 if __name__ == '__main__':
-	test_train_runner()
-# main()
+	# main()
+	# test_train_runner()
+	train_with_generator([24])

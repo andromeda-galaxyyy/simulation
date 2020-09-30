@@ -6,6 +6,7 @@ from keras.models import Model
 from keras.layers import Dense, Dropout, BatchNormalization, Input
 from keras.optimizers import Adam
 import keras.backend as K
+import tensorflow_model_optimization as tfmot
 from numpy.core.multiarray import ndarray
 
 from utils.common_utils import load_pkl, load_json, debug, info, err, check_dir, check_file, \
@@ -28,7 +29,7 @@ Instance = namedtuple("Instance", "features labels")
 
 module_dir = os.path.join(get_prj_root(), "routing")
 
-models_dir = os.path.join(get_prj_root(), "routing/nn")
+models_dir = os.path.join(get_prj_root(), "routing","hdf5")
 
 
 class Monolithic(Routing):
@@ -88,6 +89,8 @@ class Monolithic(Routing):
 
 		self.model = Model(inp, list(outputs.values()))
 		opt = Adam()
+
+
 		self.model.compile(
 			loss=losses,
 			loss_weights=weights,
@@ -131,6 +134,7 @@ class Monolithic(Routing):
 			name = "output{}".format(idx)
 			outputs[name] = y_train[:,idx, :]
 			validate_outputs[name] = y_validate[:, idx, :]
+
 
 		history = self.model.fit(
 			x_train,

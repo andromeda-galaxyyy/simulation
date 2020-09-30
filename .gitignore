@@ -190,3 +190,4 @@ db.sqlite3
 *.txt
 
 *.zip
+.plot_env

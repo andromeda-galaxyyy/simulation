@@ -3,6 +3,7 @@ rsync -av --exclude '*.git' --exclude '*pyc' --exclude '__pycache__' --exclude '
 rsync -av --exclude '*.git' --exclude '*pyc' --exclude '__pycache__' --exclude 'video.bk' . stack@192.168.1.76:/home/stack/code/simulation/
 rsync -av --exclude '*.git' --exclude '*pyc' --exclude '__pycache__' --exclude 'video.bk' . stack@192.168.1.196:/home/stack/code/simulation/
 rsync -av --exclude '*.git' --exclude '*pyc' --exclude '__pycache__' --exclude 'video.bk' . stack@192.168.1.36:/home/stack/code/simulation/
+rsync -av --exclude '*.git' --exclude '*pyc' --exclude '__pycache__' --exclude 'video.bk' . stack@192.168.1.132:/home/stack/code/simulation/
 
 #rsync -av --exclude '*.git' --exclude '*pyc' --exclude '__pycache__' --exclude 'video.bk' . yx@192.168.1.196:/home/yx/code/simulation/
 #rsync -av --exclude '*.git' --exclude '*pyc' --exclude '__pycache__' --exclude 'video.bk' . yx@192.168.1.76:/home/yx/code/simulation/
