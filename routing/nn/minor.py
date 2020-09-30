@@ -136,9 +136,45 @@ class Minor(Routing):
 			generator=train_generator,
 			epochs=20,
 			verbose=1,
-			callbacks=[checkpoint,early_stop],
+			callbacks=[checkpoint, early_stop],
 			validation_data=validate_generator,
-			use_multiprocessing=True
+			# use_multiprocessing=True
+		)
+
+		debug("Minor model {} prepare to fit".format(self.id_))
+
+		history_fn = os.path.join(persist_dir, "minor.{}.history.pkl".format(self.id_))
+		save_pkl(history_fn, history.history)
+		debug("Minor model {} history saved to {}".format(self.id_, history_fn))
+
+	def fit_with_dataset(self,
+	                     train_dataset: tf.data.Dataset,
+	                     validate_dataset: tf.data.Dataset,
+	                     ):
+		ckt_fn = os.path.join(persist_dir, "minor.{}.hdf5".format(self.id_))
+		checkpoint = ModelCheckpoint(ckt_fn,
+		                             monitor="val_loss",
+		                             verbose=1,
+		                             save_best_only=True,
+		                             mode="auto",
+		                             period=1
+		                             )
+
+		early_stop = tf.keras.callbacks.EarlyStopping(
+			monitor="val_loss",
+			min_delta=0,
+			patience=3,
+			verbose=1,
+			mode="min",
+			baseline=None,
+			restore_best_weights=True,
+		)
+		history = self.model.fit(
+			train_dataset,
+			epochs=20,
+			verbose=1,
+			callbacks=[checkpoint, early_stop],
+			validation_data=validate_dataset,
 		)
 
 		debug("Minor model {} prepare to fit".format(self.id_))
