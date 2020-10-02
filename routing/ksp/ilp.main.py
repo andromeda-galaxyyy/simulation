@@ -135,7 +135,7 @@ def generate_labels_worker(worker_id: int, inputs: List[RoutingInput], topo: Lis
 				"video": out.video,
 				"iot": out.iot,
 				"voip": out.voip,
-				"ar": out.iot,
+				"ar": out.ar,
 			})
 			output.append(instance)
 
@@ -152,7 +152,7 @@ if __name__ == '__main__':
 	parser.add_argument("--workers", type=int, help="number of workers", default=2)
 	parser.add_argument("--id", type=int, help="id", default=0)
 	args = parser.parse_args()
-	traffic_fn = os.path.join(cache_dir, "traffic/ilp_inputs.pkl")
+	traffic_fn = os.path.join(cache_dir, "traffic/ilp_inputs2.pkl")
 	topo_fn = os.path.join(cache_dir, "topo.unlimited.pkl")
 	topo = topo_loader(topo_fn)
 	n_process = 10

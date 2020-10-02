@@ -11,6 +11,7 @@ from sklearn.preprocessing import MinMaxScaler
 from path_utils import get_prj_root
 import random
 from routing.nn.dataset_generator import ILPGenerator, get_ilp_generator
+import gc
 
 # 多进程使用gpu
 # https://docs.nvidia.com/deploy/mps/index.html
@@ -122,9 +123,9 @@ def train_with_generator(ids=None,
 	if ids is None:
 		ids = list(range(66))
 	files = []
-	for file in os.listdir(instance_dir):
-		if "ilpinstance" not in file: continue
-		files.append(os.path.join(instance_dir, file))
+	# for file in os.listdir(instance_dir):
+	# 	if "ilpinstance" not in file: continue
+	# 	files.append(os.path.join(instance_dir, file))
 	# for path, subdidrs, files in os.walk(instance_dir):
 	# 	for file in files:
 	# 		if "ilpinstance" not in file: continue
@@ -186,27 +187,15 @@ def train_with_dataset(ids=None,
 
 
 def main():
-	n_nodes = 66
-
-	instance_dir = os.path.join(get_prj_root(), "routing", "instances")
-
 	parser = ArgumentParser()
-	parser.add_argument("--workers", type=int, default=3)
 	parser.add_argument("--id", type=int, default=0)
-	# parser.add_argument("--gpu",type=int,default=0)
 	args = parser.parse_args()
-
-	# read ids and runner
-	worker_id = int(args.id)
-	n_workers = int(args.workers)
-	tasks_per_worker = n_nodes // n_workers
-
-	ids = list(range(n_nodes))[worker_id * tasks_per_worker:(worker_id + 1) * tasks_per_worker]
-	train_with_dataset(ids)
+	model_id=int(args.id)
+	train_with_dataset([model_id])
 
 
 def test_train_runner():
-	ids = [24]
+	ids = [24,25]
 	instances = []
 	instance_dir = os.path.join(get_prj_root(), "routing", "instances")
 	for file in os.listdir(instance_dir):
@@ -222,6 +211,7 @@ def test_train_runner():
 
 if __name__ == '__main__':
 	main()
+	# test_train_runner()
 #
 # n_nodes = 66
 #

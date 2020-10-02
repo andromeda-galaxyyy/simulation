@@ -51,17 +51,17 @@ debug("sorted done")
 num=50
 
 res=[
-	RoutingInput(video=a, iot=b, voip=c, ar=d) for a in traffic["video"][:100]
+	RoutingInput(video=a, iot=b, voip=c, ar=d) for a in traffic["video"][:400]
 	for b in traffic["iot"][:25]
 	for c in traffic["voip"][:25]
-	for d in traffic["video"][:100]
+	for d in traffic["video"][:25]
 ]
 
 for _ in range(5):
 	random.shuffle(res)
 
 
-res_fn=os.path.join(traffic_dir,"ilp_inputs.pkl")
+res_fn=os.path.join(traffic_dir,"ilp_inputs2.pkl")
 debug("start to save")
 save_pkl(res_fn,res)
 debug("save done")

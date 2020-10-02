@@ -20,6 +20,8 @@ from keras.callbacks import ModelCheckpoint
 from routing.nn.common import persist_dir
 from routing.instance import RoutingInput, RoutingOutput
 from typing import Tuple, List, Dict
+import gc
+
 
 tf.config.experimental_run_functions_eagerly(True)
 
@@ -126,7 +128,7 @@ class Minor(Routing):
 		early_stop = tf.keras.callbacks.EarlyStopping(
 			monitor="val_loss",
 			min_delta=0,
-			patience=3,
+			patience=1,
 			verbose=1,
 			mode="min",
 			baseline=None,
@@ -134,7 +136,7 @@ class Minor(Routing):
 		)
 		history = self.model.fit_generator(
 			generator=train_generator,
-			epochs=20,
+			epochs=15,
 			verbose=1,
 			callbacks=[checkpoint, early_stop],
 			validation_data=validate_generator,
@@ -163,7 +165,7 @@ class Minor(Routing):
 		early_stop = tf.keras.callbacks.EarlyStopping(
 			monitor="val_loss",
 			min_delta=0,
-			patience=3,
+			patience=1,
 			verbose=1,
 			mode="min",
 			baseline=None,
@@ -171,7 +173,7 @@ class Minor(Routing):
 		)
 		history = self.model.fit(
 			train_dataset,
-			epochs=20,
+			epochs=15,
 			verbose=1,
 			callbacks=[checkpoint, early_stop],
 			validation_data=validate_dataset,
@@ -182,6 +184,16 @@ class Minor(Routing):
 		history_fn = os.path.join(persist_dir, "minor.{}.history.pkl".format(self.id_))
 		save_pkl(history_fn, history.history)
 		debug("Minor model {} history saved to {}".format(self.id_, history_fn))
+		# gc && clean
+		# self.__do_clean()
+
+	def __do_clean(self):
+		debug("Do some clean for model {}".format(self.id_))
+		del self.model
+		gc.collect()
+		K.clear_session()
+		tf.compat.v1.reset_default_graph()
+		# K.clea
 
 	def __do_build(self):
 		feature_dim = self.feature_dim
