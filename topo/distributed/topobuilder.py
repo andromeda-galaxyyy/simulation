@@ -743,6 +743,75 @@ class TopoBuilder:
 	def _stop_listener(self):
 		os.system("for p in `pgrep '^golisten$'`;do kill $p;done")
 
+	def setup_supplementary_topo(self, server=True):
+		serv_access_id = 66
+		client_access_id = 67
+		serv_access = "s{}".format(serv_access_id)
+		client_access = "s{}".format(client_access_id)
+		controller = self.config["controller"]
+		if server:
+			n1 = "s{}".format(31)
+			n2 = "s{}".format(32)
+
+			serv_to_n1 = "{}-{}".format(serv_access, n1)
+			serv_to_n2 = "{}-{}".format(serv_access, n2)
+			n1_to_serv = "{}-{}".format(n1, serv_access)
+			n2_to_serv = "{}-{}".format(n2, serv_access)
+			add_veth(serv_to_n1, n1_to_serv)
+			add_veth(n2_to_serv, serv_to_n2)
+
+			add_ovs(66, controller)
+
+			attach_interface_to_sw(serv_access, serv_to_n1)
+			attach_interface_to_sw(serv_access, serv_to_n2)
+			attach_interface_to_sw(n1, n1_to_serv)
+			attach_interface_to_sw(n2, n2_to_serv)
+
+			attach_interface_to_sw(serv_access,"eno2")
+
+			up_interface(serv_to_n1)
+			up_interface(serv_to_n2)
+			up_interface(n1_to_serv)
+			up_interface(n2_to_serv)
+
+			add_tc(serv_to_n1, 10, 10)
+			add_tc(serv_to_n2, 10, 10)
+			add_tc(n1_to_serv, 10, 10)
+			add_tc(n2_to_serv, 10, 10)
+			add_tc("eno2",10,10)
+			return
+
+		# client
+		n1 = "s{}".format(64)
+		n2 = "s{}".format(65)
+
+		client_to_n1 = "{}-{}".format(client_access, n1)
+		client_to_n2 = "{}-{}".format(client_access, n2)
+		n1_to_client = "{}-{}".format(n1, client_access)
+		n2_to_client = "{}-{}".format(n2, client_access)
+		add_veth(client_to_n1, n1_to_client)
+		add_veth(n2_to_client, client_to_n2)
+
+		add_ovs(66, controller)
+
+		attach_interface_to_sw(client_access, client_to_n1)
+		attach_interface_to_sw(client_access, client_to_n2)
+		attach_interface_to_sw(n1, n1_to_client)
+		attach_interface_to_sw(n2, n2_to_client)
+
+		attach_interface_to_sw(client_access,"eno2")
+
+		up_interface(client_to_n1)
+		up_interface(client_to_n2)
+		up_interface(n1_to_client)
+		up_interface(n2_to_client)
+
+		add_tc(client_to_n1, 10, 10)
+		add_tc(client_to_n2, 10, 10)
+		add_tc(n1_to_client, 10, 10)
+		add_tc(n2_to_client, 10, 10)
+		add_tc("eno2",10,10)
+
 
 if __name__ == '__main__':
 	config = load_json(os.path.join(get_prj_root(), "topo/distributed/satellite.config.json"))
