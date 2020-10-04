@@ -85,7 +85,7 @@ def generate_labels(worker_id: int, traffic_fn: str, topo_fn: str,
 
 
 def get_process(worker_id: int):
-	fn = os.path.join(cache_dir, "traffic/{}.process".format(worker_id))
+	fn = os.path.join(cache_dir, "traffic","ilpinstance","{}.process".format(worker_id))
 	if not file_exsit(fn):
 		return -1
 	with open(fn, "r") as fp:
@@ -93,7 +93,7 @@ def get_process(worker_id: int):
 
 
 def save_process(worker_id: int, p: int):
-	fn = os.path.join(cache_dir, "traffic/{}.process".format(worker_id))
+	fn = os.path.join(cache_dir, "traffic","ilpinstance","{}.process".format(worker_id))
 	with open(fn, "w") as fp:
 		fp.write("{}\n".format(p))
 
@@ -131,17 +131,18 @@ def generate_labels_worker(worker_id: int, inputs: List[RoutingInput], topo: Lis
 			log_ilpoutput(out)
 			info("Solve {}th problem use seconds {}".format(idx + partition_idx * partition_size,
 			                                                end - start))
-			instance = RoutingInstance(video=inp.video, iot=inp.iot, voip=inp.voip, ar=inp.ar, labels={
-				"video": out.video,
-				"iot": out.iot,
-				"voip": out.voip,
-				"ar": out.ar,
-			})
+			instance = RoutingInstance(video=inp.video, iot=inp.iot, voip=inp.voip, ar=inp.ar,
+			                           labels={
+				                           "video": out.video,
+				                           "iot": out.iot,
+				                           "voip": out.voip,
+				                           "ar": out.ar,
+			                           })
 			output.append(instance)
 
-		fn = os.path.join(cache_dir,
-		                  "traffic/ilpinstance.{}.partition.{}.pkl".format(worker_id,
-		                                                                   partition_idx))
+		fn = os.path.join(cache_dir, "traffic", "ilpinstance",
+		                  "ilpinstance.{}.partition.{}.pkl".format(worker_id,
+		                                                           partition_idx))
 		save_pkl(fn, output)
 		debug("save to file {}".format(fn))
 		save_process(worker_id, partition_idx)
@@ -152,7 +153,7 @@ if __name__ == '__main__':
 	parser.add_argument("--workers", type=int, help="number of workers", default=2)
 	parser.add_argument("--id", type=int, help="id", default=0)
 	args = parser.parse_args()
-	traffic_fn = os.path.join(cache_dir, "traffic/ilp_inputs2.pkl")
+	traffic_fn = os.path.join(cache_dir, "traffic/ilp_inputs3.pkl")
 	topo_fn = os.path.join(cache_dir, "topo.unlimited.pkl")
 	topo = topo_loader(topo_fn)
 	n_process = 10
