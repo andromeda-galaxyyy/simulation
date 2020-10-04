@@ -42,6 +42,7 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 
 			      "> 7.quit\n"
 			      "> 8.set up first topo\n"
+			      "> 9.set up supplementary topo\n"
 			      "> Press Enter to print this msg")
 
 			command = input(">Input commands:\n").strip()
@@ -98,6 +99,14 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 					url="http://{}:{}/config".format(ip,5000)
 					threading.Thread(target=do_delete,args=[url]).start()
 					continue
+			if command==9:
+				worker_ips=config["workers_ip"]
+				#set up server access point
+				url1 = "http://{}:{}/config".format(worker_ips[0], 5000)
+				threading.Thread(target=do_post,args=[url1,{"server":True}])
+
+				url2 = "http://{}:{}/config".format(worker_ips[1], 5000)
+				threading.Thread(target=do_post,args=[url2,{"server":False}])
 
 		except KeyboardInterrupt:
 			print(">Preparing quit. Clean up")

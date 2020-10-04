@@ -82,9 +82,19 @@ class Traffic(Resource):
 		return '', 200
 
 
+class Supplementry(Resource):
+	def post(self):
+		debug("Setup supplementary topo")
+		is_server=request.get_json(True)["server"]
+		start_new_thread_run(builder.setup_supplementary_topo,args=[is_server])
+		return '',200
+
+
+
 api.add_resource(Config, "/config")
 api.add_resource(Topo, "/topo")
 api.add_resource(Traffic, "/traffic")
+api.add_resource(Supplementry,"/supplementary")
 
 
 @atexit.register
