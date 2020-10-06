@@ -30,6 +30,7 @@ def recvall2(sock: socket):
 			continue
 		piece = part.decode()
 		data += part
+		# print(data)
 		if len(piece) > 0 and piece[-1] == '*':
 			break
 

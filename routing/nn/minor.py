@@ -281,6 +281,7 @@ class Minor(Routing):
 		# (instance,n_flows,N-1)
 
 		raw = self.model.predict(data, batch_size=4, verbose=1)
+		info("Model {} predict done".format(self.id_))
 		raw = np.asarray(raw)
 		# print(raw.shape)
 

@@ -71,6 +71,17 @@ ILPInstance = RoutingInstance
 ILPOutput = RoutingOutput
 ILPInput = RoutingInput
 
+
+def output_todict(output: RoutingOutput):
+	res= {
+		"video": output.video,
+		"iot": output.iot,
+		"voip": output.voip,
+		"ar": output.ar
+	}
+	return res
+
+
 if __name__ == '__main__':
 	instance = RoutingInstance([], [], [], [], {})
 	save_pkl("/tmp/demo.pkl", instance)

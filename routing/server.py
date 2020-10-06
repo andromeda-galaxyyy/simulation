@@ -11,14 +11,14 @@ import networkx as nx
 from itertools import islice
 import time
 from datetime import datetime
-from routing.nn.minor_predictor import Predictor
+from routing.nn.minor_predictor import MultiProcessPredictor
 from common.Graph import NetworkTopo
 from routing.nn.common import topo_fn
 from utils.file_utils import load_pkl
 from routing.instance import RoutingInput
 from utils.time_utils import now_in_milli
 
-minor_predictor = Predictor()
+minor_predictor = MultiProcessPredictor()
 info("All models loaded")
 topo = NetworkTopo(load_pkl(topo_fn)[0])
 ksp = {}
