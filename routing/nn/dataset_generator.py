@@ -1,10 +1,10 @@
 from keras.utils import Sequence
-from typing import List, Dict, Tuple
+from typing import Tuple
 from routing.instance import *
 from utils.file_utils import *
 import numpy as np
 import tensorflow as tf
-from routing.nn.common import *
+from routing.common import *
 
 
 def mapper(instance: RoutingInstance) -> Tuple[List, List]:

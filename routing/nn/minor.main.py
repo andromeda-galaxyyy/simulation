@@ -113,42 +113,6 @@ def train_runner(ids: List[int], n_flows: int, n_nodes: int, n_ksp: int,
 default_instance_dir = os.path.join(get_prj_root(), "routing", "instances")
 
 
-def train_with_generator(ids=None,
-                         instance_dir: str = default_instance_dir,
-                         n_nodes: int = 66,
-                         n_flows: int = 4,
-                         n_ksp: int = 3,
-                         ratio=0.7,
-                         ):
-	if ids is None:
-		ids = list(range(66))
-	files = []
-	# for file in os.listdir(instance_dir):
-	# 	if "ilpinstance" not in file: continue
-	# 	files.append(os.path.join(instance_dir, file))
-	# for path, subdidrs, files in os.walk(instance_dir):
-	# 	for file in files:
-	# 		if "ilpinstance" not in file: continue
-	# 		files.append(os.path.join(instance_dir, file))
-
-	info("scan file done files {}".format(len(files)))
-	n_train_files = int(len(files) * ratio)
-	n_test_files = len(files) - n_train_files
-	train_files = files[:n_train_files]
-	test_files = files[n_train_files:]
-	info("#train files {}".format(n_train_files))
-	info("#test files {}".format(n_test_files))
-
-	for model_id in ids:
-		train_generator = ILPGenerator(train_files, model_id, n_nodes=n_nodes, n_ksp=n_ksp,
-		                               n_flows=n_flows, batch_size=32)
-		validate_generator = ILPGenerator(test_files, model_id, n_nodes=n_nodes, n_ksp=n_ksp,
-		                                  n_flows=n_flows, batch_size=32)
-		model = Minor(model_id, n_nodes, n_flows, n_ksp)
-		model.build()
-		info("Model {} start to fit".format(model_id))
-		model.fit_with_generator(train_generator, validate_generator)
-		info("Model {} trained".format(model_id))
 
 
 def train_with_dataset(ids=None,
@@ -195,7 +159,7 @@ def main():
 
 
 def test_train_runner():
-	ids = [24,25]
+	ids = [24]
 	instances = []
 	instance_dir = os.path.join(get_prj_root(), "routing", "instances")
 	for file in os.listdir(instance_dir):
@@ -209,19 +173,11 @@ def test_train_runner():
 	train_runner(ids, 4, 66, 3, instances[:n_instance])
 
 
+def test_train_with_dataset():
+	pass
+
+
 if __name__ == '__main__':
 	main()
-	# test_train_runner()
-#
-# n_nodes = 66
-#
-# instance_dir = os.path.join(get_prj_root(), "routing", "instances")
-# parser = ArgumentParser()
-# parser.add_argument("--workers", type=int, default=3)
-# parser.add_argument("--id", type=int, default=0)
-# parser.add_argument("--gpu",type=int,default=0)
-# args = parser.parse_args()
-# os.environ["CUDA_VISIBLE_DEVICES"]="1"
-# all_ids=list(range(n_nodes))
-# n_ids_per_worker=
-# train_with_dataset([24])
+	# train_with_dataset([24])
+

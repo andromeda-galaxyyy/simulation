@@ -21,6 +21,8 @@ class RoutingEvaluator:
 			low_latency_paths = self.topo.ksp(s, d, self.k, "delay")
 			self.ksp[(s, d)] = (large_volume_paths, low_latency_paths)
 
+		debug("Routing evaluator solve ksp done")
+
 	def __call__(self, routing: RoutingInstance) -> float:
 		rv = -1
 		edges = list(self.topo.g.edges(data=True))
@@ -52,3 +54,7 @@ class RoutingEvaluator:
 
 			rv = max(rv, utility / 100)
 		return rv
+
+
+if __name__ == '__main__':
+	pass

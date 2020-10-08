@@ -1,25 +1,18 @@
-from abc import ABC
-
-import keras
-from routing.nn.sgd16 import SGDMultiType
 from keras.models import Model
-from keras.layers import Dense, Dropout, BatchNormalization, Input, Add
-from keras.optimizers import Adam, Adagrad, Adadelta, SGD
+from keras.layers import Dense, BatchNormalization, Input
+from keras.optimizers import Adam
 import keras.backend as K
 from routing.nn.dataset_generator import ILPGenerator
-from numpy.core.multiarray import ndarray
 import numpy  as np
 import tensorflow as tf
-from utils.file_utils import load_json, load_pkl, save_pkl
+from utils.file_utils import save_pkl
 from utils.log_utils import debug, info, err
 from routing.nn.base import Routing
 from keras.models import load_model
 import os
-from path_utils import get_prj_root
 from keras.callbacks import ModelCheckpoint
-from routing.nn.common import persist_dir
-from routing.instance import RoutingInput, RoutingOutput
-from typing import Tuple, List, Dict
+from routing.common import persist_dir
+from typing import Tuple
 import gc
 
 

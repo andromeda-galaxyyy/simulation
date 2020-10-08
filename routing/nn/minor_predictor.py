@@ -1,19 +1,14 @@
 from utils.file_utils import *
 from utils.log_utils import *
 from routing.instance import *
-from typing import Tuple, List, Dict
-from routing.nn.minor import Minor
+from typing import Tuple, List
 import numpy as np
-from routing.nn.common import persist_dir
 from routing.nn.minor import Minor
-from path_utils import get_prj_root
 import tensorflow as tf
-from routing.nn.common import persist_dir, topo_fn
-from multiprocessing import Process
+from routing.common import persist_dir, topo_fn
 from multiprocessing import Pool
 from utils.time_utils import now_in_milli
-import socketserver
-from sockets.server import Server, recvall2
+from sockets.server import recvall2
 import json
 import socket
 from threading import Thread
@@ -97,11 +92,12 @@ def test_load():
 class MultiProcessPredictor:
 	def fetch_single_model_res(self, model_id: int, traffic_matrix: List[float], video_actions,
 	                           iot_actions, voip_actions, ar_actions):
-		client = self.clients[model_id]
+		# client = self.clients[model_id]
+		client=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 		sock_fn = os.path.join("/tmp", "minor.{}.sock".format(model_id))
 		try:
 			client.connect(sock_fn)
-			debug("connected to {}".format(sock_fn))
+			# debug("connected to {}".format(sock_fn))
 		except socket.error as msg:
 			err(msg)
 			exit(-1)
@@ -109,9 +105,11 @@ class MultiProcessPredictor:
 		req = {"volumes": traffic_matrix}
 
 		client.sendall(bytes(json.dumps(req) + "*", "ascii"))
-		resp = recvall2(client)
-		client.close()
-		debug("client received done")
+		try:
+			resp = recvall2(client)
+		finally:
+			client.close()
+		# debug("client received done")
 		# debug(resp)
 		resp = json.loads(resp)
 		n_nodes=self.n_nodes
@@ -127,8 +125,7 @@ class MultiProcessPredictor:
 	def __init__(self, n_nodes: int):
 		self.clients = []
 		self.n_nodes = n_nodes
-		for _ in range(self.n_nodes):
-			self.clients.append(socket.socket(socket.AF_UNIX, socket.SOCK_STREAM))
+
 
 	def __call__(self, inpt: RoutingInput) -> RoutingOutput:
 		traffic_matrix = []

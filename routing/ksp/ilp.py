@@ -1,24 +1,15 @@
-import matplotlib
 
 import numpy as np
-from utils.common_utils import load_pkl, save_pkl, is_digit, file_exsit, dir_exsit
-import matplotlib.pyplot as plt
-import networkx as nx
-from itertools import islice
-import pathlib
-from collections import Counter
+from utils.common_utils import load_pkl
 from typing import List, Tuple, Dict
 import cplex
-from utils.common_utils import debug, info, err
+from utils.common_utils import info, err
 import os
 from path_utils import get_prj_root
 from routing.instance import RoutingInput, RoutingOutput,RoutingInstance
-import random
-from copy import deepcopy
 from common.Graph import NetworkTopo
-from routing.evaluator import RoutingEvaluator
+from routing.eval.evaluator import RoutingEvaluator
 
-matplotlib.use('agg')
 cache_dir = os.path.join(get_prj_root(), "cache")
 satellite_topo_dir = os.path.join(get_prj_root(), "routing/satellite_topos")
 static_dir = os.path.join(get_prj_root(), "static")

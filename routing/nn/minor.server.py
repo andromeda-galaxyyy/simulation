@@ -1,22 +1,12 @@
 from utils.file_utils import *
-from utils.log_utils import *
 from routing.instance import *
-from typing import Tuple, List, Dict
-from routing.nn.minor import Minor
 import numpy as np
-from routing.nn.common import persist_dir
 from routing.nn.minor import Minor
 from path_utils import get_prj_root
-import tensorflow as tf
-from routing.nn.common import persist_dir, topo_fn
-from multiprocessing import Process
-from multiprocessing import Pool
-from utils.time_utils import now_in_milli
-import socketserver
-from sockets.server import Server, recvall2
+from routing.common import topo_fn
+from sockets.server import recvall2
 import json
 import socket
-from threading import Thread
 
 default_topo = load_pkl(topo_fn)[0]
 
@@ -25,7 +15,7 @@ class SinglePredictor:
 	def __init__(self, id_: int):
 		self.model: Minor = Minor(id_, 66, 4, 3)
 		self.model.load_model(
-			os.path.join(get_prj_root(), "routing", "nn", "hdf5.2", "minor.{}.hdf5".format(id_)))
+			os.path.join(get_prj_root(), "routing", "nn", "hdf5", "minor.{}.hdf5".format(id_)))
 
 	def __call__(self, inpt: RoutingInput) -> RoutingOutput:
 		traffic_matrix = []

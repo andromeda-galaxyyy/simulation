@@ -3,6 +3,10 @@ import json
 import pickle
 import os
 import shutil
+from typing import Callable,List,Dict,Tuple
+import os
+
+
 def check_dir(dir_name):
     if not Path(dir_name).is_dir():
         raise FileNotFoundError
@@ -60,3 +64,15 @@ def save_json(filename,obj,overwrite=True):
         write()
         return
     write()
+
+
+
+def walk_dir(d:str,filter_func:Callable[[str],bool])->List[str]:
+    res=[]
+    for path,subdirs,files in os.walk(d):
+        for name in files:
+            if not filter_func(name):continue
+            res.append(os.path.join(path,name))
+
+    return res
+

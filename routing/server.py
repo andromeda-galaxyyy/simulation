@@ -1,29 +1,22 @@
-import socket
-import sys
 import json
 from json import JSONDecodeError
-import threading
 import socketserver
-from utils.common_utils import is_digit, info, debug
-from sockets.server import Server, recvall, recvall2
-import random
-import networkx as nx
-from itertools import islice
-import time
-from datetime import datetime
+from utils.common_utils import info
+from sockets.server import Server, recvall2
 from routing.nn.minor_predictor import MultiProcessPredictor
 from common.Graph import NetworkTopo
-from routing.nn.common import topo_fn
+from routing.common import topo_fn
 from utils.file_utils import load_pkl
 from routing.instance import RoutingInput
 from utils.time_utils import now_in_milli
 
-minor_predictor = MultiProcessPredictor()
 info("All models loaded")
 topo = NetworkTopo(load_pkl(topo_fn)[0])
 ksp = {}
 nodes = 66
 K = 3
+
+minor_predictor = MultiProcessPredictor(66)
 
 src_dsts = [(s, d) for s in range(nodes) for d in range(nodes)]
 
