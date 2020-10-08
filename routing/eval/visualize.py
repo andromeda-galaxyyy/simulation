@@ -14,6 +14,7 @@ from utils.file_utils import walk_dir
 from utils.log_utils import debug
 from utils.time_utils import now_in_milli
 import random
+import numpy as np
 from time import sleep
 
 random.seed(now_in_milli())
@@ -98,7 +99,8 @@ def solve_and_visualize2(topo: List[List[Tuple]], instances: List[RoutingInput])
 
 
 def plot(ratios: List[float]):
-	plt.hist(ratios)
+	save_pkl("/tmp/demo.pkl",ratios)
+	plt.hist(ratios,weights=np.ones(len(ratios)) / len(ratios))
 	plt.savefig("/tmp/demo.png")
 
 
@@ -108,8 +110,8 @@ if __name__ == '__main__':
 	# load routing instances
 	instances_fns = walk_dir(instances_dir, lambda s: "ilpinstance" in s)
 	debug("find instances fns {}".format(len(instances_fns)))
-	random.shuffle(instances_fns)
-	instances_fns = instances_fns[:100]
+	# random.shuffle(instances_fns)
+	instances_fns = instances_fns[-2:]
 	instances = []
 	for fn in instances_fns:
 		instances.extend(load_pkl(fn))

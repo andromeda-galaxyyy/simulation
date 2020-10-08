@@ -101,6 +101,8 @@ class MultiProcessPredictor:
 		except socket.error as msg:
 			err(msg)
 			exit(-1)
+		except:
+			exit(-1)
 
 		req = {"volumes": traffic_matrix}
 

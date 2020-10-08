@@ -1,6 +1,8 @@
 #!/bin/bash
 
 
+export CUDA_VISIBLE_DEVICES=-1
+
 for model_id in {0..65};
   do
 #    echo $model_id
