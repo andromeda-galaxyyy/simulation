@@ -14,7 +14,7 @@ import os
 from multiprocessing import Pool
 import asyncio, socket
 
-dt_model_dir = os.path.join(get_prj_root(), "classify/nn")
+dt_model_dir = os.path.join(get_prj_root(), "classify/models")
 dt_model_pkl = os.path.join(dt_model_dir, "dt.pkl")
 
 num_process = 20

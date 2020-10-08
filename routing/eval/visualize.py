@@ -111,7 +111,8 @@ if __name__ == '__main__':
 	instances_fns = walk_dir(instances_dir, lambda s: "ilpinstance" in s)
 	debug("find instances fns {}".format(len(instances_fns)))
 	# random.shuffle(instances_fns)
-	instances_fns = instances_fns[-2:]
+	num=int(len(instances_fns)*0.8)
+	instances_fns = instances_fns[num:]
 	instances = []
 	for fn in instances_fns:
 		instances.extend(load_pkl(fn))
