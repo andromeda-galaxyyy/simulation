@@ -743,74 +743,36 @@ class TopoBuilder:
 	def _stop_listener(self):
 		os.system("for p in `pgrep '^golisten$'`;do kill $p;done")
 
-	def setup_supplementary_topo(self, server=True):
-		serv_access_id = 66
-		client_access_id = 67
-		serv_access = "s{}".format(serv_access_id)
-		client_access = "s{}".format(client_access_id)
-		controller = self.config["controller"]
-		if server:
-			n1 = "s{}".format(31)
-			n2 = "s{}".format(32)
+	def setup_supplementary_topo(self):
+		supp_topo=self.config[int(self.id)]
+		#todo how to eliminate this constant?
+		ovs_id=66+int(self.id)
+		ovs_name="s{}".format(ovs_id)
 
-			serv_to_n1 = "{}-{}".format(serv_access, n1)
-			serv_to_n2 = "{}-{}".format(serv_access, n2)
-			n1_to_serv = "{}-{}".format(n1, serv_access)
-			n2_to_serv = "{}-{}".format(n2, serv_access)
-			add_veth(serv_to_n1, n1_to_serv)
-			add_veth(n2_to_serv, serv_to_n2)
+		controller=self.config["controller"]
+		add_ovs(ovs_name, controller)
+		attach_interface_to_sw(ovs_name,supp_topo["intf"])
 
-			add_ovs(66, controller)
+		neighbors=supp_topo["neighbors"]
+		debug("set up supplementary topo for {}".format(supp_topo["tag"]))
+		for nidx,neighbor in enumerate(neighbors):
+			qos=supp_topo["qos"][nidx]
+			band=qos[0]
+			delay=qos[1]
+			n="s{}".format(neighbor)
+			p1,p2="{}-{}".format(ovs_name,n),"{}-{}".format(n,ovs_name)
+			add_veth(p1,p2)
+			up_interface(p1)
+			up_interface(p2)
 
-			attach_interface_to_sw(serv_access, serv_to_n1)
-			attach_interface_to_sw(serv_access, serv_to_n2)
-			attach_interface_to_sw(n1, n1_to_serv)
-			attach_interface_to_sw(n2, n2_to_serv)
+			attach_interface_to_sw(ovs_name,p1)
+			attach_interface_to_sw(n,p2)
 
-			attach_interface_to_sw(serv_access,"eno2")
+			add_tc(p1,bandwidth=band,delay=delay)
+			add_tc(p2,bandwidth=band,delay=delay)
 
-			up_interface(serv_to_n1)
-			up_interface(serv_to_n2)
-			up_interface(n1_to_serv)
-			up_interface(n2_to_serv)
 
-			add_tc(serv_to_n1, 10, 10)
-			add_tc(serv_to_n2, 10, 10)
-			add_tc(n1_to_serv, 10, 10)
-			add_tc(n2_to_serv, 10, 10)
-			add_tc("eno2",10,10)
-			return
 
-		# client
-		n1 = "s{}".format(64)
-		n2 = "s{}".format(65)
-
-		client_to_n1 = "{}-{}".format(client_access, n1)
-		client_to_n2 = "{}-{}".format(client_access, n2)
-		n1_to_client = "{}-{}".format(n1, client_access)
-		n2_to_client = "{}-{}".format(n2, client_access)
-		add_veth(client_to_n1, n1_to_client)
-		add_veth(n2_to_client, client_to_n2)
-
-		add_ovs(66, controller)
-
-		attach_interface_to_sw(client_access, client_to_n1)
-		attach_interface_to_sw(client_access, client_to_n2)
-		attach_interface_to_sw(n1, n1_to_client)
-		attach_interface_to_sw(n2, n2_to_client)
-
-		attach_interface_to_sw(client_access,"eno2")
-
-		up_interface(client_to_n1)
-		up_interface(client_to_n2)
-		up_interface(n1_to_client)
-		up_interface(n2_to_client)
-
-		add_tc(client_to_n1, 10, 10)
-		add_tc(client_to_n2, 10, 10)
-		add_tc(n1_to_client, 10, 10)
-		add_tc(n2_to_client, 10, 10)
-		add_tc("eno2",10,10)
 
 
 if __name__ == '__main__':
