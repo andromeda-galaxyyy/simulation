@@ -67,12 +67,11 @@ class MinorModelHandler(socketserver.BaseRequestHandler):
 			return
 
 		start = now_in_milli()
-		video = None
-		iot = None
-		voip = None
-		ar = None
-		for flow_idx in range(n_flows):
-			video = vols[flow_idx * n_src_dsts:(flow_idx + 1) * n_src_dsts]
+
+		video = vols[:n_src_dsts]
+		iot=vols[n_src_dsts:2*n_src_dsts]
+		voip=vols[2*n_src_dsts:3*n_src_dsts]
+		ar=vols[3*n_src_dsts:]
 
 		inpt = RoutingInput(video=video, iot=iot, voip=voip, ar=ar)
 

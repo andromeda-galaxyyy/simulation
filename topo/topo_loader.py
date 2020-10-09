@@ -61,7 +61,7 @@ def read_statellite_topo():
 					continue
 				links.add((i, j))
 				# capacity = uniform(4000, 7000)
-				capacity = 2000000000
+				capacity = 100
 				delay = float(old_topo[i][j])
 				delay *= 1000
 				delay = int(delay)
@@ -100,7 +100,7 @@ def read_statellite_topo():
 		})
 	assert len(satellite_topos) == 44
 
-	topo_fn = os.path.join(cache_dir, "topo.unlimited.pkl")
+	topo_fn = os.path.join(cache_dir, "topo.pkl")
 
 	save_pkl(topo_fn, new_topos)
 	save_pkl(os.path.join(static_dir, "satellite_overall.pkl"), satellite_topos)

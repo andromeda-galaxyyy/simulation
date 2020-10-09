@@ -88,7 +88,13 @@ def solve_and_visualize2(topo: List[List[Tuple]], instances: List[RoutingInput])
 			ar=instance.ar
 		)
 		start = now_in_milli()
-		nn_output = solver["nn"](nn_inpt)
+		# nn_output = solver["nn"](nn_inpt)
+		tmp=[np.random.randint(0,3) for _ in range(66*65)]
+
+		nn_output=RoutingOutput(video=tmp,
+		                        iot=[np.random.randint(0,3) for _ in range(66*65)]
+		                        ,ar=[np.random.randint(0,3) for _ in range(66*65)],
+		                        voip=[np.random.randint(0,3) for _ in range(66*65)])
 		debug("nn solve done use {} milliseconds".format(now_in_milli() - start))
 		# sleep(0.5)
 
@@ -111,8 +117,8 @@ if __name__ == '__main__':
 	instances_fns = walk_dir(instances_dir, lambda s: "ilpinstance" in s)
 	debug("find instances fns {}".format(len(instances_fns)))
 	# random.shuffle(instances_fns)
-	num=int(len(instances_fns)*0.8)
-	instances_fns = instances_fns[num:]
+	# num=int(len(instances_fns)*0.8)
+	instances_fns = instances_fns[-1:]
 	instances = []
 	for fn in instances_fns:
 		instances.extend(load_pkl(fn))
