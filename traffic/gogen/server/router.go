@@ -127,6 +127,8 @@ func GetDelayBetween(c *gin.Context)  {
 				"num":len(res),
 				"data":res,
 			})
+			return
 		}
+
 	}
 }

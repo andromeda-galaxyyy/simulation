@@ -115,6 +115,8 @@ func (r *redisWriter) Start() {
 			log.Printf("delay file:%s\n", fn)
 			lines, err := utils.ReadLines(fn)
 
+			lines=lines[1:]
+
 			if err != nil {
 				log.Printf("Redis writer cannot read line from %s\n", fn)
 				continue

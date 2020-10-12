@@ -129,11 +129,10 @@ func (l *Listener)startDispatcher(sigChan chan common.Signal)  {
 					continue
 				}
 				sendTime := utils.BytesToInt64(l4Payload[:8])
-				if sendTime>=unixTimeThreshold{
-					utils.Copy(l4Payload,0,utils.Int64ToBytes(captureTime-sendTime),0,8)
-				}else{
-					//utils.Copy(l4Payload,0,utils.Int64ToBytes(0),0,8)
+				if sendTime>=unixTimeThreshold {
+					utils.Copy(l4Payload, 0, utils.Int64ToBytes(captureTime-sendTime), 0, 8)
 				}
+
 				if !stopRequested{
 					l.packetChannels[int(net.NetworkFlow().FastHash())&(l.NWorker-1)]<-packet
 				}

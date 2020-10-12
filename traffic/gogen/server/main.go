@@ -2,7 +2,6 @@ package main
 
 import (
 	"chandler.com/gogen/common"
-	"chandler.com/gogen/utils"
 	"context"
 	"flag"
 	"fmt"
@@ -12,7 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
+	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -24,7 +23,6 @@ var (
 )
 
 func setUpRedisHandle(ip string,port int) error  {
-
 	ctx:=context.Background()
 	delayHandle =redis.NewClient(&redis.Options{
 		Addr:fmt.Sprintf("%s:%d",ip,port),
@@ -49,7 +47,7 @@ func setUpRedisHandle(ip string,port int) error  {
 
 
 func main()  {
-	ds:=flag.String("dirs","/tmp/rxdelay","Directory to watch")
+	base_dir :=flag.String("base","/tmp/listener_log","Directory to watch")
 	serverPort:=flag.Int("port",10086,"Server listening port")
 	redisPort:=flag.Int("rport",6379,"Redis instance port")
 	redisIp:=flag.String("rip","10.211.55.2","Redis instance ip")
@@ -61,13 +59,17 @@ func main()  {
 	if err!=nil{
 		log.Fatalf("Cannot connect to redis instance %s:%d",rip,rport)
 	}
-
-	dd:=strings.Split(*ds," ")
-	for _,d:=range dd{
-		if !utils.IsDir(d){
-			log.Fatalf("%s is not directory\n",d)
+	dd:=make([]string,0)
+	filepath.Walk(*base_dir, func(path string, info os.FileInfo, err error) error {
+		if info!=nil&&info.IsDir(){
+			dd=append(dd,path)
 		}
-	}
+		if err!=nil{
+			log.Fatalf("Error when scanning base directory %s\n",*base_dir)
+		}
+		return nil
+	})
+
 
 
 	delayChan:=make(chan string,10240)
@@ -116,13 +118,14 @@ func main()  {
 		log.Println("Send stop signal to server")
 		quit<-common.StopSignal
 	}()
-	//start server
+
 	router=gin.Default()
 	router.GET("/", func(context *gin.Context) {
 		context.String(http.StatusOK,"Hello world")
 	})
 
 	router.GET("/helloworld",GinHelloWorld)
+	router.GET("/delay",GetDelayBetween)
 
 	server:=&http.Server{
 		Addr: fmt.Sprintf(":%d",*serverPort),

@@ -222,7 +222,6 @@ func (w *worker) processPacket(packet *gopacket.Packet) {
 		delayDesc.ReceivedPackets +=1
 		lossDesc.PeriodPackets+=1
 		lossDesc.ReceivedPackets+=1
-
 	}
 
 
@@ -339,22 +338,7 @@ only implement period loss now
  */
 func computeLoss(desc *common.FlowDesc, lastSeqNum int64,currSeqNum int64)(float64,error){
 	estimated1 :=100*(currSeqNum-lastSeqNum)
-	//estimated2:=int64(0)
-	//
-	//estimated:=int64(0)
-	//if desc.PeriodPackets%100==0{
-	//	estimated2=desc.PeriodPackets
-	//}else{
-	//	estimated2=(desc.PeriodPackets/100+1)*100
-	//}
-	//
-	//if desc.PeriodPackets>estimated1{
-	//	//seq 包乱序
-	//	estimated=estimated2
-	//}else{
-	//	estimated=estimated1
-	//}
-	//log.Printf("%d\n",estimated)
+
 	return 1-float64(desc.PeriodPackets)/float64(estimated1),nil
 }
 

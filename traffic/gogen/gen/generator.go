@@ -391,14 +391,10 @@ func (g *Generator) Start() (err error) {
 						}
 
 					} else {
+						//log.Printf("%d,%d\n",srcPort,dstPort)
 						udp.SrcPort = layers.UDPPort(srcPort)
 						udp.DstPort = layers.UDPPort(dstPort)
 						ipv4.Protocol = 17
-						//err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, false, true, isLastL4Payload)
-						//if err != nil {
-						//	log.Fatal(err)
-						//}
-
 						if g.enablePktLossStats{
 							updatedPeriodPktCount,updatedSeqNum,err:=sendWithSeq(
 								handle,
@@ -411,7 +407,7 @@ func (g *Generator) Start() (err error) {
 								ipv4,
 								tcp,
 								udp,
-								true,
+								false,
 								true,
 								isLastL4Payload,
 								g.flowIdToSeq[flowId],
@@ -423,7 +419,7 @@ func (g *Generator) Start() (err error) {
 							g.periodPktCount[flowId]=updatedPeriodPktCount%100
 							g.flowIdToSeq[flowId]=updatedSeqNum
 						}else{
-							err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, true, true, isLastL4Payload)
+							err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, false, true, isLastL4Payload)
 							if err != nil {
 								log.Fatal(err)
 							}
