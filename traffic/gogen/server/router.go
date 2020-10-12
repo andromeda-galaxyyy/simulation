@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -19,8 +20,12 @@ var (
 	internalErrorJSON=gin.H{
 		"message":"internal error",
 	}
-	delayHandle *redis.Client
-	lossHandle *redis.Client
+	delayHandle0 *redis.Client
+	delayHandle1 *redis.Client
+	lossHandle0 *redis.Client
+	lossHandle1 *redis.Client
+
+	lossHandle   *redis.Client
 )
 
 
@@ -62,7 +67,7 @@ func GetDelayBetween(c *gin.Context)  {
 	if srcExists||destExists{
 		// src exists
 		if srcExists{
-			vals,err:=delayHandle.ZRangeByScore(ctx,src,&redis.ZRangeBy{
+			vals,err:= delayHandle0.ZRangeByScore(ctx,src,&redis.ZRangeBy{
 				Min:    fmt.Sprintf("%d",start),
 				Max:   fmt.Sprintf("%d",end),
 			}).Result()
@@ -87,7 +92,7 @@ func GetDelayBetween(c *gin.Context)  {
 					c.JSON(http.StatusInternalServerError,internalErrorJSON)
 					return
 				}
-				utils.Filter(filtered,tmp_res, func(e interface{}) bool {
+				utils.Filter(&filtered,&tmp_res, func(e interface{}) bool {
 					desc:=e.(*common.FlowDesc)
 					did,_:=utils.IdFromIP(desc.DstIP)
 					if did==expectedDestId{
@@ -98,6 +103,7 @@ func GetDelayBetween(c *gin.Context)  {
 			}else{
 				filtered=tmp_res
 			}
+			log.Println(len(filtered))
 			res:=make([]*common.FlowDesc,0)
 			for _,d:=range filtered{
 				res=append(res,d.(*common.FlowDesc))
@@ -109,7 +115,7 @@ func GetDelayBetween(c *gin.Context)  {
 			return
 		}else{
 			//dst exists
-			vals,err:=delayHandle.ZRangeByScore(ctx,dest,&redis.ZRangeBy{
+			vals,err:= delayHandle1.ZRangeByScore(ctx,dest,&redis.ZRangeBy{
 				Min:    fmt.Sprintf("%d",start),
 				Max:   fmt.Sprintf("%d",end),
 			}).Result()

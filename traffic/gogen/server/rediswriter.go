@@ -17,13 +17,19 @@ type Writer interface {
 }
 
 type redisWriter struct {
-	ip string
-	port int
-	handle *redis.Client
-	lossChan chan string
+	ip        string
+	port      int
+	//handle0 and handle1 is for delay,src && dst respectively
+	handle0   *redis.Client
+	handle1 *redis.Client
+	//handle2 and handle3 is for loss,src && dst respectively
+	handle2 *redis.Client
+	handle3 *redis.Client
+
+	lossChan  chan string
 	delayChan chan string
-	fileChan chan string
-	doneChan chan common.Signal
+	fileChan  chan string
+	doneChan  chan common.Signal
 	// redis采用多副本，以src为key和以dst为key
 	// 方便debug和查询
 
@@ -31,9 +37,9 @@ type redisWriter struct {
 
 func NewDefaultRedisWriter(ip string,port int) *redisWriter {
 	return &redisWriter{
-		ip:       ip,
+		ip:        ip,
 		port:      port,
-		handle:    nil,
+		handle0:   nil,
 		lossChan:  nil,
 		delayChan: nil,
 		fileChan:  nil,
@@ -58,14 +64,14 @@ func (r *redisWriter) Write(line string, ts int64) error {
 		return err
 	}
 	ctx:=context.Background()
-	if err:=r.handle.ZAdd(ctx,fmt.Sprintf("%d",srcId),&redis.Z{
+	if err:=r.handle0.ZAdd(ctx,fmt.Sprintf("%d",srcId),&redis.Z{
 		Score:  float64(ts),
 		Member: line,
 	}).Err();err!=nil{
 		return err
 	}
 
-	if err:=r.handle.ZAdd(ctx,fmt.Sprintf("%d",dstId),&redis.Z{
+	if err:=r.handle1.ZAdd(ctx,fmt.Sprintf("%d",dstId),&redis.Z{
 		Score:  float64(ts),
 		Member: line,
 	}).Err();err!=nil{
@@ -82,22 +88,54 @@ func (r *redisWriter)BatchWrite(lines []string, ts int64) error {
 }
 
 func (r *redisWriter) Init() error {
-	r.handle=redis.NewClient(&redis.Options{
+	r.handle0 =redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%d",r.ip, r.port),
 		Password: "",
 		DB: 0,
 	})
 	ctx:=context.Background()
-	_,err:=r.handle.Ping(ctx).Result()
+	_,err:=r.handle0.Ping(ctx).Result()
 	if err!=nil{
 		return err
 	}
+
+	r.handle1 =redis.NewClient(&redis.Options{
+		Addr: fmt.Sprintf("%s:%d",r.ip, r.port),
+		Password: "",
+		DB: 1,
+	})
+	//ctx:=context.Background()
+	_,err=r.handle1.Ping(ctx).Result()
+	if err!=nil{
+		return err
+	}
+
+	r.handle2 =redis.NewClient(&redis.Options{
+		Addr: fmt.Sprintf("%s:%d",r.ip, r.port),
+		Password: "",
+		DB: 2,
+	})
+	_,err=r.handle2.Ping(ctx).Result()
+	if err!=nil{
+		return err
+	}
+
+	r.handle3 =redis.NewClient(&redis.Options{
+		Addr: fmt.Sprintf("%s:%d",r.ip, r.port),
+		Password: "",
+		DB: 3,
+	})
+	_,err=r.handle3.Ping(ctx).Result()
+	if err!=nil{
+		return err
+	}
+
 	return nil
 }
 
 func (r *redisWriter) Start() {
-	if nil!=r.handle{
-		defer r.handle.Close()
+	if nil!=r.handle0 {
+		defer r.handle0.Close()
 	}
 	//ctx:=context.Background()
 	for {
@@ -105,8 +143,9 @@ func (r *redisWriter) Start() {
 		case <-r.doneChan:
 			log.Println("Redis writer stop requested")
 			return
-		case fn := <-r.lossChan:
-			log.Printf("Redis writer loss file:%s\n", fn)
+		case  <-r.lossChan:
+			continue
+			//log.Printf("Redis writer loss file:%s\n", fn)
 		case fn := <-r.delayChan:
 			if !utils.IsFile(fn) {
 				continue

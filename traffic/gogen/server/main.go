@@ -24,21 +24,42 @@ var (
 
 func setUpRedisHandle(ip string,port int) error  {
 	ctx:=context.Background()
-	delayHandle =redis.NewClient(&redis.Options{
+	delayHandle0 =redis.NewClient(&redis.Options{
 		Addr:fmt.Sprintf("%s:%d",ip,port),
 		Password: "",
 		DB:0,
 	})
-	_,err:=delayHandle.Ping(ctx).Result()
+	_,err:= delayHandle0.Ping(ctx).Result()
 	if err!=nil{
 		return err
 	}
-	lossHandle=redis.NewClient(&redis.Options{
+
+	delayHandle1 =redis.NewClient(&redis.Options{
 		Addr:fmt.Sprintf("%s:%d",ip,port),
 		Password: "",
 		DB:1,
 	})
-	_,err=delayHandle.Ping(ctx).Result()
+	_,err= delayHandle1.Ping(ctx).Result()
+	if err!=nil{
+		return err
+	}
+
+	 lossHandle0=redis.NewClient(&redis.Options{
+		Addr:fmt.Sprintf("%s:%d",ip,port),
+		Password: "",
+		DB:2,
+	})
+	_,err= lossHandle0.Ping(ctx).Result()
+	if err!=nil{
+		return err
+	}
+
+	lossHandle1=redis.NewClient(&redis.Options{
+		Addr:fmt.Sprintf("%s:%d",ip,port),
+		Password: "",
+		DB:3,
+	})
+	_,err= lossHandle1.Ping(ctx).Result()
 	if err!=nil{
 		return err
 	}

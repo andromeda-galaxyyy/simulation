@@ -136,10 +136,10 @@ func Copy(dst []byte,dstStart int,src []byte,srcStart,n int){
 	}
 }
 
-func Filter(dst,src []interface{},pred func(e interface{}) bool)  {
-	for _,i:=range src{
+func Filter(dst,src *[]interface{},pred func(e interface{}) bool)  {
+	for _,i:=range *src{
 		if pred(i){
-			dst=append(dst,i)
+			*dst=append(*dst,i)
 		}
 	}
 }
