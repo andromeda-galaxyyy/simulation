@@ -110,10 +110,10 @@ func (w *Watcher)Start()  {
 			if !ok{
 				log.Fatalf("%s watcher channel pannic\n",w)
 			}
-			//log.Println("event:",event)
-			if event.Op&fsnotify.Create==fsnotify.Create{
-				//log.Printf("[%s] create file :%s\n",w,event.Name)
-			}
+			////log.Println("event:",event)
+			//if event.Op&fsnotify.Create==fsnotify.Create{
+			//	//log.Printf("[%s] create file :%s\n",w,event.Name)
+			//}
 			// 创建了新的文件
 			if event.Op&fsnotify.Write==fsnotify.Write{
 				//log.Printf("[%s] modified file: %s\n",w,event.Name)

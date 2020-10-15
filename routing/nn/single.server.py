@@ -15,7 +15,7 @@ class SinglePredictor:
 	def __init__(self, id_: int):
 		self.model: Minor = Minor(id_, 66, 4, 3)
 		self.model.load_model(
-			os.path.join(get_prj_root(), "routing", "nn", "hdf5", "minor.{}.hdf5".format(id_)))
+			os.path.join(get_prj_root(), "routing", "nn", "hdf5.5.3", "minor.{}.hdf5".format(id_)))
 
 	def __call__(self, inpt: RoutingInput) -> RoutingOutput:
 		traffic_matrix = []

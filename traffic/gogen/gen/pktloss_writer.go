@@ -39,7 +39,7 @@ func (w *pktlosswriter)start()  {
 			//write to file
 			fn:=w.generateFn()
 			w.write(w.cache,fn)
-			log.Printf("Write pkt loss stats to file %s\n",fn)
+			log.Printf("WriteDelayStats pkt loss stats to file %s\n",fn)
 			w.cache=make([]*common.FlowDesc,0)
 		}
 	}

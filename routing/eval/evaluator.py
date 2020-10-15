@@ -52,7 +52,7 @@ class RoutingEvaluator:
 				if self.topo.edge_in_path(u, v, path):
 					utility += routing.ar[i]
 
-			rv = max(rv, utility / 100)
+			rv = max(rv, utility)
 		return rv
 
 

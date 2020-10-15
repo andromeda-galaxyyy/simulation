@@ -12,8 +12,9 @@ import (
 type Writer interface {
 	Init() (err error)
 	Start()
-	Write(line string, ts int64) error
-	BatchWrite(lines []string, ts int64) error
+	WriteDelayStats(line string, ts int64) error
+	BatchWriteDelayStats(lines []string, ts int64) error
+
 }
 
 type redisWriter struct {
@@ -47,7 +48,7 @@ func NewDefaultRedisWriter(ip string,port int) *redisWriter {
 	}
 }
 
-func (r *redisWriter) Write(line string, ts int64) error {
+func (r *redisWriter) WriteDelayStats(line string, ts int64) error {
 	desc:=&common.FlowDesc{}
 	err:=common.DescFromDelayStats(desc,line)
 	if err!=nil{
@@ -80,9 +81,51 @@ func (r *redisWriter) Write(line string, ts int64) error {
 	return nil
 }
 
-func (r *redisWriter)BatchWrite(lines []string, ts int64) error {
+
+
+func (r *redisWriter) WriteLossStats(line string, ts int64) error {
+	desc:=&common.FlowDesc{}
+	err:=common.DescFromDelayStats(desc,line)
+	if err!=nil{
+		return err
+	}
+	srcIp:=desc.SrcIP
+	srcId,err:=utils.IdFromIP(srcIp)
+	if err!=nil{
+		return err
+	}
+	dstIp:=desc.DstIP
+	dstId,err:=utils.IdFromIP(dstIp)
+	if err!=nil{
+		return err
+	}
+	ctx:=context.Background()
+	if err:=r.handle2.ZAdd(ctx,fmt.Sprintf("%d",srcId),&redis.Z{
+		Score:  float64(ts),
+		Member: line,
+	}).Err();err!=nil{
+		return err
+	}
+
+	if err:=r.handle3.ZAdd(ctx,fmt.Sprintf("%d",dstId),&redis.Z{
+		Score:  float64(ts),
+		Member: line,
+	}).Err();err!=nil{
+		return err
+	}
+	return nil
+}
+
+
+func (r *redisWriter) BatchWriteDelayStats(lines []string, ts int64) error {
 	for _,line:=range lines{
-		_=r.Write(line,ts)
+		_=r.WriteDelayStats(line,ts)
+	}
+	return nil
+}
+func (r *redisWriter) BatchWriteLossStats(lines []string, ts int64) error {
+	for _,line:=range lines{
+		_=r.WriteLossStats(line,ts)
 	}
 	return nil
 }
@@ -143,9 +186,27 @@ func (r *redisWriter) Start() {
 		case <-r.doneChan:
 			log.Println("Redis writer stop requested")
 			return
-		case  <-r.lossChan:
+		case  fn:=<-r.lossChan:
+			if !utils.IsFile(fn) {
+				continue
+			}
+
+			log.Printf("loss file:%s\n", fn)
+			lines, err := utils.ReadLines(fn)
+
+			lines=lines[1:]
+
+			if err != nil {
+				log.Printf("Redis writer cannot read line from %s\n", fn)
+				continue
+			}
+			ctime,_:=utils.GetCreateTimeInSec(fn)
+			err=r.BatchWriteLossStats(lines, ctime)
+			if err != nil {
+				log.Printf("Redis writer cannot store %s\n", fn)
+				continue
+			}
 			continue
-			//log.Printf("Redis writer loss file:%s\n", fn)
 		case fn := <-r.delayChan:
 			if !utils.IsFile(fn) {
 				continue
@@ -161,7 +222,7 @@ func (r *redisWriter) Start() {
 				continue
 			}
 			ctime,_:=utils.GetCreateTimeInSec(fn)
-			err=r.BatchWrite(lines, ctime)
+			err=r.BatchWriteDelayStats(lines, ctime)
 
 			if err != nil {
 				log.Printf("Redis writer cannot store %s\n", fn)

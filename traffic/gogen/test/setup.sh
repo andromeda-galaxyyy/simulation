@@ -25,8 +25,8 @@ ip netns exec h0 ip link set dev lo up
 ip netns exec h1 ip link set dev lo up
 ip netns exec h1 ip link set dev h1-eth0 up
 
-ip netns exec h0 ip addr add 10.0.0.1/24 dev h0-eth0
-ip netns exec h1 ip addr add 10.0.0.2/24 dev h1-eth0
+ip netns exec h0 ip addr add 10.0.0.1/16 dev h0-eth0
+ip netns exec h1 ip addr add 10.0.0.2/16 dev h1-eth0
 
 ip netns exec h0 tc qdisc add dev h0-eth0 root handle 5:0 hfsc default 1
 ip netns exec h0 tc class add dev h0-eth0 parent 5:0 classid 5:1 hfsc sc rate 500Mbit ul rate 500Mbit

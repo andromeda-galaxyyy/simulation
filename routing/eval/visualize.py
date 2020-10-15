@@ -6,7 +6,8 @@ from common.Graph import NetworkTopo
 from routing.eval.evaluator import RoutingEvaluator
 import matplotlib
 
-matplotlib.use('agg')
+# matplotlib.use('TkAgg')
+from scipy.stats import norm
 import matplotlib.pyplot as plt
 from routing.common import *
 from path_utils import get_prj_root
@@ -51,7 +52,7 @@ def solve_and_visualize(topo: List[List[Tuple]], inpts: List[RoutingInput]):
 		ratio.append((nn_utility - ilp_utility) / ilp_utility)
 
 
-def solve_and_visualize2(topo: List[List[Tuple]], instances: List[RoutingInput]):
+def solve_and_visualize2(topo: List[List[Tuple]], instances: List[RoutingInstance]):
 	'''
 
 	:param topo:
@@ -78,47 +79,111 @@ def solve_and_visualize2(topo: List[List[Tuple]], instances: List[RoutingInput])
 		"nn": MultiProcessPredictor(66)
 	}
 	evaluator = RoutingEvaluator(topo, 3)
-	ratio = []
+	nn_ratios = []
+	nn_utilities=[]
+	random_ratios = []
+	random_utilities=[]
+	ospf_ratios = []
+	ospf_utilities=[]
+
+	ilp_utilities=[]
 	for instance in instances:
 		ilp_utility = evaluator(instance)
-		nn_inpt = RoutingInput(
+		ilp_utilities.append(ilp_utility)
+		inpt = RoutingInput(
 			video=instance.video,
 			iot=instance.iot,
 			voip=instance.voip,
 			ar=instance.ar
 		)
+		s = [0 for _ in range(66 * 65)]
+		ospf_output = RoutingOutput(video=s, iot=s, voip=s, ar=s)
+
+		random_output = RoutingOutput(video=[np.random.randint(0, 3) for _ in range(66 * 65)],
+		                              iot=[np.random.randint(0, 3) for _ in range(66 * 65)]
+		                              , ar=[np.random.randint(0, 3) for _ in range(66 * 65)],
+		                              voip=[np.random.randint(0, 3) for _ in range(66 * 65)])
+
 		start = now_in_milli()
-		# nn_output = solver["nn"](nn_inpt)
-		tmp=[np.random.randint(0,3) for _ in range(66*65)]
-
-		nn_output=RoutingOutput(video=tmp,
-		                        iot=[np.random.randint(0,3) for _ in range(66*65)]
-		                        ,ar=[np.random.randint(0,3) for _ in range(66*65)],
-		                        voip=[np.random.randint(0,3) for _ in range(66*65)])
+		nn_output = solver["nn"](inpt)
 		debug("nn solve done use {} milliseconds".format(now_in_milli() - start))
-		# sleep(0.5)
 
-		nn_instance = convert(nn_inpt, nn_output)
+		nn_instance = convert(inpt, nn_output)
 		nn_utility = evaluator(nn_instance)
-		ratio.append((nn_utility - ilp_utility) / ilp_utility)
-	return ratio
+		nn_utilities.append(nn_utility)
+		nn_ratios.append((nn_utility - ilp_utility) / ilp_utility)
+
+		ospf_instance = convert(inpt, ospf_output)
+		ospf_utility = evaluator(ospf_instance)
+		ospf_utilities.append(ospf_utility)
+		ospf_ratios.append((ospf_utility - ilp_utility) / ilp_utility)
+
+		random_utility = evaluator(convert(inpt, random_output))
+		random_utilities.append(random_utility)
+		random_ratios.append((random_utility - ilp_utility) / ilp_utility)
+
+	save_pkl("/tmp/shortest.pkl", ospf_ratios)
+	save_pkl("/tmp/random.pkl", random_ratios)
+	save_pkl("/tmp/nn.pkl", nn_ratios)
+
+	save_pkl("/tmp/random.utility.pkl",random_utilities)
+	save_pkl("/tmp/ospf.utility.pkl",ospf_utilities)
+	save_pkl("/tmp/ilp.utility.pkl",ilp_utilities)
+	save_pkl("/tmp/nn.utility.pkl",nn_utilities)
+	return nn_ratios
 
 
-def plot(ratios: List[float]):
-	save_pkl("/tmp/demo.pkl",ratios)
-	plt.hist(ratios,weights=np.ones(len(ratios)) / len(ratios))
-	plt.savefig("/tmp/demo.png")
+# def plot(ratios: List[float], style="-"):
+# 	# x=np.linspace(0,2,100)
+# 	y = norm.cdf(ratios)
+# 	plt.plot(ratios, y)
+# 	plt.show()
+
+
+def plot_cdf():
+	ma,mm=None,None
+	random_ratios=load_pkl("/tmp/random.pkl")
+	random_ratios=np.sort(random_ratios)
+	ma=max(random_ratios)
+	mm=min(random_ratios)
+	y=np.arange(len(random_ratios))/(len(random_ratios)-1)
+	random_plot,=plt.plot(random_ratios,y,label="随机")
+
+	ospf_ratios=load_pkl("/tmp/shortest.pkl")
+	ospf_ratios=np.sort(ospf_ratios)
+	ma=max(ma,max(ospf_ratios))
+	mm=min(mm,min(ospf_ratios))
+
+	y=np.arange(len(ospf_ratios))/(len(ospf_ratios)-1)
+	ospf,=plt.plot(ospf_ratios,y,label="最短路")
+	nn_ratios=load_pkl("/tmp/nn.pkl")
+	nn_ratios=np.sort(nn_ratios)
+	ma=max(ma,max(nn_ratios))
+	mm=min(mm,min(nn_ratios))
+	y=np.arange(len(nn_ratios))/(len(nn_ratios)-1)
+
+	nn,=plt.plot(nn_ratios,y,label="监督学习")
+	plt.xlabel("g(u)")
+	plt.ylabel("累计分布")
+	plt.title("三种路由方案g(u)累计分布")
+	plt.legend(handles=[random_plot,ospf,nn])
+
+	plt.savefig("/tmp/fig.png", dpi=300)
+	plt.show()
+
 
 
 
 
 if __name__ == '__main__':
-	# load routing instances
-	instances_fns = walk_dir(instances_dir, lambda s: "ilpinstance" in s)
+	# test()
+	# # load routing instances
+	inst_dir=os.path.join(get_prj_root(),"routing", "instances.5.3")
+	instances_fns = walk_dir(inst_dir, lambda s: "ilpinstance" in s)
 	debug("find instances fns {}".format(len(instances_fns)))
 	# random.shuffle(instances_fns)
 	# num=int(len(instances_fns)*0.8)
-	instances_fns = instances_fns[-1:]
+	instances_fns = instances_fns[-8:]
 	instances = []
 	for fn in instances_fns:
 		instances.extend(load_pkl(fn))
@@ -126,4 +191,4 @@ if __name__ == '__main__':
 	topo = load_pkl(os.path.join(get_prj_root(), "cache", "topo.unlimited.pkl"))[0]
 
 	ratios = solve_and_visualize2(topo, instances)
-	plot(ratios)
+# plot(ratios)

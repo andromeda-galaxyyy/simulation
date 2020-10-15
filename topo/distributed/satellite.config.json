@@ -81,6 +81,22 @@
         "eno1",
         "eno1"
     ],
+    "supplementary": [
+        {
+            "intf": "eno2",
+            "neighbors": [0,11],
+            "qos": [[10,10,0,0],[10,10,0,0]],
+            "tag": "server"
+        },
+        {
+           "intf": "eno2",
+            "neighbors": [54,65],
+            "qos": [[10,10,0,0],[10,10,0,0]],
+            "tag": "client"
+        }
+    ],
+
+
     "host_mtu": 1500,
     "gre_mtu": 1458,
     "vhost_mtu": 1420,

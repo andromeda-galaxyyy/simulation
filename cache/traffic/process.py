@@ -11,13 +11,15 @@ traffic_dir=os.path.join(get_prj_root(),"cache/traffic")
 files={
 	"video":os.path.join(traffic_dir,"video.traffic.txt"),
 	"iot":os.path.join(traffic_dir,"iot.traffic.txt"),
-	"voip":os.path.join(traffic_dir,"voip.traffic.txt")
+	"voip":os.path.join(traffic_dir,"voip.traffic.txt"),
+	"ar":os.path.join(traffic_dir,"ar.traffic.txt")
 }
 
 traffic={
 	"video":[],
 	"iot":[],
 	"voip":[],
+	"ar":[]
 }
 
 res=[]
@@ -46,6 +48,7 @@ debug("sorted start")
 traffic["video"].sort(key=lambda x:len([y for y in x if y>10]),reverse=True)
 traffic["iot"].sort(key=lambda x:len([y for y in x if y>10]),reverse=True)
 traffic["voip"].sort(key=lambda x :len([y for y in x if y>10]),reverse=True)
+traffic["ar"].sort(key=lambda x :len([y for y in x if y>10]),reverse=True)
 debug("sorted done")
 
 num=50
@@ -54,14 +57,14 @@ res=[
 	RoutingInput(video=a, iot=b, voip=c, ar=d) for a in traffic["video"]
 	for b in traffic["iot"][:25]
 	for c in traffic["voip"][:50]
-	for d in traffic["video"][:25]
+	for d in traffic["ar"][:100]
 ]
 
 for _ in range(5):
 	random.shuffle(res)
 
 
-res_fn=os.path.join(traffic_dir,"ilp_inputs3.pkl")
+res_fn=os.path.join(traffic_dir,"ilp_inputs4.pkl")
 debug("start to save")
 save_pkl(res_fn,res)
 debug("save done")

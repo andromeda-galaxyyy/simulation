@@ -477,14 +477,14 @@ class TopoBuilder:
 					new_links.add(link)
 					new_links.add(reverse_link)
 					if link not in self.local_links:
-						connect_local_switches(sa_id, sb_id, rate, delay, None)
+						connect_local_switches(sa_id, sb_id, rate, None, None)
 					else:
 						# exists in previous local links,
 						# change tc
 						# del_tc(link)
 						# del_tc(reverse_link)
-						change_tc(link, delay, rate, loss)
-						change_tc(reverse_link, delay, rate, loss)
+						change_tc(link, None, rate, None)
+						change_tc(reverse_link, None, rate, None)
 				else:
 					# link is None
 					if link in self.local_links:
@@ -527,12 +527,12 @@ class TopoBuilder:
 					new_gres.add(gretap)
 					if gretap in self.gres:
 						# del tc
-						change_tc(gretap, delay, rate, None)
+						change_tc(gretap, None, rate, None)
 					else:
 						# set up gre
 
 						connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, key, rate,
-						                           delay, None, gre_mtu)
+						                           None, None, gre_mtu)
 
 		self.gres = new_gres
 
@@ -744,35 +744,34 @@ class TopoBuilder:
 		os.system("for p in `pgrep '^golisten$'`;do kill $p;done")
 
 	def setup_supplementary_topo(self):
-		supp_topo=self.config[int(self.id)]
-		#todo how to eliminate this constant?
-		ovs_id=66+int(self.id)
-		ovs_name="s{}".format(ovs_id)
+		supp_topo = self.config["supplementary"][int(self.id)]
+		# todo how to eliminate this constant?
+		ovs_id = 66 + int(self.id)
+		ovs_name = "s{}".format(ovs_id)
 
-		controller=self.config["controller"]
+		controller = self.config["controller"]
 		add_ovs(ovs_name, controller)
-		attach_interface_to_sw(ovs_name,supp_topo["intf"])
+		attach_interface_to_sw(ovs_name, supp_topo["intf"])
+		up_interface(supp_topo["intf"])
 
-		neighbors=supp_topo["neighbors"]
+		neighbors = supp_topo["neighbors"]
 		debug("set up supplementary topo for {}".format(supp_topo["tag"]))
-		for nidx,neighbor in enumerate(neighbors):
-			qos=supp_topo["qos"][nidx]
-			band=qos[0]
-			delay=qos[1]
-			n="s{}".format(neighbor)
-			p1,p2="{}-{}".format(ovs_name,n),"{}-{}".format(n,ovs_name)
-			add_veth(p1,p2)
+		for nidx, neighbor in enumerate(neighbors):
+			qos = supp_topo["qos"][nidx]
+			band = qos[0]
+			delay = qos[1]
+			n = "s{}".format(neighbor)
+			p1, p2 = "{}-{}".format(ovs_name, n), "{}-{}".format(n, ovs_name)
+			add_veth(p1, p2)
+
+			attach_interface_to_sw(ovs_name, p1)
+			attach_interface_to_sw(n, p2)
 			up_interface(p1)
 			up_interface(p2)
 
-			attach_interface_to_sw(ovs_name,p1)
-			attach_interface_to_sw(n,p2)
 
-			add_tc(p1,bandwidth=band,delay=delay)
-			add_tc(p2,bandwidth=band,delay=delay)
-
-
-
+			add_tc(p1, bandwidth=band, delay=delay)
+			add_tc(p2, bandwidth=band, delay=delay)
 
 
 if __name__ == '__main__':

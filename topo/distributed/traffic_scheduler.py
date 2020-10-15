@@ -64,11 +64,11 @@ class BasicTrafficScheduler:
 
 		controller_ip = self.config["controller"].split(":")[0]
 		enable_loss = (int(self.config["enable_loss"]) == 1)
-		
+
 		base_dir = self.config["generator_log_dir"]
 
 		loss_dir = os.path.join(base_dir, "{}.tx.loss".format(hid))
-		
+
 		params = "--id {} " \
 		         "--dst_id {} " \
 		         "--pkts {} " \
@@ -93,9 +93,9 @@ class BasicTrafficScheduler:
 
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
 
-		enable_log=(int(self.config["enable_traffic_generator_log"])==1)
+		enable_log = (int(self.config["enable_traffic_generator_log"]) == 1)
 		if enable_log:
-			fp=open(log_fn,"w")
+			fp = open(log_fn, "w")
 			pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
 		else:
 			# /dev/null
@@ -153,9 +153,9 @@ class BasicTrafficScheduler:
 		)
 
 		commands = "nohup ip netns exec {} {} {}".format(hostname, self.binary, params)
-		enable_log=(int(self.config["enable_traffic_generator_log"])==1)
+		enable_log = (int(self.config["enable_traffic_generator_log"]) == 1)
 		if enable_log:
-			fp=open(log_fn,"w")
+			fp = open(log_fn, "w")
 			pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
 		else:
 			# /dev/null
@@ -304,7 +304,7 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		# 用于记录额外产生的进程
 		self.schedule_record = []
 		random.seed(int(time.time()))
-		gen_base_log_dir=config["generator_log_dir"]
+		gen_base_log_dir = config["generator_log_dir"]
 		del_dir(gen_base_log_dir)
 		create_dir(gen_base_log_dir)
 
