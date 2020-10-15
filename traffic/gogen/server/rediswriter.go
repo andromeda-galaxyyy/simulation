@@ -85,7 +85,7 @@ func (r *redisWriter) WriteDelayStats(line string, ts int64) error {
 
 func (r *redisWriter) WriteLossStats(line string, ts int64) error {
 	desc:=&common.FlowDesc{}
-	err:=common.DescFromDelayStats(desc,line)
+	err:=common.DescFromRxLossStats(desc,line)
 	if err!=nil{
 		return err
 	}

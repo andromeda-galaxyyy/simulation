@@ -141,12 +141,8 @@ func main()  {
 	}()
 
 	router=gin.Default()
-	router.GET("/", func(context *gin.Context) {
-		context.String(http.StatusOK,"Hello world")
-	})
-
-	router.GET("/helloworld",GinHelloWorld)
 	router.GET("/delay",GetDelayBetween)
+	router.GET("/loss",GetLossBetween)
 
 	server:=&http.Server{
 		Addr: fmt.Sprintf(":%d",*serverPort),

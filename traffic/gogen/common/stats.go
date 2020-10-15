@@ -62,7 +62,7 @@ func DescFromRxLossStats(desc *FlowDesc,line string) error{
 		return errors.New("dst is nil")
 	}
 	contents:=strings.Split(line," ")
-	if len(contents)!=9{
+	if len(contents)!=10{
 		return errors.New("error parsing line")
 	}
 	var err error
@@ -76,7 +76,7 @@ func DescFromRxLossStats(desc *FlowDesc,line string) error{
 		return errors.New("error parsing line")
 	}
 
-	desc.ReceivedPackets,err=strconv.ParseInt(contents[2],10,64)
+	desc.PeriodPackets,err=strconv.ParseInt(contents[2],10,64)
 	if err!=nil{
 		return errors.New("error parsing line")
 	}

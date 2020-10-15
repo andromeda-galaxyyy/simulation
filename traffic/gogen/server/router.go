@@ -25,7 +25,6 @@ var (
 	lossHandle0 *redis.Client
 	lossHandle1 *redis.Client
 
-	lossHandle   *redis.Client
 )
 
 
