@@ -2,6 +2,7 @@ package main
 
 import (
 	"chandler.com/gogen/common"
+	"chandler.com/gogen/utils"
 	"context"
 	"flag"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -68,10 +70,11 @@ func setUpRedisHandle(ip string,port int) error  {
 
 
 func main()  {
-	base_dir :=flag.String("base","/tmp/listener_log","Directory to watch")
+	base_dir :=flag.String("base","/tmp/listener_log","Base directory to watch")
 	serverPort:=flag.Int("port",10086,"Server listening port")
 	redisPort:=flag.Int("rport",6379,"Redis instance port")
 	redisIp:=flag.String("rip","10.211.55.2","Redis instance ip")
+	dirs:=flag.String("dirs","/tmp/rxloss,/tmp/rxdelay","Directory to watch")
 
 	flag.Parse()
 	rport=*redisPort
@@ -90,6 +93,12 @@ func main()  {
 		}
 		return nil
 	})
+
+	for _,d:=range strings.Split(*dirs,","){
+		if utils.IsDir(d){
+			dd=append(dd,d)
+		}
+	}
 
 
 
