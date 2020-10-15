@@ -352,20 +352,27 @@ func (w *worker) processPktStats(desc *common.FlowDesc,delays []int64) {
 	max := int64(math.MinInt64)
 	mean := 0.0
 	std := 0.0
-	l := len(delays)
 	s := 0.0
+	count:=0
+
 	for _, v := range delays {
 		if v<=0{
 			continue
 		}
+		count+=1
 		if v > max {
 			max = v
 		}
 		if v < min {
 			min = v
 		}
-		mean += float64(v) / float64(l)
+		mean += float64(v)
 	}
+	if count==0{
+		return
+	}
+
+	mean/=float64(count)
 	for _, v := range delays {
 		if v<=0{
 			continue
@@ -374,7 +381,8 @@ func (w *worker) processPktStats(desc *common.FlowDesc,delays []int64) {
 		diff := d - mean
 		s += diff * diff
 	}
-	s /= float64(l)
+
+	s /= float64(count)
 	std = math.Sqrt(s)
 
 
