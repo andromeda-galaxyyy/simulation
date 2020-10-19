@@ -85,8 +85,7 @@ class Traffic(Resource):
 class Supplementry(Resource):
 	def post(self):
 		debug("Setup supplementary topo")
-		is_server=request.get_json(True)["server"]
-		start_new_thread_run(builder.setup_supplementary_topo,args=[is_server])
+		start_new_thread_run(builder.setup_supplementary_topo,args=())
 		return '',200
 
 

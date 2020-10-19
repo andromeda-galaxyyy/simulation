@@ -750,7 +750,7 @@ class TopoBuilder:
 		ovs_name = "s{}".format(ovs_id)
 
 		controller = self.config["controller"]
-		add_ovs(ovs_name, controller)
+		add_ovs(ovs_id, controller)
 		attach_interface_to_sw(ovs_name, supp_topo["intf"])
 		up_interface(supp_topo["intf"])
 
@@ -770,8 +770,8 @@ class TopoBuilder:
 			up_interface(p2)
 
 
-			add_tc(p1, bandwidth=band, delay=delay)
-			add_tc(p2, bandwidth=band, delay=delay)
+			add_tc(p1, bandwidth=band, delay=None)
+			add_tc(p2, bandwidth=band, delay=None)
 
 
 if __name__ == '__main__':

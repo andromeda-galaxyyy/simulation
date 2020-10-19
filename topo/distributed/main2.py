@@ -98,15 +98,16 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				for idx,ip in enumerate(config["workers_ip"]):
 					url="http://{}:{}/config".format(ip,5000)
 					threading.Thread(target=do_delete,args=[url]).start()
-					continue
+				continue
 			if command==9:
 				worker_ips=config["workers_ip"]
 				#set up server access point
-				url1 = "http://{}:{}/config".format(worker_ips[0], 5000)
-				threading.Thread(target=do_post,args=[url1,{"server":True}])
+				url1 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
+				threading.Thread(target=do_post,args=[url1,{"server":True}]).start()
 
-				url2 = "http://{}:{}/config".format(worker_ips[1], 5000)
-				threading.Thread(target=do_post,args=[url2,{"server":False}])
+				url2 = "http://{}:{}/supplementary".format(worker_ips[1], 5000)
+				threading.Thread(target=do_post,args=[url2,{"server":False}]).start()
+				continue
 
 		except KeyboardInterrupt:
 			print(">Preparing quit. Clean up")
