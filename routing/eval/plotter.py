@@ -1,9 +1,12 @@
+from matplotlib.pyplot import legend, plot
 from routing.instance import *
+import sys
 import matplotlib
 
-matplotlib.use('TkAgg')
-# matplotlib.rcParams['figure.dpi'] = 200
+if "darwin" in sys.platform:
+	matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+# plt.rcParams.update({'font.size': 18})
 from utils.time_utils import now_in_milli
 import random
 import numpy as np
@@ -106,8 +109,66 @@ def plot_utility():
 
 # plt.savefig("/tmp/demo.utility.png")
 
+def plot_nn_vs_ospf():
+	def reassemble(data, idxs):
+		res = []
+		for idx in idxs:
+			res.append(data[idx])
+
+		return res
+
+	def scale(data,thres):
+		return [d/thres for d in data]
+
+
+	n_raw_case=128*8
+
+	ilp_utility = load_pkl("/tmp/ilp.utility.pkl")[:n_raw_case]
+	ilp_utility = [u * 8 / 20 / (1.1 * 1e8) for u in ilp_utility]
+	valid_idxs=[]
+	for idx in range(len(ilp_utility)):
+		if ilp_utility[idx]<1.2:
+			valid_idxs.append(idx)
+
+	print(len(valid_idxs))
+
+	ospf_utility = load_pkl("/tmp/ospf.utility.pkl")[:n_raw_case]
+	ospf_utility = [u * 8 / 20 / (1.1 * 1e8) for u in ospf_utility]
+	ospf_utility = reassemble(ospf_utility, valid_idxs)
+	ma = max(ospf_utility)
+	ospf_utility = scale(ospf_utility, ma)
+
+	nn_utility = load_pkl("/tmp/nn.utility.pkl")[:n_raw_case]
+	nn_utility = [u * 8 / 20 / (1.1 * 1e8) for u in nn_utility]
+
+	nn_utility = reassemble(nn_utility, valid_idxs)
+	nn_utility = scale(nn_utility, ma)
+
+	ratios=[]
+	for idx in range(len(ospf_utility)):
+		ratios.append((ospf_utility[idx]-nn_utility[idx])/ospf_utility[idx])
+
+
+	figure = plt.gcf()
+	figure.set_size_inches(18, 9)
+
+	plt.gca().set_yticklabels(['{:.0f}%'.format(x*100)
+                            for x in plt.gca().get_yticks()])
+
+
+	plt.xlabel("测试样例")
+	plt.ylabel("优化百分比")
+	plt.title("监督学习V.S.最短路")
+	plt.plot(ratios,marker="o")
+	# plt.plot(every_two)
+
+	plt.savefig("/tmp/demo.png",dpi=300)
+	plt.show()
+
+
 
 if __name__ == '__main__':
+	plot_nn_vs_ospf()
 	# plot_utility()
-	plot_cdf()
+	# plot_cdf()
 

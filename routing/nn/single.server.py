@@ -7,6 +7,7 @@ from routing.common import topo_fn
 from sockets.server import recvall2
 import json
 import socket
+from utils.time_utils import now_in_milli
 
 default_topo = load_pkl(topo_fn)[0]
 
@@ -37,6 +38,19 @@ class SinglePredictor:
 			voip=voip,
 			ar=ar
 		)
+
+def test_single_predictor():
+	model=SinglePredictor(0)
+	tmp=[1 for _ in range(66*65)]
+	inpt=RoutingInput(video=tmp,ar=tmp,iot=tmp,voip=tmp)
+	start=now_in_milli()
+	model(inpt)
+	debug("used {} milliseconds",now_in_milli()-start)
+
+	start=now_in_milli()
+	model(inpt)
+	debug("used {} milliseconds",now_in_milli()-start)
+
 
 
 class SinglePredictorServer:
@@ -72,14 +86,15 @@ class SinglePredictorServer:
 
 
 if __name__ == '__main__':
-	import argparse
+	# import argparse
 
-	parser = argparse.ArgumentParser()
-	parser.add_argument("--id", type=int, default=0)
-	args = parser.parse_args()
+	# parser = argparse.ArgumentParser()
+	# parser.add_argument("--id", type=int, default=0)
+	# args = parser.parse_args()
 
-	model_id = int(args.id)
-	model = Minor(model_id, 66, 4, 3)
+	# model_id = int(args.id)
+	# model = Minor(model_id, 66, 4, 3)
 
-	server = SinglePredictorServer(model_id, SinglePredictor(model_id))
-	server.start()
+	# server = SinglePredictorServer(model_id, SinglePredictor(model_id))
+	# server.start()
+	test_single_predictor()
