@@ -42,7 +42,7 @@ class Config(Resource):
 	def delete(self):
 		global builder
 		if builder is not None:
-			start_new_thread_run(builder.stop,args=[])
+			start_new_thread_run(builder.stop, args=[])
 		builder = None
 
 
@@ -51,7 +51,7 @@ class Topo(Resource):
 		global builder
 		topo = request.get_json(force=True)
 		if builder is not None:
-			start_new_thread_run(builder.diff_topo,[topo["topo"]])
+			start_new_thread_run(builder.diff_topo, [topo["topo"]])
 			# builder.diff_topo(topo["topo"])
 			return '', 200
 		else:
@@ -61,7 +61,7 @@ class Topo(Resource):
 		global builder
 		debug("tear down topo")
 		if builder is not None:
-			start_new_thread_run(builder.stop,args=[])
+			start_new_thread_run(builder.stop, args=[])
 			return '', 200
 		else:
 			return '', 404
@@ -82,18 +82,26 @@ class Traffic(Resource):
 		return '', 200
 
 
+class Traffic2(Resource):
+	def post(self):
+		debug("diff traffic mode")
+		data = self.request.get_data(force=True)
+		mode=data["mode"]
+		builder.diff_traffic_mode(mode)
+		return '', 200
+
+
 class Supplementry(Resource):
 	def post(self):
 		debug("Setup supplementary topo")
-		start_new_thread_run(builder.setup_supplementary_topo,args=())
-		return '',200
-
+		start_new_thread_run(builder.setup_supplementary_topo, args=())
+		return '', 200
 
 
 api.add_resource(Config, "/config")
 api.add_resource(Topo, "/topo")
 api.add_resource(Traffic, "/traffic")
-api.add_resource(Supplementry,"/supplementary")
+api.add_resource(Supplementry, "/supplementary")
 
 
 @atexit.register

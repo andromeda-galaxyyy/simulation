@@ -416,6 +416,9 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		self.cv.release()
 
 
+
+
+
 if __name__ == '__main__':
 	config_fn = "/home/stack/code/simulation/topo/distributed/mock_config.json"
 	worker_id = 0

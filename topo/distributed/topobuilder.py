@@ -7,6 +7,7 @@ from utils.log_utils import debug, info, err
 from topo.distributed.traffic_scheduler import TrafficScheduler, TrafficScheduler2
 import time
 from utils.file_utils import check_file, create_dir, del_dir, dir_exsit, load_pkl, load_json
+from topo.distributed.traffic_actor import TrafficActor
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
@@ -368,6 +369,7 @@ class TopoBuilder:
 
 		self.traffic_scheduler = TrafficScheduler2(self.config, self.hostids)
 		self.enable_host_find = False
+		self.traffic_actor=TrafficActor(self.config,self.hostids)
 
 	def _set_up_switches(self):
 		k = self.config["host_per_switch"]
@@ -742,6 +744,9 @@ class TopoBuilder:
 
 	def _stop_listener(self):
 		os.system("for p in `pgrep '^golisten$'`;do kill $p;done")
+
+	def diff_traffic_mode(self,mode):
+		self.traffic_actor.act(mode)
 
 	def setup_supplementary_topo(self):
 		supp_topo = self.config["supplementary"][int(self.id)]
