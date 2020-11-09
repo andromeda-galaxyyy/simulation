@@ -20,13 +20,17 @@ def do_post(url, obj):
 	requests.post(url, json=obj)
 
 
+def do_delete(url):
+	requests.delete(url)
+
+
 class traffic_timer:
 	def __init__(self, config: Dict) -> None:
 		self.config = config
 		self.cv = threading.Condition()
 		self.traffic_scales = self.config["traffic_mode"]
 		self.durations = self.config["traffic_duration"]
-		self.started=False
+		self.started = False
 		assert len(self.traffic_scales) == len(self.durations)
 
 	def __do_start(self):
@@ -43,7 +47,7 @@ class traffic_timer:
 			obj["mode"] = scale
 			debug("traffic mode change to {}".format(scale))
 			for idx, ip in enumerate(self.config["workers_ip"]):
-				url = "http://{}:{}/traffic".format(ip, 5000)
+				url = "http://{}:{}/traffic2".format(ip, 5000)
 				threading.Thread(target=do_post, args=[url, obj]).start()
 
 			# sleep
@@ -57,21 +61,21 @@ class traffic_timer:
 
 	def start(self):
 		threading.Thread(target=self.__do_start).start()
-		self.started=True
+		self.started = True
 
 	def __do_stop(self):
 		self.cv.acquire()
 		self.cv.notify()
 		self.cv.release()
+		for idx, ip in enumerate(self.config["workers_ip"]):
+			url = "http://{}:{}/traffic2".format(ip, 5000)
+			threading.Thread(target=do_delete, args=[url]).start()
 
 	def stop(self):
 		self.__do_stop()
-		self.started=False
+		self.started = False
 
-
-def do_delete(url):
-	requests.delete(url)
-
+traffictimer = None
 
 def cli(topos: List, config: Dict, scheduler: Scheduler2):
 	traffic_started = False
@@ -92,15 +96,16 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 			      "> 7.quit\n"
 			      "> 8.set up first topo\n"
 			      "> 9.set up supplementary topo\n"
+			      "> 10.(experimental) start traffic actor\n"
+			      "> 11.(experimental) stop traffic actor\n"
 			      "> Press Enter to print this msg")
 
 			command = input(">Input commands:\n").strip()
 			if len(command) == 0:
+				os.system("clear")
 				continue
 			if not is_digit(command):
-				# host = command.split(" ")[0]
-				# commands = command.split(" ")[1:]
-				# os.system("ip netns exec {}".format(command))
+				os.system("clear")
 				continue
 
 			command = int(command)
@@ -158,14 +163,23 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				threading.Thread(target=do_post, args=[url2, {"server": False}]).start()
 				continue
 
+			if command == 10:
+				traffictimer.start()
+				continue
+
+			if command == 11:
+				traffictimer.stop()
+				continue
+
 		except KeyboardInterrupt:
 			print(">Preparing quit. Clean up")
 			scheduler.stop()
+			traffictimer.stop()
 			for idx, ip in enumerate(config["workers_ip"]):
 				url = "http://{}:{}/config".format(ip, 5000)
 				threading.Thread(target=do_delete, args=[url]).start()
-
 			break
+
 
 
 if __name__ == '__main__':
@@ -178,4 +192,5 @@ if __name__ == '__main__':
 	topos = load_pkl(args.topos_fn)
 	config = load_json(args.config)
 	scheduler = Scheduler2(config, topos)
+	traffictimer = traffic_timer(config)
 	cli(topos, config, scheduler)

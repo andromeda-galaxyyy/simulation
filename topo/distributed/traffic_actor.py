@@ -281,3 +281,4 @@ class TrafficActor:
 		}
 		self.genid2pid = {}
 		self.pid2genid = {}
+		self.prev_mode=None

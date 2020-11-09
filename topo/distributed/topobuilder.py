@@ -663,6 +663,7 @@ class TopoBuilder:
 		self._stop_listener()
 		time.sleep(15)
 		self._stop_traffic_scheduler()
+		self.stop_traffic_actor()
 		self.tear_down()
 		os.system("iptables-restore < {}".format(iptables_bk))
 
@@ -747,6 +748,9 @@ class TopoBuilder:
 
 	def diff_traffic_mode(self,mode):
 		self.traffic_actor.act(mode)
+
+	def stop_traffic_actor(self):
+		self.traffic_actor.stop()
 
 	def setup_supplementary_topo(self):
 		supp_topo = self.config["supplementary"][int(self.id)]

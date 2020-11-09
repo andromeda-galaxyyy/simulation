@@ -85,10 +85,15 @@ class Traffic(Resource):
 class Traffic2(Resource):
 	def post(self):
 		debug("diff traffic mode")
-		data = self.request.get_data(force=True)
+		data = request.get_json(force=True)
 		mode=data["mode"]
 		builder.diff_traffic_mode(mode)
 		return '', 200
+
+	def delete(self):
+		debug("stop traffic")
+		start_new_thread_run(builder.stop_traffic_actor,args=())
+		return '',200
 
 
 class Supplementry(Resource):
@@ -102,6 +107,7 @@ api.add_resource(Config, "/config")
 api.add_resource(Topo, "/topo")
 api.add_resource(Traffic, "/traffic")
 api.add_resource(Supplementry, "/supplementary")
+api.add_resource(Traffic2,"/traffic2")
 
 
 @atexit.register
