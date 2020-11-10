@@ -4,13 +4,15 @@ import socketserver
 from utils.common_utils import info
 from sockets.server import Server, recvall2
 from routing.nn.minor_predictor import MultiProcessPredictor
-from common.Graph import NetworkTopo
-from routing.common import topo_fn
+from common.graph import NetworkTopo
+from routing.constant import topo_fn
 from utils.file_utils import load_pkl
 from routing.instance import RoutingInput
 from utils.time_utils import now_in_milli
+from utils.log_utils import debug
+from typing import List
 
-info("All models loaded")
+# info("All models loaded")
 topo = NetworkTopo(load_pkl(topo_fn)[0])
 ksp = {}
 nodes = 66
@@ -62,50 +64,62 @@ class MinorModelHandler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
 		# req_str = str(recvall2(request)), "ascii")
 		req_str = recvall2(self.request)
-		vols = check(req_str)
-		if vols == -1:
-			return
+		# vols = check(req_str)
+		vols: List[int] = json.loads(req_str)["volumes"]
+		shorted = False
+		if len(vols) == 66 * 65 * 3:
+			shorted = True
+			vols.extend([0 for _ in range(66 * 65)])
 
 		start = now_in_milli()
 
 		video = vols[:n_src_dsts]
-		iot=vols[n_src_dsts:2*n_src_dsts]
-		voip=vols[2*n_src_dsts:3*n_src_dsts]
-		ar=vols[3*n_src_dsts:]
+		iot = vols[n_src_dsts:2 * n_src_dsts]
+		voip = vols[2 * n_src_dsts:3 * n_src_dsts]
+		ar = vols[3 * n_src_dsts:]
 
 		inpt = RoutingInput(video=video, iot=iot, voip=voip, ar=ar)
 
 		output = minor_predictor(inpt)
-		end=now_in_milli()
-		info("Minor model predictor use {} milliseconds".format(end-start))
+		end = now_in_milli()
+		info("Minor model predictor use {} milliseconds".format(end - start))
 
-		res = []
+		# res = []
+		res = {}
 		# video
+		video=[]
 		for i in range(n_src_dsts):
 			src_dst = idx_to_src_dst[i]
 			large_volume_paths_, low_latency_paths_ = ksp[src_dst]
-			res.append(large_volume_paths_[output.video[i]])
-
+			video.append(large_volume_paths_[output.video[i]])
+		res["res1"]=video
+		iot=[]
 		for i in range(n_src_dsts):
 			src_dst = idx_to_src_dst[i]
 			large_volume_paths_, low_latency_paths_ = ksp[src_dst]
-			res.append(low_latency_paths_[output.iot[i]])
+			iot.append(low_latency_paths_[output.iot[i]])
+		res["res2"]=iot
 
+		voip=[]
 		for i in range(n_src_dsts):
 			src_dst = idx_to_src_dst[i]
 			large_volume_paths_, low_latency_paths_ = ksp[src_dst]
-			res.append(low_latency_paths_[output.voip[i]])
+			voip.append(low_latency_paths_[output.voip[i]])
+		res["res3"]=voip
 
-		for i in range(n_src_dsts):
-			src_dst = idx_to_src_dst[i]
-			large_volume_paths_, low_latency_paths_ = ksp[src_dst]
-			res.append(low_latency_paths_[output.ar[i]])
+		if not shorted:
+			for i in range(n_src_dsts):
+				src_dst = idx_to_src_dst[i]
+				large_volume_paths_, low_latency_paths_ = ksp[src_dst]
+			# res.append(low_latency_paths_[output.ar[i]])
 
-		res = {"res": res}
+		# res = {"res": res}
 		self.request.sendall(bytes(json.dumps(res), "ascii"))
+		debug("response sent")
 
 
 if __name__ == '__main__':
-	port = 1027
+	port = 1030
 	server = Server(port, MinorModelHandler)
+	debug("routing server started")
 	server.start()

@@ -2,14 +2,14 @@ from routing.nn.minor_predictor import MultiProcessPredictor
 from routing.instance import *
 from typing import List, Tuple
 from routing.ksp.ilp import ILPModel
-from common.Graph import NetworkTopo
+from common.graph import NetworkTopo
 from routing.eval.evaluator import RoutingEvaluator
 import matplotlib
 
 # matplotlib.use('TkAgg')
 from scipy.stats import norm
 import matplotlib.pyplot as plt
-from routing.common import *
+from routing.constant import *
 from path_utils import get_prj_root
 from utils.file_utils import walk_dir
 from utils.log_utils import debug

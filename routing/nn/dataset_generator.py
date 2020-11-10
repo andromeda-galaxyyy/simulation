@@ -4,7 +4,7 @@ from routing.instance import *
 from utils.file_utils import *
 import numpy as np
 import tensorflow as tf
-from routing.common import *
+from routing.constant import *
 
 
 def mapper(instance: RoutingInstance) -> Tuple[List, List]:

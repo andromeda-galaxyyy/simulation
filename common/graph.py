@@ -1,23 +1,7 @@
-from typing import List,Tuple,Dict
-import networkx
-import matplotlib
-
-import numpy as np
-from utils.common_utils import load_pkl, save_pkl, is_digit, file_exsit, dir_exsit
 import matplotlib.pyplot as plt
 import networkx as nx
 from itertools import islice
-import pathlib
-from collections import Counter
-from typing import List, Tuple, Dict
-import cplex
-from utils.common_utils import debug, info, err
-import os
-from path_utils import get_prj_root
-from routing.instance import RoutingInput, RoutingOutput
-import random
-from copy import deepcopy
-
+from typing import List, Tuple
 
 
 class NetworkTopo:

@@ -11,7 +11,7 @@ from routing.nn.base import Routing
 from keras.models import load_model
 import os
 from keras.callbacks import ModelCheckpoint
-from routing.common import persist_dir
+from routing.constant import persist_dir
 from typing import Tuple
 import gc
 

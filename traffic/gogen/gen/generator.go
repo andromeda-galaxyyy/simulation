@@ -74,6 +74,8 @@ type Generator struct {
 	flowIdToSeq map[int]int64
 	periodPktCount map[int]int64
 
+	flowCounter uint64
+
 }
 
 func processStats(nums []float64) (min, max, mean float64) {

@@ -7,7 +7,7 @@ from utils.common_utils import info, err
 import os
 from path_utils import get_prj_root
 from routing.instance import RoutingInput, RoutingOutput,RoutingInstance
-from common.Graph import NetworkTopo
+from common.graph import NetworkTopo
 from routing.eval.evaluator import RoutingEvaluator
 
 cache_dir = os.path.join(get_prj_root(), "cache")

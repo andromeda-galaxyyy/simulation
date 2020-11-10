@@ -5,7 +5,7 @@ from typing import Tuple, List
 import numpy as np
 from routing.nn.minor import Minor
 import tensorflow as tf
-from routing.common import persist_dir, topo_fn
+from routing.constant import persist_dir, topo_fn
 from multiprocessing import Pool
 from utils.time_utils import now_in_milli
 from sockets.server import recvall2

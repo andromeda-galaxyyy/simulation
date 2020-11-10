@@ -24,6 +24,14 @@ var (
 	rip string="localhost"
 )
 
+func setUpFlowCounterReader(ip string,port int)error  {
+	counterReader=common.NewDefaultCounterReader(ip,port)
+	err:=counterReader.Init()
+	return err
+
+}
+
+
 func setUpRedisHandle(ip string,port int) error  {
 	ctx:=context.Background()
 	delayHandle0 =redis.NewClient(&redis.Options{
@@ -83,6 +91,12 @@ func main()  {
 	if err!=nil{
 		log.Fatalf("Cannot connect to redis instance %s:%d",rip,rport)
 	}
+
+	err=setUpFlowCounterReader(rip,rport)
+	if err!=nil{
+		log.Fatalf("Error init counter reader\n")
+	}
+	
 	dd:=make([]string,0)
 	filepath.Walk(*base_dir, func(path string, info os.FileInfo, err error) error {
 		if info!=nil&&info.IsDir(){
@@ -152,6 +166,7 @@ func main()  {
 	router=gin.Default()
 	router.GET("/delay",GetDelayBetween)
 	router.GET("/loss",GetLossBetween)
+	router.GET("/flowcounter",GetFlowCounter)
 
 	server:=&http.Server{
 		Addr: fmt.Sprintf(":%d",*serverPort),

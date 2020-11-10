@@ -3,7 +3,7 @@ from routing.instance import *
 import numpy as np
 from routing.nn.minor import Minor
 from path_utils import get_prj_root
-from routing.common import topo_fn
+from routing.constant import topo_fn
 from sockets.server import recvall2
 import json
 import socket
@@ -86,15 +86,15 @@ class SinglePredictorServer:
 
 
 if __name__ == '__main__':
-	# import argparse
+	import argparse
 
-	# parser = argparse.ArgumentParser()
-	# parser.add_argument("--id", type=int, default=0)
-	# args = parser.parse_args()
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--id", type=int, default=0)
+	args = parser.parse_args()
 
-	# model_id = int(args.id)
-	# model = Minor(model_id, 66, 4, 3)
+	model_id = int(args.id)
+	model = Minor(model_id, 66, 4, 3)
 
-	# server = SinglePredictorServer(model_id, SinglePredictor(model_id))
-	# server.start()
-	test_single_predictor()
+	server = SinglePredictorServer(model_id, SinglePredictor(model_id))
+	server.start()
+	# test_single_predictor()

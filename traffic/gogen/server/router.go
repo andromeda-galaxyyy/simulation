@@ -25,6 +25,7 @@ var (
 	lossHandle0 *redis.Client
 	lossHandle1 *redis.Client
 
+	counterReader *common.FCounterReader
 )
 
 
@@ -247,4 +248,8 @@ func GetLossBetween(c *gin.Context)  {
 		"msg":"Invalid request",
 	})
 	return
+}
+
+func GetFlowCounter(c *gin.Context)  {
+
 }

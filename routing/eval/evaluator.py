@@ -2,7 +2,7 @@ from utils.file_utils import *
 from utils.log_utils import debug, info, err
 from typing import List, Dict, Tuple
 from routing.instance import *
-from common.Graph import NetworkTopo
+from common.graph import NetworkTopo
 
 
 class RoutingEvaluator:
