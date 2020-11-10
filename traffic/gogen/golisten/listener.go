@@ -17,7 +17,7 @@ import (
 
 
 var (
-	snapshotLen           int32 =1024
+	snapshotLen           int32 =1500
 	promiscuous                     = false
 	timeout                             =30*time.Second
 	delayBaseDir          string

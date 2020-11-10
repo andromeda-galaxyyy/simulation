@@ -159,7 +159,7 @@ func (g *Generator) Start() (err error) {
 	log.Printf("# dsts %d\n", nDsts)
 	utils.ShuffleInts(g.DestinationIDs)
 	//init handler
-	handle, err := pcap.OpenLive(g.Int, 1024, false, g.timeout)
+	handle, err := pcap.OpenLive(g.Int, 1500, false, g.timeout)
 	if err != nil {
 		log.Fatalf("Cannot open device %s\n", g.Int)
 	}
