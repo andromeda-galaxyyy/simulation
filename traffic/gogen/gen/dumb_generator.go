@@ -27,20 +27,29 @@ type DumbGenerator struct {
 	Intf string
 	handle *pcap.Handle
 	buffer gopacket.SerializeBuffer
+
+	ether *layers.Ethernet
+	vlan *layers.Dot1Q
+	ipv4 *layers.IPv4
+	tcp *layers.TCP
+	udp *layers.UDP
+	payloadPerPacketSize int
+	options gopacket.SerializeOptions
+	fType int
 }
 
 func (g *DumbGenerator)Init()  {
 	g.buffer=gopacket.NewSerializeBuffer()
 	g.rawBytes=make([]byte,1600)
 	rand.Seed(time.Now().UnixNano())
-	vlan=&layers.Dot1Q{
+	g.vlan=&layers.Dot1Q{
 		VLANIdentifier: 3,
 		Type: layers.EthernetTypeIPv4,
 	}
-	ether= &layers.Ethernet{
+	g.ether= &layers.Ethernet{
 		EthernetType: layers.EthernetTypeDot1Q,
 	}
-	ipv4= &layers.IPv4{
+	g.ipv4= &layers.IPv4{
 		Version:    4,   //uint8
 		IHL:        5,   //uint8
 		TOS:        0,   //uint8
@@ -49,9 +58,9 @@ func (g *DumbGenerator)Init()  {
 		FragOffset: 0,   //uint16
 		TTL:        255, //uint8
 	}
-	tcp=&layers.TCP{}
-	udp=&layers.UDP{}
-	options.FixLengths=true
+	g.tcp=&layers.TCP{}
+	g.udp=&layers.UDP{}
+	g.options.FixLengths=true
 
 }
 
@@ -94,27 +103,28 @@ func (g *DumbGenerator) Start(){
 				if err!=nil{
 					log.Fatalf("Invalid dst port %s\n",dport)
 				}
-				tcp.DstPort=layers.TCPPort(dport_)
-				tcp.SrcPort=layers.TCPPort(sport_)
+				g.tcp.DstPort=layers.TCPPort(dport_)
+				g.tcp.SrcPort=layers.TCPPort(sport_)
 
 				dmac:=macs[flowId%nTarget]
 				dmac_,_:=net.ParseMAC(dmac)
 				smac_,_:=net.ParseMAC(g.SelfMAC)
-				ether.DstMAC=dmac_
-				ether.SrcMAC=smac_
+				g.ether.DstMAC=dmac_
+				g.ether.SrcMAC=smac_
 
 
 				dip:=ips[flowId%nTarget]
-				ipv4.SrcIP=net.ParseIP(g.SelfIP)
-				ipv4.DstIP=net.ParseIP(dip)
-				ipv4.Protocol=6
+				g.ipv4.SrcIP=net.ParseIP(g.SelfIP)
+				g.ipv4.DstIP=net.ParseIP(dip)
+				g.ipv4.Protocol=6
 
-				lastPkt:=false
+				//todo dumb generator
+				//lastPkt:=false
 				if i==g.FlowSizeInPacket-1{
-				 lastPkt=true
+				 //lastPkt=true
 				}
 
-				err=send(handle,g.buffer,g.rawBytes,1000,1200,ether,vlan,ipv4,tcp,udp,true,true,lastPkt)
+				//err=send(handle,g.buffer,g.rawBytes,1000,1200,g.ether,g.vlan,g.ipv4,g.tcp,g.udp,true,true,lastPkt)
 				if err!=nil{
 					log.Fatalln(err)
 				}

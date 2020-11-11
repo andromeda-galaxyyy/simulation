@@ -54,7 +54,7 @@ func main(){
 		log.SetOutput(ioutil.Discard)
 	}
 
-	fType= *flowType
+	fType:= *flowType
 	if fType>=4{
 		log.Fatalf("Unsupported flow type %d\n",fType)
 	}
@@ -134,30 +134,65 @@ func main(){
 		}
 		log.Println(fmt.Sprintf("#destination id file %d",len(dstIds)))
 
-		generator:=Generator{
-			ID:*id,
-			MTU: *mtu,
-			EmptySize: *emptyPktSize,
-			SelfID:        *id,
-			DestinationIDs: dstIds,
-			PktsDir:       *pktDir,
-			Int: *interf,
-			WinSize: *winSize,
-			ControllerIP: *controllerIP,
-			ControllerPort: *controllerSocketPort,
-			Sleep: *sleep,
-			Report: *report,
-			Delay: *delay,
-			DelayTime: *delayTime,
-			Debug: *debug,
-			ForceTarget: *forceTarget,
-			Target: *target,
+		//generator:=Generator{
+		//	ID:*id,
+		//	MTU: *mtu,
+		//	EmptySize: *emptyPktSize,
+		//
+		//	SelfID:        *id,
+		//	DestinationIDs: dstIds,
+		//	PktsDir:       *pktDir,
+		//	Int: *interf,
+		//	WinSize: *winSize,
+		//	ControllerIP: *controllerIP,
+		//	ControllerPort: *controllerSocketPort,
+		//	Sleep: *sleep,
+		//	Report: *report,
+		//	Delay: *delay,
+		//	DelayTime: *delayTime,
+		//	Debug: *debug,
+		//	ForceTarget: *forceTarget,
+		//	Target: *target,
+		//	enablePktLossStats: *enablePktLossStats,
+		//	pktLossDir: *pktLossDir,
+		//	fType: fType,
+		//}
+		//
+		//generator.Init()
+		//err=generator.Start()
+		//if err!=nil{
+		//	log.Fatalln(err)
+		//}
+		c:=&controller{
+			id:                 *id,
+			flowCounter:        0,
+			num_workers:        16,
+			workers:            nil,
+			mtu:                *mtu,
+			emptySize:          *emptyPktSize,
+			selfID:             utils.NowInMilli(),
+			destinationIDs:     dstIds,
+			pktsDir:            *pktDir,
+			intf:               *interf,
+			winSize:            *winSize,
+			controllerIP:       *controllerIP,
+			controllerPort:     *controllerSocketPort,
+			sleep:              *sleep,
+			report:             *report,
+			delay:              *delay,
+			delayDuration:      *delayTime,
+			debug:              *debug,
+			forceTarget:        *forceTarget,
+			target:             *target,
 			enablePktLossStats: *enablePktLossStats,
-			pktLossDir: *pktLossDir,
+			pktLossDir:         *pktLossDir,
+			flowType:           fType,
 		}
-
-		generator.Init()
-		err=generator.Start()
+		err=c.Init()
+		if err!=nil{
+			log.Fatalln(err)
+		}
+		err=c.Start()
 		if err!=nil{
 			log.Fatalln(err)
 		}

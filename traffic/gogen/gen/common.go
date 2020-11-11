@@ -3,69 +3,38 @@ package main
 import (
 	"chandler.com/gogen/utils"
 	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
 	"log"
 	"time"
 )
 
-var (
-	ether *layers.Ethernet
-	vlan *layers.Dot1Q
-	ipv4 *layers.IPv4
-	tcp *layers.TCP
-	udp *layers.UDP
-	payloadPerPacketSize int
-	options gopacket.SerializeOptions
-	fType int
-)
-
-type payloadManipulator func([]byte)
-type payloadManipulators []payloadManipulator
-
-func addTsManipulator(rawData []byte)  {
-	for i:=0;i<9;i++{
-		rawData[i]=byte(0)
-	}
-	nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
-	utils.Copy(rawData,0,nowMilliSeconds,0,8)
-}
-
-func indicateLastPayload(rawData []byte)  {
-	rawData[8]=utils.SetBit(rawData[8],7)
-}
-
-func indicateNotLastPayload(rawData []byte)  {
-	rawData[8]=utils.UnsetBit(rawData[8],7)
-}
-
-
-
-
 
 // 前8个byte记录时间戳，后一个byte最高位表示流是否结束，后几位表示流的种类，是否需要记录时间戳
-func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,payloadSize int,payloadPerPacketSize int ,ether *layers.Ethernet,vlan *layers.Dot1Q,ipv4 *layers.IPv4,tcp *layers.TCP,udp *layers.UDP,isTCP bool,addTs bool,lastPayload bool) (err error) {
-	//payloadPerPacketSize:=g.MTU-g.EmptySize
-	count:=payloadSize/payloadPerPacketSize
+func (g *Generator)send(
+	payloadSize int,
+	isTCP bool,
+	addTs bool,
+	lastPayload bool) (err error) {
+	count:=payloadSize/g.payloadPerPacketSize
+	fType:=g.fType
 
 	payloadSizeBk:=payloadSize
 	for i:=0;i<9;i++{
-		rawData[i]=byte(0)
+		g.rawData[i]=byte(0)
 	}
 	if fType>=4{
 		log.Fatalf("Unsupported flow type:%d\n",fType)
 	}
 
 	var b=byte(fType)
-	rawData[8]=b
+	g.rawData[8]=b
 
 	//buffer:=g.buffer
 	for ;count>0;count--{
 		//_ = buffer.Clear()
-		payLoadPerPacket:=rawData[:payloadPerPacketSize]
+		payLoadPerPacket:=g.rawData[:g.payloadPerPacketSize]
 
 		//如果是整数倍,而且这是最后一个
-		if payloadSizeBk%payloadPerPacketSize==0&&count==1{
+		if payloadSizeBk%g.payloadPerPacketSize==0&&count==1{
 			if lastPayload{
 				payLoadPerPacket[8]=utils.SetBit(payLoadPerPacket[8],7)
 			}else{
@@ -78,22 +47,22 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 			utils.Copy(payLoadPerPacket,0,nowMilliSeconds,0,8)
 		}
 
-		payloadSize-=payloadPerPacketSize
+		payloadSize-=g.payloadPerPacketSize
 		if isTCP{
-			err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,tcp,gopacket.Payload(payLoadPerPacket))
+			err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.tcp,gopacket.Payload(payLoadPerPacket))
 			if err!=nil{
 				return err
 			}
-			err=handle.WritePacketData(buffer.Bytes())
+			err=g.handle.WritePacketData(g.buffer.Bytes())
 			if err!=nil{
 				return err
 			}
 		}else{
-			err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,udp,gopacket.Payload(payLoadPerPacket))
+			err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.udp,gopacket.Payload(payLoadPerPacket))
 			if err!=nil{
 				return err
 			}
-			err=handle.WritePacketData(buffer.Bytes())
+			err=g.handle.WritePacketData(g.buffer.Bytes())
 			if err!=nil{
 				return err
 			}
@@ -109,7 +78,7 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 		payloadSize=9
 	}
 
-	leftPayload :=rawData[:payloadSize]
+	leftPayload :=g.rawData[:payloadSize]
 
 
 	if lastPayload{
@@ -126,20 +95,20 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 	}
 
 	if isTCP{
-		err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,tcp,gopacket.Payload(leftPayload))
+		err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.tcp,gopacket.Payload(leftPayload))
 		if err!=nil{
 			return err
 		}
-		err=handle.WritePacketData(buffer.Bytes())
+		err=g.handle.WritePacketData(g.buffer.Bytes())
 		if err!=nil{
 			return err
 		}
 	}else{
-		err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,udp,gopacket.Payload(leftPayload))
+		err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.udp,gopacket.Payload(leftPayload))
 		if err!=nil{
 			return err
 		}
-		err=handle.WritePacketData(buffer.Bytes())
+		err=g.handle.WritePacketData(g.buffer.Bytes())
 		if err!=nil{
 			return err
 		}
@@ -148,19 +117,12 @@ func send(handle *pcap.Handle,buffer gopacket.SerializeBuffer,rawData []byte,pay
 	return nil
 }
 
-func sendSeq(handle *pcap.Handle,
-	buffer gopacket.SerializeBuffer,
-	rawData []byte,
-	ether *layers.Ethernet,
-	vlan *layers.Dot1Q,
-	ipv4 *layers.IPv4,
-	tcp *layers.TCP,
-	udp *layers.UDP,
+func (g *Generator)sendSeq(
 	isTCP bool,
 	seqNum int64,
 	) (err error){
 
-	payload:=rawData[:9]
+	payload:=g.rawData[:9]
 	defer func() {
 		payload[8]=utils.UnsetBit(payload[8],2)
 	}()
@@ -173,11 +135,11 @@ func sendSeq(handle *pcap.Handle,
 	payload[8]=utils.SetBit(payload[8],2)
 
 	if isTCP{
-		err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,tcp,gopacket.Payload(payload))
+		err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.tcp,gopacket.Payload(payload))
 		if err!=nil{
 			return err
 		}
-		err=handle.WritePacketData(buffer.Bytes())
+		err=g.handle.WritePacketData(g.buffer.Bytes())
 		if err!=nil{
 			return err
 		}
@@ -185,11 +147,11 @@ func sendSeq(handle *pcap.Handle,
 
 	}
 
-	err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,udp,gopacket.Payload(payload))
+	err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.udp,gopacket.Payload(payload))
 	if err!=nil{
 		return err
 	}
-	err=handle.WritePacketData(buffer.Bytes())
+	err=g.handle.WritePacketData(g.buffer.Bytes())
 	if err!=nil{
 		return err
 	}
@@ -224,16 +186,8 @@ lastPeriodPktCount=20
 updatedPeriodPktCount=21
 updatedSeqNum=2
  */
-func sendWithSeq(handle *pcap.Handle,
-	buffer gopacket.SerializeBuffer,
-	rawData []byte,
+func (g *Generator)sendWithSeq(
 	payloadSize int,
-	payloadPerPacketSize int ,
-	ether *layers.Ethernet,
-	vlan *layers.Dot1Q,
-	ipv4 *layers.IPv4,
-	tcp *layers.TCP,
-	udp *layers.UDP,
 	isTCP bool,
 	addTs bool,
 	lastPayload bool,
@@ -243,26 +197,27 @@ func sendWithSeq(handle *pcap.Handle,
 
 	updatedPeriodPktCount=lastPeriodPktCount
 	updatedSeqNum=lastSeqNum
-	count:=payloadSize/payloadPerPacketSize
+	count:=payloadSize/g.payloadPerPacketSize
 
 	payloadSizeBk:=payloadSize
+	//fType:=g
 	for i:=0;i<9;i++{
-		rawData[i]=byte(0)
+		g.rawData[i]=byte(0)
 	}
-	if fType>=4{
-		log.Fatalf("Unsupported flow type:%d\n",fType)
+	if g.fType>=4{
+		log.Fatalf("Unsupported flow type:%d\n",g.fType)
 	}
 
-	var b=byte(fType)
-	rawData[8]=b
+	var b=byte(g.fType)
+	g.rawData[8]=b
 
 	//buffer:=g.buffer
 	for ;count>0;count--{
 		//_ = buffer.Clear()
-		payLoadPerPacket:=rawData[:payloadPerPacketSize]
+		payLoadPerPacket:=g.rawData[:g.payloadPerPacketSize]
 
 		//如果是整数倍,而且这是最后一个
-		if payloadSizeBk%payloadPerPacketSize==0&&count==1{
+		if payloadSizeBk%g.payloadPerPacketSize==0&&count==1{
 			if lastPayload{
 				payLoadPerPacket[8]=utils.SetBit(payLoadPerPacket[8],7)
 			}else{
@@ -271,40 +226,40 @@ func sendWithSeq(handle *pcap.Handle,
 			}
 		}
 
-		payloadSize-=payloadPerPacketSize
+		payloadSize-=g.payloadPerPacketSize
 
 		if addTs{
 			nowMilliSeconds:=utils.Int64ToBytes(time.Now().UnixNano()/1e6)
 			utils.Copy(payLoadPerPacket,0,nowMilliSeconds,0,8)
 		}
 		if isTCP{
-			err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,tcp,gopacket.Payload(payLoadPerPacket))
+			err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.tcp,gopacket.Payload(payLoadPerPacket))
 			if err!=nil{
 				return 0,0,err
 			}
-			err=handle.WritePacketData(buffer.Bytes())
+			err=g.handle.WritePacketData(g.buffer.Bytes())
 			if err!=nil{
 				return 0,0,err
 			}
 			updatedPeriodPktCount++
 			if updatedPeriodPktCount%100==0{
 				updatedSeqNum+=1
-				_=sendSeq(handle,buffer,rawData,ether,vlan,ipv4,tcp,udp,isTCP,updatedSeqNum)
+				_=g.sendSeq(isTCP,updatedSeqNum)
 			}
 
 		}else{
-			err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,udp,gopacket.Payload(payLoadPerPacket))
+			err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.udp,gopacket.Payload(payLoadPerPacket))
 			if err!=nil{
 				return 0,0,err
 			}
-			err=handle.WritePacketData(buffer.Bytes())
+			err=g.handle.WritePacketData(g.buffer.Bytes())
 			if err!=nil{
 				return 0,0,err
 			}
 			updatedPeriodPktCount++
 			if updatedPeriodPktCount%100==0{
 				updatedSeqNum+=1
-				_=sendSeq(handle,buffer,rawData,ether,vlan,ipv4,tcp,udp,isTCP,updatedSeqNum)
+				_=g.sendSeq(isTCP,updatedSeqNum)
 			}
 
 		}
@@ -319,7 +274,7 @@ func sendWithSeq(handle *pcap.Handle,
 		payloadSize=9
 	}
 
-	leftPayload :=rawData[:payloadSize]
+	leftPayload :=g.rawData[:payloadSize]
 
 
 	if lastPayload{
@@ -335,33 +290,33 @@ func sendWithSeq(handle *pcap.Handle,
 		utils.Copy(leftPayload,0,nowMilliSeconds,0,8)
 	}
 	if isTCP{
-		err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,tcp,gopacket.Payload(leftPayload))
+		err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.tcp,gopacket.Payload(leftPayload))
 		if err!=nil{
 			return 0,0,err
 		}
 
-		err=handle.WritePacketData(buffer.Bytes())
+		err=g.handle.WritePacketData(g.buffer.Bytes())
 		if err!=nil{
 			return 0,0,err
 		}
 		updatedPeriodPktCount++
 		if updatedPeriodPktCount%100==0{
 			updatedSeqNum+=1
-			_=sendSeq(handle,buffer,rawData,ether,vlan,ipv4,tcp,udp,isTCP,updatedSeqNum)
+			_=g.sendSeq(isTCP,updatedSeqNum)
 		}
 	}else{
-		err=gopacket.SerializeLayers(buffer,options,ether,vlan,ipv4,udp,gopacket.Payload(leftPayload))
+		err=gopacket.SerializeLayers(g.buffer,g.options,g.ether,g.vlan,g.ipv4,g.udp,gopacket.Payload(leftPayload))
 		if err!=nil{
 			return 0,0,err
 		}
-		err=handle.WritePacketData(buffer.Bytes())
+		err=g.handle.WritePacketData(g.buffer.Bytes())
 		if err!=nil{
 			return 0,0,err
 		}
 		updatedPeriodPktCount++
 		if updatedPeriodPktCount%100==0{
 			updatedSeqNum+=1
-			_=sendSeq(handle,buffer,rawData,ether,vlan,ipv4,tcp,udp,isTCP,updatedSeqNum)
+			_=g.sendSeq(isTCP,updatedSeqNum)
 		}
 	}
 

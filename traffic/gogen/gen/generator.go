@@ -13,12 +13,10 @@ import (
 	"math"
 	"math/rand"
 	"net"
-	"os"
-	"os/signal"
 	"path"
 	"strconv"
 	"strings"
-	"syscall"
+	"sync"
 	"time"
 )
 
@@ -74,7 +72,19 @@ type Generator struct {
 	flowIdToSeq map[int]int64
 	periodPktCount map[int]int64
 
-	flowCounter uint64
+	waiter *sync.WaitGroup
+
+
+	// protocol stack
+	ether *layers.Ethernet
+	vlan *layers.Dot1Q
+	ipv4 *layers.IPv4
+	tcp *layers.TCP
+	udp *layers.UDP
+	payloadPerPacketSize int
+	options gopacket.SerializeOptions
+	fType int
+
 
 }
 
@@ -164,6 +174,11 @@ func (g *Generator) Start() (err error) {
 		log.Fatalf("Cannot open device %s\n", g.Int)
 	}
 	defer handle.Close()
+	defer func() {
+		if g.waiter!=nil{
+			g.waiter.Done()
+		}
+	}()
 	g.handle = handle
 	g.rawData = make([]byte, 1600)
 
@@ -174,11 +189,11 @@ func (g *Generator) Start() (err error) {
 	}
 
 	ip := net.ParseIP(g.ipStr)
-	ipv4.SrcIP = ip
+	g.ipv4.SrcIP = ip
 
 	g.macStr, err = utils.GenerateMAC(g.ID)
 	mac, _ := net.ParseMAC(g.macStr)
-	ether.SrcMAC = mac
+	g.ether.SrcMAC = mac
 
 	if err != nil {
 		log.Fatalf("Invalid generator id %d\n", g.ID)
@@ -339,7 +354,7 @@ func (g *Generator) Start() (err error) {
 
 					dstIPStr := fiveTuple[2]
 					dstIP := net.ParseIP(dstIPStr)
-					ipv4.DstIP = dstIP
+					g.ipv4.DstIP = dstIP
 
 					var dstMACStr string
 					if g.ForceTarget {
@@ -350,7 +365,7 @@ func (g *Generator) Start() (err error) {
 					} else {
 						dstMACStr = DstMACs[flowId%nDsts]
 					}
-					ether.DstMAC, _ = net.ParseMAC(dstMACStr)
+					g.ether.DstMAC, _ = net.ParseMAC(dstMACStr)
 
 					dstPort, err := strconv.Atoi(fiveTuple[3])
 					if err != nil {
@@ -358,22 +373,13 @@ func (g *Generator) Start() (err error) {
 					}
 
 					if proto == "TCP" {
-						tcp.SrcPort = layers.TCPPort(srcPort)
-						tcp.DstPort = layers.TCPPort(dstPort)
-						ipv4.Protocol = 6
+						g.tcp.SrcPort = layers.TCPPort(srcPort)
+						g.tcp.DstPort = layers.TCPPort(dstPort)
+						g.ipv4.Protocol = 6
 
 						if g.enablePktLossStats{
-							updatedPeriodPktCount,updatedSeqNum,err:=sendWithSeq(
-								handle,
-								g.buffer,
-								g.rawData,
+							updatedPeriodPktCount,updatedSeqNum,err:=g.sendWithSeq(
 								size,
-								g.MTU-g.EmptySize,
-								ether,
-								vlan,
-								ipv4,
-								tcp,
-								udp,
 								true,
 								true,
 								isLastL4Payload,
@@ -386,7 +392,20 @@ func (g *Generator) Start() (err error) {
 							g.periodPktCount[flowId]=updatedPeriodPktCount%100
 							g.flowIdToSeq[flowId]=updatedSeqNum
 						}else{
-							err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, true, true, isLastL4Payload)
+							err = g.send(
+								//g.handle,
+								//g.buffer,
+								//g.rawData,
+								size,
+								//g.MTU-g.EmptySize,
+								//g.ether,
+								//g.vlan,
+								//g.ipv4,
+								//g.tcp,
+								//g.udp,
+								true,
+								true,
+								isLastL4Payload)
 							if err != nil {
 								log.Fatal(err)
 							}
@@ -394,21 +413,12 @@ func (g *Generator) Start() (err error) {
 
 					} else {
 						//log.Printf("%d,%d\n",srcPort,dstPort)
-						udp.SrcPort = layers.UDPPort(srcPort)
-						udp.DstPort = layers.UDPPort(dstPort)
-						ipv4.Protocol = 17
+						g.udp.SrcPort = layers.UDPPort(srcPort)
+						g.udp.DstPort = layers.UDPPort(dstPort)
+						g.ipv4.Protocol = 17
 						if g.enablePktLossStats{
-							updatedPeriodPktCount,updatedSeqNum,err:=sendWithSeq(
-								handle,
-								g.buffer,
-								g.rawData,
+							updatedPeriodPktCount,updatedSeqNum,err:=g.sendWithSeq(
 								size,
-								g.MTU-g.EmptySize,
-								ether,
-								vlan,
-								ipv4,
-								tcp,
-								udp,
 								false,
 								true,
 								isLastL4Payload,
@@ -421,7 +431,11 @@ func (g *Generator) Start() (err error) {
 							g.periodPktCount[flowId]=updatedPeriodPktCount%100
 							g.flowIdToSeq[flowId]=updatedSeqNum
 						}else{
-							err = send(g.handle, g.buffer, g.rawData, size, g.MTU-g.EmptySize, ether, vlan, ipv4, tcp, udp, false, true, isLastL4Payload)
+							err = g.send(
+								size,
+								false,
+								true,
+								isLastL4Payload)
 							if err != nil {
 								log.Fatal(err)
 							}
@@ -472,7 +486,7 @@ func (g *Generator) Start() (err error) {
 								Proto:           proto,
 								TxStartTs:       utils.NowInMilli(),
 								TxEndTs:         0,
-								FlowType:        fType,
+								FlowType:        g.fType,
 								ReceivedPackets: 0,
 								MinDelay:        0,
 								MaxDelay:        0,
@@ -508,14 +522,14 @@ func (g *Generator) Start() (err error) {
 }
 
 func (g *Generator) Init() {
-	vlan = &layers.Dot1Q{
+	g.vlan = &layers.Dot1Q{
 		VLANIdentifier: 3,
 		Type:           layers.EthernetTypeIPv4,
 	}
-	ether = &layers.Ethernet{
+	g.ether = &layers.Ethernet{
 		EthernetType: layers.EthernetTypeDot1Q,
 	}
-	ipv4 = &layers.IPv4{
+	g.ipv4 = &layers.IPv4{
 		Version:    4,   //uint8
 		IHL:        5,   //uint8
 		TOS:        0,   //uint8
@@ -524,13 +538,13 @@ func (g *Generator) Init() {
 		FragOffset: 0,   //uint16
 		TTL:        255, //uint8
 	}
-	tcp = &layers.TCP{}
-	udp = &layers.UDP{}
+	g.tcp = &layers.TCP{}
+	g.udp = &layers.UDP{}
 
 	rand.Seed(time.Now().UnixNano())
 
-	options.FixLengths = true
-	payloadPerPacketSize = g.MTU - g.EmptySize
+	g.options.FixLengths = true
+	g.payloadPerPacketSize = g.MTU - g.EmptySize
 	g.statsToReport = make(map[int]map[string][]float64)
 	g.sentRecord = &utils.IntSet{}
 	g.buffer = gopacket.NewSerializeBuffer()
@@ -540,14 +554,15 @@ func (g *Generator) Init() {
 	g.flowIDToFlowDesc=make(map[int]*common.FlowDesc)
 
 	//register signal
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
-	go func() {
-		sig := <-sigs
-		log.Printf("Generator received signal %s\n", sig)
-		log.Println("DemoStart to shutdown sender")
-		g.stopChannel <- struct{}{}
-	}()
+	//now move to controller
+	//sigs := make(chan os.Signal, 1)
+	//signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	//go func() {
+	//	sig := <-sigs
+	//	log.Printf("Generator received signal %s\n", sig)
+	//	log.Println("DemoStart to shutdown sender")
+	//	g.stopChannel <- struct{}{}
+	//}()
 
 	if g.enablePktLossStats {
 
