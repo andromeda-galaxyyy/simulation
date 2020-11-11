@@ -24,6 +24,11 @@ func main(){
 	winSize:=flag.Int("ws",10,"Window size")
 	controllerIP:=flag.String("cip","172.16.181.1","Controller ip")
 	controllerSocketPort:=flag.Int("cport",1025,"Controller Socket Port")
+
+	redisIP:=flag.String("rip", "192.168.1.196","Redis IP address")
+	redisPort:=flag.Int("rport",6379, "Redis Port")
+
+
 	sleep:=flag.Bool("sleep",true,"whether sleep between packets")
 	report:=flag.Bool("report",true,"whether report between packets")
 	delay:=flag.Bool("delay",true,"whether delay before packet injection")
@@ -166,7 +171,7 @@ func main(){
 		c:=&controller{
 			id:                 *id,
 			flowCounter:        0,
-			num_workers:        *n_workers,
+			numWorkers:        *n_workers,
 			workers:            nil,
 			mtu:                *mtu,
 			emptySize:          *emptyPktSize,
@@ -186,7 +191,9 @@ func main(){
 			target:             *target,
 			enablePktLossStats: *enablePktLossStats,
 			pktLossDir:         *pktLossDir,
-			flowType:           fType,
+			flowType:           fType,	
+			rip:*redisIP,
+			rport:*redisPort,
 		}
 		err=c.Init()
 		if err!=nil{
