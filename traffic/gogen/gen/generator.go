@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -24,7 +25,7 @@ import (
 //type Seq int64
 
 
-type Generator struct {
+type generator struct {
 	ID             int
 	MTU            int
 	EmptySize      int
@@ -85,7 +86,7 @@ type Generator struct {
 	options gopacket.SerializeOptions
 	fType int
 
-
+	flowCounter int64
 }
 
 func processStats(nums []float64) (min, max, mean float64) {
@@ -156,13 +157,13 @@ func randomFlowIdToPort(flowId int) (sport, dport int) {
 	return sport, dport
 }
 
-func (g *Generator) flushPktLossStats() {
+func (g *generator) flushPktLossStats() {
 	for _, fDesc := range g.flowIDToFlowDesc {
 		g.writerChan <- fDesc
 	}
 }
 
-func (g *Generator) Start() (err error) {
+func (g *generator) Start() (err error) {
 
 	log.Printf("DemoStart to generate")
 	nDsts := len(g.DestinationIDs)
@@ -204,12 +205,12 @@ func (g *Generator) Start() (err error) {
 	for _, dstId := range g.DestinationIDs {
 		ip, err := utils.GenerateIP(dstId)
 		if err != nil {
-			log.Fatalf("Generator: %d Error when generate ip for %d", g.ID, dstId)
+			log.Fatalf("generator: %d Error when generate ip for %d", g.ID, dstId)
 		}
 		DstIPs = append(DstIPs, ip)
 		mac, err := utils.GenerateMAC(dstId)
 		if err != nil {
-			log.Fatalf("Generator: %d Error when generate mac for %d", g.ID, dstId)
+			log.Fatalf("generator: %d Error when generate mac for %d", g.ID, dstId)
 		}
 		DstMACs = append(DstMACs, mac)
 	}
@@ -278,7 +279,7 @@ func (g *Generator) Start() (err error) {
 			select {
 			case <-g.stopChannel:
 				//break loop
-				log.Println("Generator stop requested")
+				log.Println("generator stop requested")
 				stopped = true
 				g.flushPktLossStats()
 				g.flowIDToFlowDesc=make(map[int]*common.FlowDesc)
@@ -319,11 +320,17 @@ func (g *Generator) Start() (err error) {
 					}
 					isLastL4Payload := false
 					if last > 0 {
+						//we reach the end of the flow
+						atomic.AddInt64(&g.flowCounter,-1)
 						log.Printf("Flow %d finished\n", flowId)
 						isLastL4Payload = true
 					}
 
 					if _, exists := g.flowIDToFiveTuple[flowId]; !exists {
+						/**
+						this indicates that this is a new flow,update the counter
+						 */
+						atomic.AddInt64(&g.flowCounter,1)
 						//map and save
 						sp, dp := randomFlowIdToPort(flowId)
 						var dip string
@@ -512,7 +519,7 @@ func (g *Generator) Start() (err error) {
 	return nil
 }
 
-func (g *Generator) Init() {
+func (g *generator) Init() {
 	g.vlan = &layers.Dot1Q{
 		VLANIdentifier: 3,
 		Type:           layers.EthernetTypeIPv4,
@@ -550,7 +557,7 @@ func (g *Generator) Init() {
 	//signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	//go func() {
 	//	sig := <-sigs
-	//	log.Printf("Generator received signal %s\n", sig)
+	//	log.Printf("generator received signal %s\n", sig)
 	//	log.Println("DemoStart to shutdown sender")
 	//	g.stopChannel <- struct{}{}
 	//}()
@@ -568,7 +575,7 @@ func (g *Generator) Init() {
 	g.periodPktCount=make(map[int]int64)
 }
 
-func (g *Generator) reset() {
+func (g *generator) reset() {
 	rand.Seed(time.Now().UnixNano())
 	g.sentRecord = &utils.IntSet{}
 	g.sentRecord.Init()

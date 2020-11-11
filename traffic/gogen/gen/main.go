@@ -134,7 +134,7 @@ func main(){
 		}
 		log.Println(fmt.Sprintf("#destination id file %d",len(dstIds)))
 
-		//generator:=Generator{
+		//generator:=generator{
 		//	ID:*id,
 		//	MTU: *mtu,
 		//	EmptySize: *emptyPktSize,

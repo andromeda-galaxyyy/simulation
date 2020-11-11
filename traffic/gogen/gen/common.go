@@ -9,7 +9,7 @@ import (
 
 
 // 前8个byte记录时间戳，后一个byte最高位表示流是否结束，后几位表示流的种类，是否需要记录时间戳
-func (g *Generator)send(
+func (g *generator)send(
 	payloadSize int,
 	isTCP bool,
 	addTs bool,
@@ -117,7 +117,7 @@ func (g *Generator)send(
 	return nil
 }
 
-func (g *Generator)sendSeq(
+func (g *generator)sendSeq(
 	isTCP bool,
 	seqNum int64,
 	) (err error){
@@ -186,7 +186,7 @@ lastPeriodPktCount=20
 updatedPeriodPktCount=21
 updatedSeqNum=2
  */
-func (g *Generator)sendWithSeq(
+func (g *generator)sendWithSeq(
 	payloadSize int,
 	isTCP bool,
 	addTs bool,
