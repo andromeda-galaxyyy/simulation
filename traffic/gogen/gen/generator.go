@@ -238,11 +238,11 @@ func (g *Generator) Start() (err error) {
 	utils.ShuffleStrings(pktFns)
 
 	pktFileIdx := 0
-	log.Println("DemoStart to sleep for random time")
+	//log.Println("DemoStart to sleep for random time")
 	if g.Delay {
 		time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
 	}
-	log.Println("Sleep over.DemoStart injection")
+	//log.Println("Sleep over.DemoStart injection")
 
 	stopped := false
 	for {
@@ -393,16 +393,7 @@ func (g *Generator) Start() (err error) {
 							g.flowIdToSeq[flowId]=updatedSeqNum
 						}else{
 							err = g.send(
-								//g.handle,
-								//g.buffer,
-								//g.rawData,
 								size,
-								//g.MTU-g.EmptySize,
-								//g.ether,
-								//g.vlan,
-								//g.ipv4,
-								//g.tcp,
-								//g.udp,
 								true,
 								true,
 								isLastL4Payload)

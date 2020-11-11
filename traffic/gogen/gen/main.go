@@ -35,7 +35,7 @@ func main(){
 
 	forceTarget:=flag.Bool("forcetarget",false,"Whether force target")
 	target:=flag.Int("target",-1,"If enable force target,the target id")
-
+	n_workers:=flag.Int("workers",1,"Number of coroutine to generate traffic")
 
 
 	//dumb generator
@@ -166,7 +166,7 @@ func main(){
 		c:=&controller{
 			id:                 *id,
 			flowCounter:        0,
-			num_workers:        16,
+			num_workers:        *n_workers,
 			workers:            nil,
 			mtu:                *mtu,
 			emptySize:          *emptyPktSize,
