@@ -13,7 +13,7 @@ import threading
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
 static_dir = os.path.join(get_prj_root(), "static")
-topos_pkl = os.path.join(static_dir, "satellite_overall.pkl")
+topos_pkl = os.path.join(static_dir, "millitary.pkl")
 
 
 def do_post(url, obj):
@@ -185,7 +185,7 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 if __name__ == '__main__':
 	parser = ArgumentParser()
 	parser.add_argument("--config", type=str, help="config file name",
-	                    default="/home/stack/code/simulation/topo/distributed/satellite.config.json")
+	                    default="/home/stack/code/simulation/topo/distributed/millitary.config.json")
 	parser.add_argument("--topos_fn", type=str, help="Topo json file",
 	                    default=topos_pkl)
 	args = parser.parse_args()

@@ -6,7 +6,7 @@ do
                 echo "$bridge" deleted
 done
 
-for hid in {0..66}
+for hid in {0..99}
 do
     ip netns del "h${hid}"
 done
