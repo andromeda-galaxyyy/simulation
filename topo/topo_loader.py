@@ -110,80 +110,75 @@ def read_statellite_topo():
 
 read_statellite_topo()
 
+
 # read millitary project topo
 
-def convert_satellite_topo(topo:List[List[List[int]]])->List[List[List[int]]]:
-	link:List[List[int]]=[100,10,-1,-1]
+def convert_satellite_topo(topo: List[List[List[int]]]) -> List[List[List[int]]]:
+	link: List[int] = [100, 10, 0, 0]
 	new_topo: List[List[List[int]]] = [[[-1, -1, -1, -1]
-                                     for _ in range(100)] for _ in range(100)]
+	                                    for _ in range(100)] for _ in range(100)]
 
 	# print(new_topo[0][0])
 
-	def connect(s1,s2):
-		new_topo[s1][s2]=link
-		new_topo[s2][s1]=link
+	def connect(s1, s2):
+		new_topo[s1][s2] = link
+		new_topo[s2][s1] = link
+
 	for i in range(66):
 		for j in range(66):
-			# print(topo[i][j])
-			# print(new_topo[i][j])
-			new_topo[i][j]=topo[i][j]
+			new_topo[i][j] = topo[i][j]
 
-	node=65
-	links=101
+	# node=0
+	# for idx in range(66,66+17):
+	# 	connect(idx,node)
+	# 	node+=1
+
+	node = 65
 	for idx in range(6):
-		node+=1
-		connect(node,2+idx*11)
-		links+=1
-		connect(node,3+idx*11)
-		links+=1
-		node+=1
-		connect(node,2+idx*11)
-		links+=1
-		connect(node,3+idx*11)
-		links+=1
-		node+=1
-		connect(node,8+idx*11)
-		links+=1
-		connect(node,9+idx*11)
+		node += 1
+		connect(node, 2 + idx * 11)
+		connect(node, 3 + idx * 11)
+		node += 1
+		connect(node, 2 + idx * 11)
+		connect(node, 3 + idx * 11)
+		node += 1
+		connect(node, 8 + idx * 11)
+		connect(node, 9 + idx * 11)
+		node += 1
+		connect(node, 8 + idx * 11)
+		connect(node, 9 + idx * 11)
+		# node=70
+		node += 1
+		connect(node, node - 1)
+		connect(node, node - 4)
 
-		links+=1
-		node+=1
-		connect(node,8+idx*11)
+		if idx <= 3:
+			# node=71
+			node += 1
+			connect(node, node - 4)
+			connect(node, node - 3)
 
-		links+=1
-		connect(node,9+idx*11)
-		links+=1
-		#node=70
-		node+=1
-		connect(node,node-1)
-		links+=1
-		connect(node,node-4)
-		links+=1
-
-		if idx<=3:
-			#node=71
-			node+=1
-			connect(node,node-4)
-			links+=1
-			connect(node,node-3)
-			links+=1
-
-	assert node==99
-	assert links==169
+	# assert node == 99
+	# check
+	# count=0
+	# for i in range(100):
+	# 	for j in range(100):
+	# 		if new_topo[i][j]!=[-1,-1,-1,-1]:
+	# 			count+=1
 	return new_topo
-	
+
 
 def load_millitary_topo():
 	satellites = load_pkl(os.path.join(static_dir, "satellite_overall.pkl"))
-	millitary=[]
-	for idx,topo in enumerate(satellites):
+	millitary = []
+	for idx, topo in enumerate(satellites):
 		millitary.append({
-			"topo":convert_satellite_topo(topo["topo"]),
-			"duration":topo["duration"]
+			"topo": convert_satellite_topo(topo["topo"]),
+			"duration": topo["duration"]
 		})
 
 	debug("millitary topo converted")
-	save_pkl(os.path.join(static_dir,"millitary.pkl"),millitary)
+	save_pkl(os.path.join(static_dir, "millitary.pkl"), millitary)
 
 
 load_millitary_topo()

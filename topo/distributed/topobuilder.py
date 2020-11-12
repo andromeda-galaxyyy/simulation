@@ -369,7 +369,7 @@ class TopoBuilder:
 
 		self.traffic_scheduler = TrafficScheduler2(self.config, self.hostids)
 		self.enable_host_find = False
-		self.traffic_actor=TrafficActor(self.config,self.hostids)
+		self.traffic_actor = TrafficActor(self.config, self.hostids)
 
 	def _set_up_switches(self):
 		k = self.config["host_per_switch"]
@@ -746,7 +746,7 @@ class TopoBuilder:
 	def _stop_listener(self):
 		os.system("for p in `pgrep '^golisten$'`;do kill $p;done")
 
-	def diff_traffic_mode(self,mode):
+	def diff_traffic_mode(self, mode):
 		self.traffic_actor.act(mode)
 
 	def stop_traffic_actor(self):
@@ -777,7 +777,6 @@ class TopoBuilder:
 			attach_interface_to_sw(n, p2)
 			up_interface(p1)
 			up_interface(p2)
-
 
 			add_tc(p1, bandwidth=band, delay=None)
 			add_tc(p2, bandwidth=band, delay=None)

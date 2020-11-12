@@ -51,8 +51,8 @@ class Topo(Resource):
 		global builder
 		topo = request.get_json(force=True)
 		if builder is not None:
-			start_new_thread_run(builder.diff_topo, [topo["topo"]])
-			# builder.diff_topo(topo["topo"])
+			# start_new_thread_run(builder.diff_topo, [topo["topo"]])
+			builder.diff_topo(topo["topo"])
 			return '', 200
 		else:
 			return '', 404
