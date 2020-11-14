@@ -1,4 +1,11 @@
 package main
+/**
+ 针对goroutine增多引起golang调度器cpu 占用增高的问题
+reference：
+1.http://xiaorui.cc/archives/6334
+2. https://juejin.im/post/6844903887757901831
+3. https://coralogix.com/log-analytics-blog/optimizing-a-golang-service-to-reduce-over-40-cpu/
+ */
 
 import (
 	"bufio"
@@ -7,12 +14,22 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
+	"runtime/trace"
 	"strconv"
 )
 
+
 func main(){
-	debug:=flag.Bool("debug",true,"Enable debug mode")
+	// for profiling
+	trace.Start(os.Stderr)
+	defer trace.Stop()
+	go func() {
+		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	}()
+	debug:=flag.Bool("debug",false,"Enable debug mode")
 
 
 	id:=flag.Int("id",0,"self id")
@@ -195,10 +212,13 @@ func main(){
 			rip:*redisIP,
 			rport:*redisPort,
 		}
+
+
 		err=c.Init()
 		if err!=nil{
 			log.Fatalln(err)
 		}
+
 		err=c.Start()
 		if err!=nil{
 			log.Fatalln(err)
