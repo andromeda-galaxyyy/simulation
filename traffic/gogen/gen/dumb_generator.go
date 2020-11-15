@@ -124,7 +124,7 @@ func (g *DumbGenerator) Start(){
 				 //lastPkt=true
 				}
 
-				//err=send(handle,g.buffer,g.rawBytes,1000,1200,g.ether,g.vlan,g.ipv4,g.tcp,g.udp,true,true,lastPkt)
+				//err=send(handle,g.buffer,g.rawBytes,1000,1200,g.ether,g.vlan,g.ipv4,g.tcp,g.udp.pkts,true,true,lastPkt)
 				if err!=nil{
 					log.Fatalln(err)
 				}

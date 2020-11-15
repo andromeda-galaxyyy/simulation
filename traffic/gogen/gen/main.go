@@ -14,21 +14,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"runtime/trace"
 	"strconv"
 )
 
 
 func main(){
 	// for profiling
-	trace.Start(os.Stderr)
-	defer trace.Stop()
-	go func() {
-		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
-	}()
+	//trace.Start(os.Stderr)
+	//defer trace.Stop()
+	//go func() {
+	//	log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	//}()
 	debug:=flag.Bool("debug",false,"Enable debug mode")
 
 

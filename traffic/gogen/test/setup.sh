@@ -3,8 +3,19 @@
 
 echo "1" >/proc/sys/net/ipv4/ip_forward
 
-#backup iptables
-iptables-save > /home/stack/iptables.save
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -t nat -F
+iptables -t mangle -F
+iptables -F
+iptables -X
+
+
+# setup port forwarding
+
+iptables -A PREROUTING -t nat -i enp0s5 -p tcp --dport 6060 -j DNAT --to 10.1.0.1:6060
+iptables -A FORWARD -p tcp -d 10.1.0.1 --dport 6060 -j ACCEPT
 
 ip netns del h1
 ip netns del h0

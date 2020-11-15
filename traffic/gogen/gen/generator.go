@@ -85,8 +85,10 @@ type generator struct {
 	payloadPerPacketSize int
 	options gopacket.SerializeOptions
 	fType int
-
 	flowCounter int64
+
+	selfLoadPkt bool
+	lines []string
 }
 
 func processStats(nums []float64) (min, max, mean float64) {
@@ -181,7 +183,6 @@ func (g *generator) Start() (err error) {
 		}
 	}()
 	g.handle = handle
-	g.rawData = make([]byte, 1600)
 
 	//self ip and mac
 	g.ipStr, err = utils.GenerateIP(g.ID)
@@ -265,10 +266,16 @@ func (g *generator) Start() (err error) {
 
 		g.reset()
 		pktFile := path.Join(g.PktsDir, pktFns[pktFileIdx])
-		lines, err := utils.ReadLines(pktFile)
-		if err != nil {
-			log.Fatalf("Error reading pkt file %s\n", pktFile)
+		var lines []string
+		if g.selfLoadPkt{
+			lines, err= utils.ReadLines(pktFile)
+			if err != nil {
+				log.Fatalf("Error reading pkt file %s\n", pktFile)
+			}
+		}else{
+			lines=g.lines
 		}
+
 
 		log.Printf("pkt file %s: #lines: %d", pktFns[pktFileIdx], len(lines))
 
@@ -573,6 +580,7 @@ func (g *generator) Init() {
 	}
 	g.flowIdToSeq=make(map[int]int64)
 	g.periodPktCount=make(map[int]int64)
+	g.rawData = make([]byte, 1600)
 }
 
 func (g *generator) reset() {
