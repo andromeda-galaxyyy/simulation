@@ -752,10 +752,25 @@ class TopoBuilder:
 	def stop_traffic_actor(self):
 		self.traffic_actor.stop()
 
-	def setup_supplementary_topo(self):
-		supp_topo = self.config["supplementary"][int(self.id)]
-		# todo how to eliminate this constant?
-		ovs_id = 66 + int(self.id)
+	def setup_supplementary_topo(self,is_server:bool=True):
+		supp_topos = self.config["supplementary"]
+		supp_topo=None
+		ovs_id=-1
+		for t in supp_topos:
+			if is_server and t["tag"]=="server":
+				supp_topo=t
+				#todo how to eliminate this constant
+				ovs_id=66
+				break
+			elif (not is_server) and t["tag"]=="client":
+				supp_topo=t
+				ovs_id=67
+				break
+        
+		if ovs_id==-1:
+			debug("Nothing to do;return from setup_supplementary_topo")
+			return
+
 		ovs_name = "s{}".format(ovs_id)
 
 		controller = self.config["controller"]

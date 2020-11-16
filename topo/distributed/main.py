@@ -159,7 +159,7 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				url1 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
 				threading.Thread(target=do_post, args=[url1, {"server": True}]).start()
 
-				url2 = "http://{}:{}/supplementary".format(worker_ips[1], 5000)
+				url2 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
 				threading.Thread(target=do_post, args=[url2, {"server": False}]).start()
 				continue
 
@@ -185,7 +185,7 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 if __name__ == '__main__':
 	parser = ArgumentParser()
 	parser.add_argument("--config", type=str, help="config file name",
-	                    default="/home/stack/code/simulation/topo/distributed/millitary.config.json")
+	                    default="/home/stack/code/simulation/topo/distributed/rate.config.json")
 	parser.add_argument("--topos_fn", type=str, help="Topo json file",
 	                    default=topos_pkl)
 	args = parser.parse_args()

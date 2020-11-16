@@ -3,26 +3,7 @@
 
 echo "1" >/proc/sys/net/ipv4/ip_forward
 
-iptables -P INPUT ACCEPT
-iptables -P FORWARD ACCEPT
-iptables -P OUTPUT ACCEPT
-iptables -t nat -F
-iptables -t mangle -F
-iptables -F
-iptables -X
 
-
-# setup port forwarding
-
-iptables -A PREROUTING -t nat -i enp0s5 -p tcp --dport 6060 -j DNAT --to 10.1.0.1:6060
-iptables -A FORWARD -p tcp -d 10.1.0.1 --dport 6060 -j ACCEPT
-
-ip netns del h1
-ip netns del h0
-
-ip link del h0-eth0
-ip link del h0-nat
-ip link del h1-eth0
 
 
 ip netns add h0
@@ -55,6 +36,15 @@ ip netns exec h1 ip addr add 10.0.0.2/16 dev h1-eth0
 ip netns exec h0 ip addr add 10.1.0.1/16 dev h0-nat
 
 ip netns exec h0 ip route add default via 10.1.0.2
+
+
+
+# setup port forwarding
+
+iptables -A PREROUTING -t nat -i enp0s5 -p tcp --dport 6060 -j DNAT --to 10.1.0.1:6060
+iptables -A FORWARD -p tcp -d 10.1.0.1 --dport 6060 -j ACCEPT
+
+
 
 iptables -A FORWARD -o nat-h0 -i enp0s5 -j ACCEPT
 iptables -A FORWARD -o enp0s5 -i nat-h0 -j ACCEPT

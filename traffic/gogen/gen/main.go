@@ -14,19 +14,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"runtime/trace"
 	"strconv"
 )
 
 
 func main(){
-	// for profiling
-	//trace.Start(os.Stderr)
-	//defer trace.Stop()
-	//go func() {
-	//	log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
-	//}()
+	//for profiling
+
 	debug:=flag.Bool("debug",false,"Enable debug mode")
 
 
@@ -72,6 +70,13 @@ func main(){
 	if !(*debug){
 		fmt.Println("disable debug")
 		log.SetOutput(ioutil.Discard)
+	}else{
+		//debug
+			trace.Start(os.Stderr)
+		defer trace.Stop()
+		go func() {
+		log.Println(http.ListenAndServe("0.0.0.0:6060", nil))
+	}()
 	}
 
 	fType:= *flowType
