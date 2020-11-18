@@ -11,7 +11,16 @@ class BaseTelemeter:
         self.topo:List[List[List[int]]]=topo
         self.config:Dict=config
 
-    def __calculate_monitor(topo:List[List[List[int]]],ovsids:List[int])->int:
+    def __calculate_monitor(self,links:List[Tuple[int,int]])->int:
+        # topo 的组织形式为临接矩阵，矩阵中的每个元素为一个四元素列表
+        #  link [(0,1),(1,100)]
+        if -1 in self.topo[0][1]:
+            # 不存在
+            pass
+        else:
+            #存在
+            pass
+
         raise NotImplementedError
 
     def __calculate_flow(self,links:List[Tuple[int,int]])->Tuple[int,str,Any]:
@@ -19,6 +28,10 @@ class BaseTelemeter:
         抽象方法，由具体的子类给出实现方式,成功返回0，错误返回-1
         （错误码,出错信息,发送给控制器的内容,务必为json)
         '''
+        # if anything goes wrong,
+        # return -1,"error msg",{}
+        # otherwise 
+        # return 0,"",{"flows":[]}
         raise NotImplementedError
 
     def __do_stop(self):
@@ -29,6 +42,10 @@ class BaseTelemeter:
         send telemetry packet,return 0 if success,-1 otherwise
         str if any,indicates error message
         '''
+        # if anything goes wrong,
+        # return -1,"error msg"
+        # otherwise
+        # return 0,""
         raise NotImplementedError
 
     def __do_collect_stats(self) -> Tuple[int, str, Any]:
@@ -38,12 +55,7 @@ class BaseTelemeter:
        '''
         raise NotImplementedError
 
-    def __send_telemetry_packet_and_listen(self) -> Tuple[int, str]:
-        '''
-        send telemetry packet,return 0 if success,-1 otherwise
-        str if any,indicates error message
-        '''
-        raise NotImplementedError
+
 
 
     def stop(self):
@@ -53,7 +65,7 @@ class BaseTelemeter:
 
     def start(self,links:List[Tuple[int,int]]):
         # 计算monitor
-        monitor_id=self.__calculate_monitor(self.topo,self.ovsids)
+        monitor_id=self.__calculate_monitor(links)
         # 如果monitor不在本服务器上,返回
         if monitor_id not in self.ovsids:
             debug("Noting todo on this server,return")
@@ -97,3 +109,9 @@ class BaseTelemeter:
 
     
     
+
+
+class Telemetry(BaseTelemeter):
+    def __init__(self):
+        pass
+
