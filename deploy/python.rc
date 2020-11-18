@@ -2,4 +2,4 @@
 
 curr_dir=`pwd`
 echo $curr_dir
-export PYTHONPATH=${PYTHONPATH}:${curr_dir}/topo:${curr_dir}/utils:${curr_dir}/common
+export PYTHONPATH=${PYTHONPATH}:${curr_dir}/topo:${curr_dir}/utils:${curr_dir}/common:${curr_dir}/telemetry
