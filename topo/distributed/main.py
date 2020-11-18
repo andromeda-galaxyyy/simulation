@@ -172,12 +172,12 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				continue
 
 		except KeyboardInterrupt:
-			print(">Preparing quit. Clean up")
-			scheduler.stop()
-			traffictimer.stop()
-			for idx, ip in enumerate(config["workers_ip"]):
-				url = "http://{}:{}/config".format(ip, 5000)
-				threading.Thread(target=do_delete, args=[url]).start()
+			# print(">Preparing quit. Clean up")
+			# scheduler.stop()
+			# traffictimer.stop()
+			# for idx, ip in enumerate(config["workers_ip"]):
+			# 	url = "http://{}:{}/config".format(ip, 5000)
+			# 	threading.Thread(target=do_delete, args=[url]).start()
 			break
 
 
@@ -185,7 +185,7 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 if __name__ == '__main__':
 	parser = ArgumentParser()
 	parser.add_argument("--config", type=str, help="config file name",
-	                    default="/home/stack/code/simulation/topo/distributed/rate.config.json")
+	                    default="/home/stack/code/simulation/topo/distributed/satellite.config.json")
 	parser.add_argument("--topos_fn", type=str, help="Topo json file",
 	                    default=topos_pkl)
 	args = parser.parse_args()

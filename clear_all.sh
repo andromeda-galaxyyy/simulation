@@ -29,5 +29,5 @@ ip link del dev nat2
 #iptables -F
 #iptables -X
 
-pkill -f '^gen$'
+pkill -f '^gogen$'
 pkill -f '^golisten$'

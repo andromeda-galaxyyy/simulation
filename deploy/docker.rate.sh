@@ -7,7 +7,7 @@ docker rm onosrate
 # docker stop redis_instance
 # docker rm redis_instance
 
-service docker restart
+#service docker restart
 sleep 1
 
 docker run -t -d -p 8183:8181 -p 8103:8101 -p 6655:6653 -p 1031:1029 -p 1028:1026 -p 5007:5005 -p 832:830 -p 7898:7896 --name onosrate onosproject/onos:2.2-latest
