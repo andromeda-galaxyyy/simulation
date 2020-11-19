@@ -385,7 +385,7 @@ class TopoBuilder:
 				self.hostids.append(hostid)
 		self._set_up_nat()
 
-		if self.config["enable_listener"] == 1:
+		if int(self.config["enable_listener"]) == 1:
 			debug("Set up traffic listener")
 			self._set_up_listener()
 			debug("Set up traffic listener done")
@@ -476,17 +476,20 @@ class TopoBuilder:
 
 				if -1 not in new_topo[sa_id][sb_id]:
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
+					rate=delay if int(self.config["enable_delay_constraint"])==1 else None
+					delay=delay if int(self.config["enable_delay_constraint"])==1 else None
+					loss = loss if int(self.config["enable_loss_constraint"])==1 else None
 					new_links.add(link)
 					new_links.add(reverse_link)
 					if link not in self.local_links:
-						connect_local_switches(sa_id, sb_id, rate, None, None)
+						connect_local_switches(sa_id, sb_id, rate, delay, loss)
 					else:
 						# exists in previous local links,
 						# change tc
 						# del_tc(link)
 						# del_tc(reverse_link)
-						change_tc(link, None, rate, None)
-						change_tc(reverse_link, None, rate, None)
+						change_tc(link, delay, rate, loss)
+						change_tc(reverse_link, delay, rate, loss)
 				else:
 					# link is None
 					if link in self.local_links:
@@ -525,16 +528,19 @@ class TopoBuilder:
 				else:
 					# debug("setting up gre {}".format(gretap))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
+					rate=delay if int(self.config["enable_delay_constraint"])==1 else None
+					delay=delay if int(self.config["enable_delay_constraint"])==1 else None
+					loss = loss if int(self.config["enable_loss_constraint"])==1 else None
 					# debug("bandwidth:{};delay:{}".format(rate,delay))
 					new_gres.add(gretap)
 					if gretap in self.gres:
 						# del tc
-						change_tc(gretap, None, rate, None)
+						change_tc(gretap, delay, rate, loss)
 					else:
 						# set up gre
 
 						connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, key, rate,
-						                           None, None, gre_mtu)
+						                           delay, loss, gre_mtu)
 
 		self.gres = new_gres
 
