@@ -116,7 +116,9 @@ api.add_resource(Traffic2,"/traffic2")
 def exit_handler():
 	global builder
 	if builder is not None:
+		debug("Exit router... start to tear done topo")
 		builder.stop()
+		debug("Router exited...topo tear down")
 
 
 if __name__ == '__main__':

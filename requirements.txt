@@ -12,3 +12,4 @@ flask_restful
 tensorflow
 netifaces
 requests
+ovs

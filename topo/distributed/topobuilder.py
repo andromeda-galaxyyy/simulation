@@ -1,5 +1,7 @@
 import os
 import subprocess
+from subprocess import DEVNULL
+from time import sleep
 from typing import List, Set, Dict, Tuple, Optional
 import hashlib
 from path_utils import get_prj_root
@@ -8,19 +10,33 @@ from topo.distributed.traffic_scheduler import TrafficScheduler, TrafficSchedule
 import time
 from utils.file_utils import check_file, create_dir, del_dir, dir_exsit, load_pkl, load_json
 from topo.distributed.traffic_actor import TrafficActor
+import subprocess
+from utils.file_utils import del_dir, create_dir
+from utils.process_utils import kill_pid
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
 
 
+def ovs_port_dump(port_str, filter, fn) -> int:
+	command = "nohup ovs-tcpdump -i {} {} -w {}".format(port_str, filter, fn)
+	pid = subprocess.Popen(command.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
+	return pid
+
+
 def fix_path(config: Dict):
 	prj_root = get_prj_root()
-	config["traffic_dir"]["iot"] = os.path.join(prj_root, "traffic/gogen/pkts/iot")
-	config["traffic_dir"]["video"] = os.path.join(prj_root, "traffic/gogen/pkts/video")
-	config["traffic_dir"]["voip"] = os.path.join(prj_root, "traffic/gogen/pkts/voip")
-	config["traffic_dir"]["default"] = os.path.join(prj_root, "traffic/gogen/pkts/default")
+	config["traffic_dir"]["iot"] = os.path.join(
+		prj_root, "traffic/gogen/pkts/iot")
+	config["traffic_dir"]["video"] = os.path.join(
+		prj_root, "traffic/gogen/pkts/video")
+	config["traffic_dir"]["voip"] = os.path.join(
+		prj_root, "traffic/gogen/pkts/voip")
+	config["traffic_dir"]["default"] = os.path.join(
+		prj_root, "traffic/gogen/pkts/default")
 
-	config["traffic_generator"] = os.path.join(prj_root, "traffic/gogen/bin/gogen")
+	config["traffic_generator"] = os.path.join(
+		prj_root, "traffic/gogen/bin/gogen")
 	config["listener"] = os.path.join(prj_root, "traffic/gogen/bin/golisten")
 
 
@@ -139,7 +155,8 @@ def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
 		return
 
 	# delay and loss
-	delay_loss = "tc qdisc add dev {} parent 5:1 handle 10: netem".format(interface)
+	delay_loss = "tc qdisc add dev {} parent 5:1 handle 10: netem".format(
+		interface)
 	if delay is not None:
 		delay_loss += " delay {}ms".format(delay)
 	if loss is not None and int(loss) != 0:
@@ -164,7 +181,8 @@ def change_tc(interface: str, delay=None, bandwidth=None, loss=None):
 		return
 
 	# delay and loss
-	delay_loss = "tc qdisc change dev {} parent 5:1 handle 10: netem".format(interface)
+	delay_loss = "tc qdisc change dev {} parent 5:1 handle 10: netem".format(
+		interface)
 	if delay is not None:
 		delay_loss += " delay {}ms".format(delay)
 	if loss is not None and int(loss) != 0:
@@ -324,7 +342,8 @@ def get_swid_from_link(link: str):
 
 
 def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
-	os.system("ip netns exec {} nohup {} {} >{} 2>&1 &".format(ns, bin, params, log_fn))
+	os.system("ip netns exec {} nohup {} {} >{} 2>&1 &".format(
+		ns, bin, params, log_fn))
 
 
 class TopoBuilder:
@@ -345,7 +364,8 @@ class TopoBuilder:
 		self.remote_switches = {}
 		# parse remote switches
 		for idx, switches in enumerate(config["workers"]):
-			if self.id == int(idx): continue
+			if self.id == int(idx):
+				continue
 			#
 			for s in switches:
 				self.remote_switches[s] = idx
@@ -366,6 +386,20 @@ class TopoBuilder:
 		set_mtu(self.inetintf, mtu)
 		self._populate_gre_key()
 		self._write_targetids()
+		self.tcpdump = False
+		self.tcpdump_opts = {}
+		self.tcpdump_pids = {}
+		self.tcpdump_ports=[]
+
+		if "debug" in self.config.keys():
+			if "tcpdump" in self.config["debug"].keys():
+				if int(self.config["debug"]["tcpdump"]["enable"]) == 1:
+					debug("Enable ovs port tcpdump")
+					self.tcpdump = True
+					self.tcpdump_opts["filter"] = self.config["debug"]["tcpdump"]["filter"]
+					self.tcpdump_opts["base_dir"] = self.config["debug"]["tcpdump"]["base_dir"]
+					del_dir(self.tcpdump_opts["base_dir"])
+					create_dir(self.tcpdump_opts["base_dir"])
 
 		self.traffic_scheduler = TrafficScheduler2(self.config, self.hostids)
 		self.enable_host_find = False
@@ -396,7 +430,8 @@ class TopoBuilder:
 		n_switches = int(n_switches)
 		for src in range(n_switches):
 			for dst in range(n_switches):
-				if src >= dst: continue
+				if src >= dst:
+					continue
 				key = "s{}s{}".format(src, dst)
 				self.gre_keys[key] = gre_
 				gre_ += 1
@@ -469,20 +504,31 @@ class TopoBuilder:
 		for sa_id in local_switch_ids:
 			for sb_id in local_switch_ids:
 				# remove duplicates
-				if sa_id == sb_id or sa_id > sb_id: continue
+				if sa_id == sb_id or sa_id > sb_id:
+					continue
 
 				link = "s{}-s{}".format(sa_id, sb_id)
 				reverse_link = "s{}-s{}".format(sb_id, sa_id)
 
 				if -1 not in new_topo[sa_id][sb_id]:
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
-					rate=delay if int(self.config["enable_delay_constraint"])==1 else None
-					delay=delay if int(self.config["enable_delay_constraint"])==1 else None
-					loss = loss if int(self.config["enable_loss_constraint"])==1 else None
+					rate = delay if int(self.config["enable_delay_constraint"]) == 1 else None
+					delay = delay if int(
+						self.config["enable_delay_constraint"]) == 1 else None
+					loss = loss if int(self.config["enable_loss_constraint"]) == 1 else None
 					new_links.add(link)
 					new_links.add(reverse_link)
 					if link not in self.local_links:
 						connect_local_switches(sa_id, sb_id, rate, delay, loss)
+						sleep(0.5)
+						#todo 在拓扑变换的时候，可能覆盖掉之前抓取的包
+						if self.tcpdump:
+							fn = os.path.join(self.tcpdump_opts["base_dir"], "{}.pcap".format(link))
+							self.tcpdump_pids[link] = ovs_port_dump(link, self.tcpdump_opts["filter"], fn)
+							sleep(0.2)
+							fn = os.path.join(self.tcpdump_opts["base_dir"], "{}.pcap".format(reverse_link))
+							self.tcpdump_pids[reverse_link] = ovs_port_dump(reverse_link, self.tcpdump_opts["filter"], fn)
+
 					else:
 						# exists in previous local links,
 						# change tc
@@ -493,6 +539,11 @@ class TopoBuilder:
 				else:
 					# link is None
 					if link in self.local_links:
+						if link in self.tcpdump_pids.keys():
+							kill_pid(self.tcpdump_pids[link])
+						if reverse_link in self.tcpdump_pids.keys():
+							kill_pid(self.tcpdump_pids[reverse_link])
+
 						del_tc(link)
 						del_tc(reverse_link)
 						detach_interface_from_sw("s{}".format(sa_id), link)
@@ -512,13 +563,15 @@ class TopoBuilder:
 			for sb_id in remote_sw_ids:
 
 				key = self._get_gre_key(sa_id, sb_id)
-				gretap = "gres{}-s{}".format(sa_id, sb_id)
+				gretap = "s{}-s{}".format(sa_id, sb_id)
 				local_ip = self.ip
 				# mapping from worker id to remote ip
 				remote_ip = self.remote_ips[int(self.remote_switches[sb_id])]
 
 				if -1 in new_topo[sa_id][sb_id]:
 					if gretap in self.gres:
+						if gretap in self.tcpdump_pids.keys():
+							kill_pid(self.tcpdump_pids[gretap])
 						# take down gre
 						down_interface(gretap)
 						detach_interface_from_sw("s{}".format(sa_id), gretap)
@@ -528,9 +581,10 @@ class TopoBuilder:
 				else:
 					# debug("setting up gre {}".format(gretap))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
-					rate=delay if int(self.config["enable_delay_constraint"])==1 else None
-					delay=delay if int(self.config["enable_delay_constraint"])==1 else None
-					loss = loss if int(self.config["enable_loss_constraint"])==1 else None
+					rate = delay if int(self.config["enable_delay_constraint"]) == 1 else None
+					delay = delay if int(
+						self.config["enable_delay_constraint"]) == 1 else None
+					loss = loss if int(self.config["enable_loss_constraint"]) == 1 else None
 					# debug("bandwidth:{};delay:{}".format(rate,delay))
 					new_gres.add(gretap)
 					if gretap in self.gres:
@@ -541,6 +595,12 @@ class TopoBuilder:
 
 						connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, key, rate,
 						                           delay, loss, gre_mtu)
+						sleep(0.5)
+						fn = os.path.join(self.tcpdump_opts["base_dir"], "{}.pcap".format(gretap))
+						self.tcpdump_pids[gretap] = ovs_port_dump(
+							gretap, self.tcpdump_opts["filter"], fn)
+
+						sleep(0.2)
 
 		self.gres = new_gres
 
@@ -573,7 +633,8 @@ class TopoBuilder:
 		# set iptables
 		os.system("iptables -A FORWARD -o {} -i {} -j ACCEPT".format("nat2", intf))
 		os.system("iptables -A FORWARD -o {} -i {} -j ACCEPT".format(intf, "nat2"))
-		os.system("iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o {} -j MASQUERADE".format(intf))
+		os.system(
+			"iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o {} -j MASQUERADE".format(intf))
 
 		# set add link to host
 		# todo remove id from config file,
@@ -593,7 +654,8 @@ class TopoBuilder:
 				# set netns
 				os.system("ip link set {} netns {}".format(hnat, hostname))
 				nat_ip = generate_nat_ip(hostid)
-				os.system("ip netns exec {} ifconfig {} {}/16 up".format(hostname, hnat, nat_ip))
+				os.system(
+					"ip netns exec {} ifconfig {} {}/16 up".format(hostname, hnat, nat_ip))
 				# attach port
 				os.system("ovs-vsctl add-port {} {}".format("nat", nath))
 				os.system("ifconfig {} up".format(nath))
@@ -647,14 +709,14 @@ class TopoBuilder:
 				         "--int {} " \
 				         "--cip {} " \
 				         "--cport {}".format(
-					hostid,
-					target_id_fn,
-					pkt_dir,
-					vhost_mtu,
-					host_intf,
-					controller_ip,
-					controller_socket_port,
-				)
+                                             hostid,
+                                             target_id_fn,
+                                             pkt_dir,
+                                             vhost_mtu,
+                                             host_intf,
+                                             controller_ip,
+                                             controller_socket_port,
+                                         )
 				run_ns_binary(hostname, binary, params, log_fn)
 
 	def stop_traffic(self):
@@ -662,6 +724,9 @@ class TopoBuilder:
 		os.system("pkill -f '^golisten$'")
 		self._stop_traffic_scheduler()
 
+	def __stop_tcpdump(self):
+		for l in self.tcpdump_pids.keys():
+			kill_pid(self.tcpdump_pids[l])
 	def stop(self):
 		self.stop_traffic()
 		self.stop_traffic_use_scheduler()
@@ -672,6 +737,8 @@ class TopoBuilder:
 		self.stop_traffic_actor()
 		self.tear_down()
 		os.system("iptables-restore < {}".format(iptables_bk))
+		self.__stop_tcpdump()
+
 
 	def _write_targetids(self):
 		target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
@@ -716,7 +783,8 @@ class TopoBuilder:
 	def _do_find_host(self):
 		hostname = "h{}".format(self.hostids[0])
 		for targetid in self.hostids:
-			os.system("ip netns exec {} ping {} -c 1".format(hostname, generate_ip(targetid)))
+			os.system(
+				"ip netns exec {} ping {} -c 1".format(hostname, generate_ip(targetid)))
 
 	def _set_up_listener(self):
 		listener_binary = self.config["listener"]
@@ -758,22 +826,22 @@ class TopoBuilder:
 	def stop_traffic_actor(self):
 		self.traffic_actor.stop()
 
-	def setup_supplementary_topo(self,is_server:bool=True):
+	def setup_supplementary_topo(self, is_server: bool = True):
 		supp_topos = self.config["supplementary"]
-		supp_topo=None
-		ovs_id=-1
+		supp_topo = None
+		ovs_id = -1
 		for t in supp_topos:
-			if is_server and t["tag"]=="server":
-				supp_topo=t
+			if is_server and t["tag"] == "server":
+				supp_topo = t
 				#todo how to eliminate this constant
-				ovs_id=66
+				ovs_id = 66
 				break
-			elif (not is_server) and t["tag"]=="client":
-				supp_topo=t
-				ovs_id=67
+			elif (not is_server) and t["tag"] == "client":
+				supp_topo = t
+				ovs_id = 67
 				break
-        
-		if ovs_id==-1:
+
+		if ovs_id == -1:
 			debug("Nothing to do;return from setup_supplementary_topo")
 			return
 
@@ -804,5 +872,6 @@ class TopoBuilder:
 
 
 if __name__ == '__main__':
-	config = load_json(os.path.join(get_prj_root(), "topo/distributed/satellite.config.json"))
+	config = load_json(os.path.join(
+		get_prj_root(), "topo/distributed/satellite.config.json"))
 	builder = TopoBuilder(config, 0, "ens33")

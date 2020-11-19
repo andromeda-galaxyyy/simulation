@@ -82,6 +82,14 @@
         "eno1"
     ],
 
+    "debug":{
+        "tcpdump":{
+            "enable":1,
+            "filter":"icmp",
+            "scope":"ovs",
+            "base_dir":"/tmp/tcpdump"
+        }
+    },
     "enable_delay_constraint":1,
     "enable_rate_constraint":1,
     "enable_loss_constraint":0,
