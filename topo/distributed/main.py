@@ -185,7 +185,7 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 if __name__ == '__main__':
 	parser = ArgumentParser()
 	parser.add_argument("--config", type=str, help="config file name",
-	                    default="/home/stack/code/simulation/topo/distributed/satellite.config.json")
+	                    default="/home/stack/code/simulation/topo/distributed/telemetry.config.json")
 	parser.add_argument("--topos_fn", type=str, help="Topo json file",
 	                    default=topos_pkl)
 	args = parser.parse_args()

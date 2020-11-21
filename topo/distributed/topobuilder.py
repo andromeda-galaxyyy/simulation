@@ -18,8 +18,15 @@ tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
 
 
-def ovs_port_dump(port_str, filter, fn) -> int:
-	command = "nohup ovs-tcpdump -i {} {} -w {}".format(port_str, filter, fn)
+def ovs_port_dump(port_str: str, filter: str, fn: str) -> int:
+	command = "nohup ovs-tcpdump -U -i {} {} -l -w {}".format(port_str, filter, fn)
+	pid = subprocess.Popen(command.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
+	return pid
+
+
+def host_port_dump(ns: str, port_str: str, filter: str, fn: str) -> int:
+	command = "nohup ip netns exec {} tcpdump -U -i {} {} -l -w {}".format(
+		ns, port_str, filter, fn)
 	pid = subprocess.Popen(command.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
 	return pid
 
@@ -40,26 +47,26 @@ def fix_path(config: Dict):
 	config["listener"] = os.path.join(prj_root, "traffic/gogen/bin/golisten")
 
 
-def generate_ip(id):
-	id = int(id) + 1
-	if 1 <= id <= 254:
-		return "10.0.0." + str(id)
-	if 255 <= id <= 255 * 254 + 253:
-		return "10.0." + str(id // 254) + "." + str(id % 254)
+def generate_ip(id_):
+	id_ = int(id_) + 1
+	if 1 <= id_ <= 254:
+		return "10.0.0." + str(id_)
+	if 255 <= id_ <= 255 * 254 + 253:
+		return "10.0." + str(id_ // 254) + "." + str(id_ % 254)
 	raise Exception("Cannot support id address given a too large id")
 
 
-def generate_nat_ip(id):
-	id = int(id) + 1
-	if 1 <= id <= 254:
-		return "10.1.0." + str(id)
-	if 255 <= id <= 255 * 254 + 253:
-		return "10.1." + str(id // 254) + "." + str(id % 254)
+def generate_nat_ip(id_):
+	id_ = int(id_) + 1
+	if 1 <= id_ <= 254:
+		return "10.1.0." + str(id_)
+	if 255 <= id_ <= 255 * 254 + 253:
+		return "10.1." + str(id_ // 254) + "." + str(id_ % 254)
 	raise Exception("Cannot support id address given a too large id")
 
 
-def generate_mac(id):
-	id = int(id) + 1
+def generate_mac(id_):
+	id_ = int(id_) + 1
 
 	def base_16(num):
 		res = []
@@ -73,7 +80,7 @@ def generate_mac(id):
 		res.reverse()
 		return "".join(map(str, res))
 
-	raw_str = base_16(id)
+	raw_str = base_16(id_)
 	if len(raw_str) > 12:
 		raise Exception("Invalid id")
 	# reverse
@@ -230,11 +237,13 @@ def connect_local_switches(sa_id, sb_id, rate, delay, loss):
 	os.system("ip link add {} type veth peer name {}".format(saport, sbport))
 	os.system("ifconfig {} up".format(saport))
 	os.system("ifconfig {} up".format(sbport))
+	for x in ["gro", "tso", "gso"]:
+		os.system("ethtool -K {} {} off".format(saport, x))
+		os.system("ethtool -K {} {} off".format(sbport, x))
 	os.system("ovs-vsctl add-port {} {}".format(sa_name, saport))
 	os.system("ovs-vsctl add-port {} {}".format(sb_name, sbport))
 	add_tc(saport, delay, rate, loss)
 	add_tc(sbport, delay, rate, loss)
-	# todo loss
 
 	return saport, sbport
 
@@ -243,7 +252,7 @@ def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, 
                                gre_mtu=1554):
 	local_sw = "s{}".format(sa_id)
 	remote_sw = "s{}".format(sb_id)
-	grename = "gre{}-{}".format(local_sw, remote_sw)
+	grename = "{}-{}".format(local_sw, remote_sw)
 	# delete exists gre links
 	# os.system("ip link del {}".format(grename))
 	del_interface(grename)
@@ -265,7 +274,8 @@ def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, 
 	return grename
 
 
-def add_hosts_to_switches(switch_id, k, vhost_mtu=1500):
+def add_hosts_to_switches(switch_id, k, vhost_mtu=1500, tcpdump=False, filter_str: str = "udp",
+                          base_dir="/tmp/tcpdump"):
 	ovsname = "s{}".format(switch_id)
 	mtu = int(vhost_mtu)
 	for idx in range(k):
@@ -283,6 +293,10 @@ def add_hosts_to_switches(switch_id, k, vhost_mtu=1500):
 		# 修改子网为10.0.0.1/16
 		os.system(
 			"ip netns exec {} ifconfig {} {}/16".format(hostname, host_port, generate_ip(host_id)))
+		for x in ["gro", "tso", "gso"]:
+			os.system(
+				"ip netns exec {} ethtool -K {} {} off".format(hostname, host_port, x)
+			)
 
 		os.system("ip netns exec {} ifconfig lo up".format(hostname))
 		set_ns_mac_addr(hostname, host_port, generate_mac(host_id))
@@ -290,7 +304,19 @@ def add_hosts_to_switches(switch_id, k, vhost_mtu=1500):
 
 		# attach ovs port
 		attach_interface_to_sw(ovsname, ovs_port)
+		for x in ["gro", "tso", "gso"]:
+			os.system("ethtool -K {} {} off".format(ovs_port, x))
+
 		up_interface(ovs_port)
+		if tcpdump:
+			# ovs port
+			fn = os.path.join(base_dir, "{}.pcap".format(ovs_port))
+			ovs_port_dump(ovs_port, filter_str, fn)
+			sleep(0.1)
+			# host port
+			fn = os.path.join(base_dir, "{}.pcap".format(host_port))
+			host_port_dump(hostname, host_port, filter_str, fn)
+			sleep(0.1)
 
 
 def add_ovs(switch_id, controller: str):
@@ -380,17 +406,13 @@ class TopoBuilder:
 		self.remote_ips: List[str] = config["workers_ip"]
 		self.ip: str = config["workers_ip"][self.id]
 
-		self.hostids = []
-		self._set_up_switches()
-		mtu = self.config["host_mtu"]
-		set_mtu(self.inetintf, mtu)
-		self._populate_gre_key()
-		self._write_targetids()
 		self.tcpdump = False
-		self.tcpdump_opts = {}
+		self.tcpdump_opts = {
+			"base_dir":"",
+			"filter":"",
+		}
 		self.tcpdump_pids = {}
-		self.tcpdump_ports=[]
-
+		self.tcpdump_ports = []
 		if "debug" in self.config.keys():
 			if "tcpdump" in self.config["debug"].keys():
 				if int(self.config["debug"]["tcpdump"]["enable"]) == 1:
@@ -400,6 +422,13 @@ class TopoBuilder:
 					self.tcpdump_opts["base_dir"] = self.config["debug"]["tcpdump"]["base_dir"]
 					del_dir(self.tcpdump_opts["base_dir"])
 					create_dir(self.tcpdump_opts["base_dir"])
+
+		self.hostids = []
+		self._set_up_switches()
+		mtu = self.config["host_mtu"]
+		set_mtu(self.inetintf, mtu)
+		self._populate_gre_key()
+		self._write_targetids()
 
 		self.traffic_scheduler = TrafficScheduler2(self.config, self.hostids)
 		self.enable_host_find = False
@@ -413,7 +442,8 @@ class TopoBuilder:
 		vhost_mtu = self.config["vhost_mtu"]
 		for sw_id in self.config["workers"][int(self.id)]:
 			add_ovs(sw_id, controller)
-			add_hosts_to_switches(sw_id, k, vhost_mtu)
+			add_hosts_to_switches(sw_id, k, vhost_mtu, self.tcpdump, self.tcpdump_opts["filter"],
+			                      self.tcpdump_opts["base_dir"])
 			for hostidx in range(k):
 				hostid = sw_id * k + hostidx
 				self.hostids.append(hostid)
@@ -520,14 +550,18 @@ class TopoBuilder:
 					new_links.add(reverse_link)
 					if link not in self.local_links:
 						connect_local_switches(sa_id, sb_id, rate, delay, loss)
-						sleep(0.5)
-						#todo 在拓扑变换的时候，可能覆盖掉之前抓取的包
+						# todo 在拓扑变换的时候，可能覆盖掉之前抓取的包
 						if self.tcpdump:
+							# sleep(0.5)
 							fn = os.path.join(self.tcpdump_opts["base_dir"], "{}.pcap".format(link))
-							self.tcpdump_pids[link] = ovs_port_dump(link, self.tcpdump_opts["filter"], fn)
-							sleep(0.2)
-							fn = os.path.join(self.tcpdump_opts["base_dir"], "{}.pcap".format(reverse_link))
-							self.tcpdump_pids[reverse_link] = ovs_port_dump(reverse_link, self.tcpdump_opts["filter"], fn)
+							self.tcpdump_pids[link] = ovs_port_dump(link,
+							                                        self.tcpdump_opts["filter"], fn)
+							# sleep(0.2)
+							fn = os.path.join(self.tcpdump_opts["base_dir"],
+							                  "{}.pcap".format(reverse_link))
+							self.tcpdump_pids[reverse_link] = ovs_port_dump(reverse_link,
+							                                                self.tcpdump_opts[
+								                                                "filter"], fn)
 
 					else:
 						# exists in previous local links,
@@ -595,12 +629,14 @@ class TopoBuilder:
 
 						connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, key, rate,
 						                           delay, loss, gre_mtu)
-						sleep(0.5)
-						fn = os.path.join(self.tcpdump_opts["base_dir"], "{}.pcap".format(gretap))
-						self.tcpdump_pids[gretap] = ovs_port_dump(
-							gretap, self.tcpdump_opts["filter"], fn)
+						if self.tcpdump:
+							# sleep(0.5)
+							fn = os.path.join(self.tcpdump_opts["base_dir"],
+							                  "{}.pcap".format(gretap))
+							self.tcpdump_pids[gretap] = ovs_port_dump(
+								gretap, self.tcpdump_opts["filter"], fn)
 
-						sleep(0.2)
+						# sleep(0.2)
 
 		self.gres = new_gres
 
@@ -709,14 +745,14 @@ class TopoBuilder:
 				         "--int {} " \
 				         "--cip {} " \
 				         "--cport {}".format(
-                                             hostid,
-                                             target_id_fn,
-                                             pkt_dir,
-                                             vhost_mtu,
-                                             host_intf,
-                                             controller_ip,
-                                             controller_socket_port,
-                                         )
+					hostid,
+					target_id_fn,
+					pkt_dir,
+					vhost_mtu,
+					host_intf,
+					controller_ip,
+					controller_socket_port,
+				)
 				run_ns_binary(hostname, binary, params, log_fn)
 
 	def stop_traffic(self):
@@ -727,18 +763,20 @@ class TopoBuilder:
 	def __stop_tcpdump(self):
 		for l in self.tcpdump_pids.keys():
 			kill_pid(self.tcpdump_pids[l])
+		os.system("pkill tcpdump")
+		os.system("pkill ovs-tcpdump")
+
 	def stop(self):
 		self.stop_traffic()
 		self.stop_traffic_use_scheduler()
-		time.sleep(15)
+		time.sleep(5)
 		self._stop_listener()
-		time.sleep(15)
+		time.sleep(5)
 		self._stop_traffic_scheduler()
 		self.stop_traffic_actor()
 		self.tear_down()
 		os.system("iptables-restore < {}".format(iptables_bk))
 		self.__stop_tcpdump()
-
 
 	def _write_targetids(self):
 		target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
@@ -833,7 +871,7 @@ class TopoBuilder:
 		for t in supp_topos:
 			if is_server and t["tag"] == "server":
 				supp_topo = t
-				#todo how to eliminate this constant
+				# todo how to eliminate this constant
 				ovs_id = 66
 				break
 			elif (not is_server) and t["tag"] == "client":

@@ -32,3 +32,4 @@ ip link del dev nat2
 pkill -f '^gogen$'
 pkill -f '^golisten$'
 pkill "ovs-tcpdump"
+pkill "tcpdump"

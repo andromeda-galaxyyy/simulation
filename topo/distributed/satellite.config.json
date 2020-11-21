@@ -103,6 +103,9 @@
     "controller": "192.168.1.196:6654",
     "controller_socket_port": 1026,
     "controller_telemetry_port":1031,
+    "enable_delay_constraint": 0,
+    "enable_rate_constraint": 1,
+    "enable_loss_constraint": 0,
     "host_per_switch": 1,
     "traffic_dir": {
         "iot": "/home/stack/code/simulation/traffic/gogen/pkts/iot",
@@ -112,7 +115,7 @@
     },
     "traffic_generator": "/home/stack/code/simulation/traffic/gogen/bin/gogen",
     "enable_traffic_generator_log": 0,
-    "enable_listener": 1,
+    "enable_listener": 0,
     "enable_loss": 1,
     "listener": "/home/stack/code/simulation/traffic/gogen/bin/golisten",
     "listener_log_base_dir": "/tmp/listener_log",

@@ -84,9 +84,8 @@
 
     "debug":{
         "tcpdump":{
-            "enable":1,
-            "filter":"icmp",
-            "scope":"ovs",
+            "enable":0,
+            "filter":"udp port 8888",
             "base_dir":"/tmp/tcpdump"
         }
     },
