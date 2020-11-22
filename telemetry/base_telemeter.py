@@ -41,7 +41,7 @@ class BaseTelemeter:
 
     def __do_stop(self):
         raise NotImplementedError
-
+ 
     def __start_sniffer(self) -> Tuple[int, str]:
         '''
         send telemetry packet,return 0 if success,-1 otherwise
