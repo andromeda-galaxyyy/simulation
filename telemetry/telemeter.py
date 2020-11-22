@@ -13,9 +13,9 @@ import threading
 class Telemeter(BaseTelemeter):
     def __start_sniffer(self) -> Tuple[int, str]:
         command="python ./telemetry/sniffer.py --count {} --intf {} --filter {}".format(self.sniffer_config["count"],self.sniffer_config["iface"],self.sniffer_config["filter"])
-        run_process_background(command=command)
+        run_ns_process_background(ns=self.sniffer_config["namespace"],command=command)
     
-    
+
 
 
 

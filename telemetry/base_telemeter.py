@@ -13,7 +13,8 @@ class BaseTelemeter:
         self.sniffer_config={
             "iface":"h22-eth0",
             "filter":"inbound and udp",
-            "count":103
+            "count":103,
+            "namespace":"h22"
         }
 
     def __calculate_monitor(self,links:List[Tuple[int,int]])->int:
