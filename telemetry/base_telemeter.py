@@ -10,6 +10,11 @@ class BaseTelemeter:
         self.ovsids:List[int]=ovsids
         self.topo:List[List[List[int]]]=topo
         self.config:Dict=config
+        self.sniffer_config={
+            "iface":"h22-eth0",
+            "filter":"inbound and udp",
+            "count":103
+        }
 
     def __calculate_monitor(self,links:List[Tuple[int,int]])->int:
         # topo 的组织形式为临接矩阵，矩阵中的每个元素为一个四元素列表
@@ -37,7 +42,7 @@ class BaseTelemeter:
     def __do_stop(self):
         raise NotImplementedError
 
-    def __send_telemetry_packet_and_listen(self) -> Tuple[int, str]:
+    def __start_sniffer(self) -> Tuple[int, str]:
         '''
         send telemetry packet,return 0 if success,-1 otherwise
         str if any,indicates error message
@@ -89,7 +94,7 @@ class BaseTelemeter:
         # send telemetry_packet and listen
         debug("Wake up from 10-seconds sleep")
         debug("Start to send telemetry packet")
-        ret_code,msg=self.__send_telemetry_packet_and_listen()
+        ret_code,msg=self.__start_sniffer()
         if ret_code!=0:
             err("Error when send telemetry_packet and listen {}".format(self.msg))
             return
@@ -108,10 +113,4 @@ class BaseTelemeter:
         
 
     
-    
-
-
-class Telemetry(BaseTelemeter):
-    def __init__(self):
-        pass
 
