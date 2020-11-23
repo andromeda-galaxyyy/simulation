@@ -8,6 +8,7 @@ import threading
 from utils.log_utils import debug, info, err
 from utils.process_utils import start_new_thread_and_run
 from path_utils import get_prj_root
+from utils.process_utils import start_new_thread_and_run
 import os
 
 
@@ -41,7 +42,7 @@ class Config(Resource):
 	def delete(self):
 		global builder
 		if builder is not None:
-			start_new_thread_run(builder.stop, args=[])
+			start_new_thread_and_run(builder.stop, args=[])
 		builder = None
 
 
@@ -91,7 +92,7 @@ class Traffic2(Resource):
 
 	def delete(self):
 		debug("stop traffic")
-		start_new_thread_run(builder.stop_traffic_actor,args=())
+		start_new_thread_and_run(builder.stop_traffic_actor,args=())
 		return '',200
 
 
@@ -107,7 +108,12 @@ class Telemetry(Resource):
 	def post(self):
 		debug("Start telemetry")
 		data=request.get_json(force=True)
-		#todo start new thread and return
+		start_new_thread_and_run(builder.start_telemetry,args=())
+		return '',200
+
+	def delete(self):
+		debug("Stop telemetry")
+		start_new_thread_and_run(builder.stop_telemetry,args=())
 		return '',200
 
 

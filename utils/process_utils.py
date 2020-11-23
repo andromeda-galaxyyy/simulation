@@ -13,7 +13,7 @@ def start_new_thread_and_run(func:Callable,args):
 
 
 def run_ns_process_background(ns:str,command,output=None)->int:
-	commands="nohup ip netns {} exec {}".format(ns,command)
+	commands="nohup ip netns exec {} {}".format(ns,command)
 	out=DEVNULL if not output else open(output,"w")
 	return subprocess.Popen(commands.split(" "),stdout=out,stderr=out).pid
 

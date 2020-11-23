@@ -113,7 +113,7 @@
     "vhost_mtu": 1420,
     "controller": "192.168.1.196:6654",
     "controller_socket_port": 1026,
-    "controller_telemetry_port":1031,
+    "controller_telemetry_port":1041,
     "host_per_switch": 1,
     "traffic_dir": {
         "iot": "/home/stack/code/simulation/traffic/gogen/pkts/iot",

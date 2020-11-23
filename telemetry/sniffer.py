@@ -112,7 +112,13 @@ class Sniffer:
 		for u, v in link_rtt.keys():
 			true_delay = int(true_topo[u - 1][v - 1][1]) * 2
 			ma = max(ma, abs(true_delay - link_rtt[(u, v)]) / true_delay)
-		print(ma)
+		#fixed link stats
+		fixed_link_stats={}
+		for u,v in link_rtt.keys():
+			fixed_link_stats[(u-1,v-1)]=link_rtt[(u,v)]
+			fixed_link_stats[(v-1,u-1)]=link_rtt[(u,v)]
+		save_pkl("/tmp/telemetry.link.pkl",fixed_link_stats)
+
 
 	def find_port(self, u, v):
 		for path in paths:

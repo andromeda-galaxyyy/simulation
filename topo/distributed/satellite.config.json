@@ -102,7 +102,7 @@
     "vhost_mtu": 1420,
     "controller": "192.168.1.196:6654",
     "controller_socket_port": 1026,
-    "controller_telemetry_port":1031,
+    "controller_telemetry_port":1041,
     "enable_delay_constraint": 0,
     "enable_rate_constraint": 1,
     "enable_loss_constraint": 0,

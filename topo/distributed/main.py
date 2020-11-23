@@ -139,6 +139,10 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 
 			if command==3:
 				debug("Start telemetry")
+				for idx,ip in enumerate(config["workers_ip"]):
+					url="http://{}:{}/telemetry".format(ip,5000)
+					start_new_thread_and_run(do_post,[url,{}])
+				continue
 
 			if command == 5:
 				for idx, ip in enumerate(config["workers_ip"]):

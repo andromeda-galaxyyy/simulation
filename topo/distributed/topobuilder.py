@@ -13,6 +13,8 @@ from topo.distributed.traffic_actor import TrafficActor
 import subprocess
 from utils.file_utils import del_dir, create_dir
 from utils.process_utils import kill_pid
+from telemetry.telemeter import Telemeter
+from telemetry.base_telemeter import BaseTelemeter
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
@@ -433,6 +435,7 @@ class TopoBuilder:
 		self.traffic_scheduler = TrafficScheduler2(self.config, self.hostids)
 		self.enable_host_find = False
 		self.traffic_actor = TrafficActor(self.config, self.hostids)
+		self.telemeter:BaseTelemeter=None
 
 	def _set_up_switches(self):
 		k = self.config["host_per_switch"]
@@ -650,6 +653,8 @@ class TopoBuilder:
 			self._do_find_host()
 			self.enable_host_find = True
 
+		self.telemeter=Telemeter(self.local_switch_ids,new_topo,self.config)
+
 	def _set_up_nat(self):
 		debug("Setting up nat")
 		os.system("echo '1' > /proc/sys/net/ipv4/ip_forward")
@@ -715,7 +720,6 @@ class TopoBuilder:
 		os.system(commands)
 		debug("Tearing down nat done")
 
-	# todo
 	def start_gen_traffic(self):
 		self._write_targetids()
 		binary = self.config["traffic_generator"]
@@ -777,6 +781,7 @@ class TopoBuilder:
 		self.tear_down()
 		os.system("iptables-restore < {}".format(iptables_bk))
 		self.__stop_tcpdump()
+		self.stop_telemetry()
 
 	def _write_targetids(self):
 		target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
@@ -907,6 +912,14 @@ class TopoBuilder:
 
 			add_tc(p1, bandwidth=band, delay=None)
 			add_tc(p2, bandwidth=band, delay=None)
+
+	def start_telemetry(self):
+		if self.telemeter is not None:
+			self.telemeter.start(None)
+
+	def stop_telemetry(self):
+		if self.telemeter is not None:
+			self.telemeter.stop()
 
 
 if __name__ == '__main__':
