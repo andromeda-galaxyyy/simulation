@@ -1,3 +1,4 @@
+from logging import StrFormatStyle
 import os
 
 from argparse import ArgumentParser
@@ -7,13 +8,14 @@ from utils.log_utils import debug, info, err
 from utils.common_utils import is_digit
 from topo.distributed.topo_scheduler import Scheduler2
 from typing import Dict, List
+from utils.process_utils import start_new_thread_and_run
 import requests
 import threading
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
 static_dir = os.path.join(get_prj_root(), "static")
-topos_pkl = os.path.join(static_dir, "millitary.pkl")
+topos_pkl = os.path.join(static_dir, "satellite_overall.pkl")
 
 
 def do_post(url, obj):
@@ -48,7 +50,8 @@ class traffic_timer:
 			debug("traffic mode change to {}".format(scale))
 			for idx, ip in enumerate(self.config["workers_ip"]):
 				url = "http://{}:{}/traffic2".format(ip, 5000)
-				threading.Thread(target=do_post, args=[url, obj]).start()
+				start_new_thread_and_run(do_post,[url,obj])
+				# threading.Thread(target=do_post, args=[url, obj]).start()
 
 			# sleep
 			if not self.cv.wait(duration):
@@ -80,19 +83,16 @@ traffictimer = None
 def cli(topos: List, config: Dict, scheduler: Scheduler2):
 	traffic_started = False
 	while True:
+		os.system("clear")
 		try:
 			print("> Available commands:\n"
 			      "> 0.set up local switch\n"
-
 			      "> 1.start topo scheduler\n"
 			      "> 2.stop topo scheduler\n"
-
-			      "> 3.start traffic (built in traffic generator,for test only)\n"
-			      "> 4.stop traffic (built int traffic generator,for test only)\n"
-
+                  "> 3.start telemetry\n"
+				  "> 4.stop telemetry\n"
 			      "> 5.start traffic scheduler\n"
 			      "> 6.stop traffic scheduler\n"
-
 			      "> 7.quit\n"
 			      "> 8.set up first topo\n"
 			      "> 9.set up supplementary topo\n"
@@ -116,13 +116,15 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/config".format(ip, 5000)
 					intf = intfs[idx]
-					threading.Thread(target=do_post, args=[url, {"config": config, "id": idx,
-					                                             "intf": intf}]).start()
+					start_new_thread_and_run(do_post, [url, {"config": config, "id": idx,"intf": intf}])
+					#threading.Thread(target=do_post, args=[url, {"config": config, "id": idx,
+					#                                             "intf": intf}]).start()
 				continue
 			if command == 8:
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/topo".format(ip, 5000)
-					threading.Thread(target=do_post, args=[url, {"topo": topos[0]["topo"]}]).start()
+					# threading.Thread(target=do_post, args=[url, {"topo": topos[0]["topo"]}]).start()
+					start_new_thread_and_run(do_post, [url, {"topo": topos[0]["topo"]}])
 				continue
 
 			if command == 1:
@@ -135,32 +137,40 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				scheduler.stop()
 				continue
 
+			if command==3:
+				debug("Start telemetry")
+
 			if command == 5:
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/traffic".format(ip, 5000)
-					threading.Thread(target=do_post, args=[url, {}]).start()
+					# threading.Thread(target=do_post, args=[url, {}]).start()
+					start_new_thread_and_run(do_post,[url,{}])
 					continue
 
 			if command == 6:
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/traffic".format(ip, 5000)
-					threading.Thread(target=do_delete, args=[url]).start()
+					# threading.Thread(target=do_delete, args=[url]).start()
+					start_new_thread_and_run(do_delete,[url])
 					continue
 
 			if command == 7:
 				scheduler.stop()
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/config".format(ip, 5000)
-					threading.Thread(target=do_delete, args=[url]).start()
+					start_new_thread_and_run(do_delete,[url])
+					# threading.Thread(target=do_delete, args=[url]).start()
 				continue
 			if command == 9:
 				worker_ips = config["workers_ip"]
 				# set up server access point
 				url1 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
-				threading.Thread(target=do_post, args=[url1, {"server": True}]).start()
+				start_new_thread_and_run(do_post,[url1,{"server":True}])
+				# threading.Thread(target=do_post, args=[url1, {"server": True}]).start()
 
 				url2 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
-				threading.Thread(target=do_post, args=[url2, {"server": False}]).start()
+				# threading.Thread(target=do_post, args=[url2, {"server": False}]).start()
+				start_new_thread_and_run(do_post,[url2,{"server":False}])
 				continue
 
 			if command == 10:

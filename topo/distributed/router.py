@@ -1,3 +1,4 @@
+from utils.process_utils import start_new_thread_and_run
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api, reqparse, abort
 from topo.distributed.topobuilder import TopoBuilder
@@ -5,8 +6,10 @@ import json
 import atexit
 import threading
 from utils.log_utils import debug, info, err
+from utils.process_utils import start_new_thread_and_run
 from path_utils import get_prj_root
 import os
+
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
@@ -17,10 +20,6 @@ app = Flask(__name__)
 api = Api(app)
 
 builder: TopoBuilder = None
-
-
-def start_new_thread_run(f, args):
-	threading.Thread(target=f, args=args).start()
 
 
 class Config(Resource):
@@ -61,7 +60,7 @@ class Topo(Resource):
 		global builder
 		debug("tear down topo")
 		if builder is not None:
-			start_new_thread_run(builder.stop, args=[])
+			start_new_thread_and_run(builder.stop, args=[])
 			return '', 200
 		else:
 			return '', 404
@@ -104,12 +103,20 @@ class Supplementry(Resource):
 		builder.setup_supplementary_topo(is_server=is_server)
 		return '', 200
 
+class Telemetry(Resource):
+	def post(self):
+		debug("Start telemetry")
+		data=request.get_json(force=True)
+		#todo start new thread and return
+		return '',200
+
 
 api.add_resource(Config, "/config")
 api.add_resource(Topo, "/topo")
 api.add_resource(Traffic, "/traffic")
 api.add_resource(Supplementry, "/supplementary")
 api.add_resource(Traffic2,"/traffic2")
+api.add_resource(Telemetry,"/telemetry")
 
 
 @atexit.register
