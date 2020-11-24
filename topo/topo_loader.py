@@ -178,7 +178,7 @@ def load_millitary_topo():
 		})
 
 	debug("millitary topo converted")
-	save_pkl(os.path.join(static_dir, "millitary.pkl"), millitary)
+	save_pkl(os.path.join(static_dir, "military.pkl"), millitary)
 
 
 load_millitary_topo()
