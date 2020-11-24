@@ -12,17 +12,18 @@ import math
 from subprocess import DEVNULL
 from utils.file_utils import *
 import random
+from utils.process_utils import run_ns_process_background,kill_pid
 
 target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
 
 
-def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
-	os.system("ip netns exec {} nohup {} {} >{} 2>&1 &".format(
-		ns, bin, params, log_fn))
+# def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
+# 	os.system("ip netns exec {} nohup {} {} >{} 2>&1 &".format(
+# 		ns, bin, params, log_fn))
 
 
-def kill_pid(pid):
-	os.system("kill {}".format(pid))
+# def kill_pid(pid):
+# 	os.system("kill {}".format(pid))
 
 
 class TrafficActor:
@@ -47,7 +48,7 @@ class TrafficActor:
 		self.durations = self.config["traffic_duration"]
 		assert len(self.traffic_scales) == len(self.durations)
 		# self.durations = [120, 120, 120, 120]
-		self.flow_types = ["video", "iot", "voip"]
+		self.flow_types = ["video", "iot", "voip","ar"]
 
 		self.schedule_record = []
 		random.seed(int(time.time()))
@@ -70,6 +71,8 @@ class TrafficActor:
 			ftype = 1
 		elif flow_type == "voip":
 			ftype = 2
+		elif flow_type=="ar":
+			ftype=3
 		else:
 			raise Exception("Unsupported flow type")
 
@@ -89,7 +92,8 @@ class TrafficActor:
 		         "--ftype {} " \
 		         "--cport {} " \
 		         "{} " \
-		         "--loss_dir {}".format(
+		         "--loss_dir {}" \
+		         "--workers {}".format(
 			hid,
 			target_id_fn,
 			pkt_dir,
@@ -99,20 +103,22 @@ class TrafficActor:
 			ftype,
 			self.config["controller_socket_port"],
 			("--loss" if enable_loss else ""),
-			(loss_dir if enable_loss else "")
+			(loss_dir if enable_loss else ""),
+			(16 if ftype==1 else 1)
 		)
 
-		commands = "nohup ip netns exec {} {} {}".format(
-			hostname, self.binary, params)
+		commands = "{} {}".format(self.binary, params)
 
 		enable_log = (int(self.config["enable_traffic_generator_log"]) == 1)
 		if enable_log:
-			fp = open(log_fn, "w")
-			pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
+			# fp = open(log_fn, "w")
+			pid=run_ns_process_background(hostname,commands,output=log_fn)
+			# pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
 		else:
 			# /dev/null
-			pid = subprocess.Popen(commands.split(
-				" "), stdout=DEVNULL, stderr=DEVNULL).pid
+			# pid = subprocess.Popen(commands.split(
+			# 	" "), stdout=DEVNULL, stderr=DEVNULL).pid
+			pid=run_ns_process_background(hostname,commands)
 		return pid, self.generator_id
 
 	def _do_start_traffic_to_target(self, hid, target_id, flow_type) -> (int, int):
@@ -130,6 +136,8 @@ class TrafficActor:
 			ftype = 1
 		elif flow_type == "voip":
 			ftype = 2
+		elif flow_type=="ar":
+			ftype=3
 		else:
 			raise Exception("Unsupported flow type")
 
@@ -151,7 +159,8 @@ class TrafficActor:
 		         "--ftype {} " \
 		         "--cport {} " \
 		         "{} " \
-		         "--loss_dir {}".format(
+		         "--loss_dir {}" \
+		         "--workers {}".format(
 			hid,
 			target_id_fn,
 			pkt_dir,
@@ -162,19 +171,21 @@ class TrafficActor:
 			ftype,
 			self.config["controller_socket_port"],
 			("--loss" if enable_loss else ""),
-			(loss_dir if enable_loss else "")
+			(loss_dir if enable_loss else ""),
+			(16 if ftype==2 else 1),
 		)
 
-		commands = "nohup ip netns exec {} {} {}".format(
-			hostname, self.binary, params)
+		commands = "{} {}".format(self.binary, params)
 		enable_log = (int(self.config["enable_traffic_generator_log"]) == 1)
 		if enable_log:
-			fp = open(log_fn, "w")
-			pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
+			# fp = open(log_fn, "w")
+			# pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
+			pid=run_ns_process_background(hostname,commands,output=log_fn)
 		else:
 			# /dev/null
-			pid = subprocess.Popen(commands.split(
-				" "), stdout=DEVNULL, stderr=DEVNULL).pid
+			# pid = subprocess.Popen(commands.split(
+			# 	" "), stdout=DEVNULL, stderr=DEVNULL).pid
+			pid=run_ns_process_background(hostname,commands)
 
 		# pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
 		return pid, self.generator_id
