@@ -20,6 +20,9 @@ done
 
 ip link del dev nat1
 ip link del dev nat2
+ip link del dev nat3
+ip link del dev nat4
+ip link del dev nat5
 
 #iptables -P INPUT ACCEPT
 #iptables -P FORWARD ACCEPT

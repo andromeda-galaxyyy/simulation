@@ -19,9 +19,10 @@ from utils.log_utils import debug,info
 
 class Telemeter(BaseTelemeter):
     def _start_sniffer(self) -> Tuple[int, str]:
-        command="python ./telemetry/sniffer.py --count {} --intf {}".format(
+        command="python ./telemetry/sniffer.py --count {} --intf {} --filter '{}'".format(
             self.sniffer_config["count"],
-            self.sniffer_config["iface"])
+            self.sniffer_config["iface"],
+            self.sniffer_config["filter"])
         pid=run_ns_process_background(ns=self.sniffer_config["namespace"],command=command,output="/tmp/sniffer.log")
         self.sniffer_pid=pid
         debug("started subprocess pid {}".format(pid))
