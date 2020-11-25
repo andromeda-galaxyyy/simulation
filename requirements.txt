@@ -13,3 +13,4 @@ tensorflow
 netifaces
 requests
 ovs
+scapy
