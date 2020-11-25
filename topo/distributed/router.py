@@ -16,6 +16,7 @@ tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
 
 os.system("iptables-save > {}".format(iptables_bk))
+os.system("sysctl -w net.ipv4.ip_forward=1")
 
 app = Flask(__name__)
 api = Api(app)
