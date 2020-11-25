@@ -31,7 +31,8 @@ class Telemeter(BaseTelemeter):
 		return 0, ""
 
 	def _do_stop(self):
-		kill_pid(self.sniffer_pid)
+		if hasattr(self,"sniffer_pid"):
+			kill_pid(self.sniffer_pid)
 
 	def _calculate_monitor(self, links: List[Tuple[int, int]]) -> Tuple[int, str, int]:
 		return 0, "", 22
