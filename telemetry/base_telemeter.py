@@ -17,6 +17,7 @@ class BaseTelemeter:
 			"count": 102,
 			"namespace": "h22"
 		}
+		self.vars={}
 		self.not_self=False
 
 	def _calculate_monitor(self, links: List[Tuple[int, int]]) -> Tuple[int,str,int]:
