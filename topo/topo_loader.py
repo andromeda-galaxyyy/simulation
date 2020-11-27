@@ -19,8 +19,9 @@ import os
 from path_utils import get_prj_root
 from copy import deepcopy
 from argparse import ArgumentParser
-import tmgen
-from tmgen.models import random_gravity_tm
+from common.graph import NetworkTopo
+# import tmgen
+# from tmgen.models import random_gravity_tm
 import random
 
 cache_dir = os.path.join(get_prj_root(), "cache")
@@ -133,30 +134,30 @@ def convert_satellite_topo(topo: List[List[List[int]]]) -> List[List[List[int]]]
 	# 	connect(idx,node)
 	# 	node+=1
 
-	node = 65
+	node_id = 65
 	for idx in range(6):
-		node += 1
-		connect(node, 2 + idx * 11)
-		connect(node, 3 + idx * 11)
-		node += 1
-		connect(node, 2 + idx * 11)
-		connect(node, 3 + idx * 11)
-		node += 1
-		connect(node, 8 + idx * 11)
-		connect(node, 9 + idx * 11)
-		node += 1
-		connect(node, 8 + idx * 11)
-		connect(node, 9 + idx * 11)
+		node_id += 1
+		connect(node_id, 2 + idx * 11)
+		connect(node_id, 3 + idx * 11)
+		node_id += 1
+		connect(node_id, 2 + idx * 11)
+		connect(node_id, 3 + idx * 11)
+		node_id += 1
+		connect(node_id, 8 + idx * 11)
+		connect(node_id, 9 + idx * 11)
+		node_id += 1
+		connect(node_id, 8 + idx * 11)
+		connect(node_id, 9 + idx * 11)
 		# node=70
-		node += 1
-		connect(node, node - 1)
-		connect(node, node - 4)
+		node_id += 1
+		connect(node_id, node_id - 1)
+		connect(node_id, node_id - 4)
 
 		if idx <= 3:
 			# node=71
-			node += 1
-			connect(node, node - 4)
-			connect(node, node - 3)
+			node_id += 1
+			connect(node_id, node_id - 4)
+			connect(node_id, node_id - 3)
 
 	# assert node == 99
 	# check
@@ -168,17 +169,25 @@ def convert_satellite_topo(topo: List[List[List[int]]]) -> List[List[List[int]]]
 	return new_topo
 
 
-def load_millitary_topo():
+def load_military_topo():
 	satellites = load_pkl(os.path.join(static_dir, "satellite_overall.pkl"))
 	millitary = []
 	for idx, topo in enumerate(satellites):
+		new_topo=convert_satellite_topo(topo["topo"])
+		if idx==0:
+			tmp=[[0 for _ in range(100)]for _ in range(100)]
+			for i in range(100):
+				for j in range(100):
+					if -1 not in new_topo[i][j]:
+						tmp[i][j]=1
+			save_json("/tmp/topo.json",{"topo":tmp})
 		millitary.append({
-			"topo": convert_satellite_topo(topo["topo"]),
+			"topo": new_topo,
 			"duration": topo["duration"]
 		})
 
-	debug("millitary topo converted")
+	debug("military topo converted")
 	save_pkl(os.path.join(static_dir, "military.pkl"), millitary)
 
 
-load_millitary_topo()
+load_military_topo()

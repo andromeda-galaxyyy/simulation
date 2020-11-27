@@ -50,8 +50,8 @@ class traffic_timer:
 			debug("traffic mode change to {}".format(scale))
 			for idx, ip in enumerate(self.config["workers_ip"]):
 				url = "http://{}:{}/traffic2".format(ip, 5000)
-				start_new_thread_and_run(do_post,[url,obj])
-				# threading.Thread(target=do_post, args=[url, obj]).start()
+				start_new_thread_and_run(do_post, [url, obj])
+			# threading.Thread(target=do_post, args=[url, obj]).start()
 
 			# sleep
 			if not self.cv.wait(duration):
@@ -78,7 +78,9 @@ class traffic_timer:
 		self.__do_stop()
 		self.started = False
 
+
 traffictimer = None
+
 
 def cli(topos: List, config: Dict, scheduler: Scheduler2):
 	traffic_started = False
@@ -89,8 +91,8 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 			      "> 0.set up local switch\n"
 			      "> 1.start topo scheduler\n"
 			      "> 2.stop topo scheduler\n"
-                  "> 3.start telemetry\n"
-				  "> 4.stop telemetry\n"
+			      "> 3.start telemetry\n"
+			      "> 4.stop telemetry\n"
 			      "> 5.start traffic scheduler\n"
 			      "> 6.stop traffic scheduler\n"
 			      "> 7.quit\n"
@@ -116,9 +118,10 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/config".format(ip, 5000)
 					intf = intfs[idx]
-					start_new_thread_and_run(do_post, [url, {"config": config, "id": idx,"intf": intf}])
-					#threading.Thread(target=do_post, args=[url, {"config": config, "id": idx,
-					#                                             "intf": intf}]).start()
+					start_new_thread_and_run(do_post,
+					                         [url, {"config": config, "id": idx, "intf": intf}])
+				# threading.Thread(target=do_post, args=[url, {"config": config, "id": idx,
+				#                                             "intf": intf}]).start()
 				continue
 			if command == 8:
 				for idx, ip in enumerate(config["workers_ip"]):
@@ -137,44 +140,45 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				scheduler.stop()
 				continue
 
-			if command==3:
+			if command == 3:
 				debug("Start telemetry")
-				for idx,ip in enumerate(config["workers_ip"]):
-					url="http://{}:{}/telemetry".format(ip,5000)
-					start_new_thread_and_run(do_post,[url,{}])
+				for idx, ip in enumerate(config["workers_ip"]):
+					url = "http://{}:{}/telemetry".format(ip, 5000)
+					start_new_thread_and_run(do_post, [url, {}])
 				continue
 
 			if command == 5:
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/traffic".format(ip, 5000)
 					# threading.Thread(target=do_post, args=[url, {}]).start()
-					start_new_thread_and_run(do_post,[url,{}])
+					start_new_thread_and_run(do_post, [url, {}])
 					continue
 
 			if command == 6:
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/traffic".format(ip, 5000)
 					# threading.Thread(target=do_delete, args=[url]).start()
-					start_new_thread_and_run(do_delete,[url])
+					start_new_thread_and_run(do_delete, [url])
 					continue
 
 			if command == 7:
 				scheduler.stop()
+				traffictimer.stop()
 				for idx, ip in enumerate(config["workers_ip"]):
 					url = "http://{}:{}/config".format(ip, 5000)
-					start_new_thread_and_run(do_delete,[url])
-					# threading.Thread(target=do_delete, args=[url]).start()
+					start_new_thread_and_run(do_delete, [url])
+				# threading.Thread(target=do_delete, args=[url]).start()
 				continue
 			if command == 9:
 				worker_ips = config["workers_ip"]
 				# set up server access point
 				url1 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
-				start_new_thread_and_run(do_post,[url1,{"server":True}])
+				start_new_thread_and_run(do_post, [url1, {"server": True}])
 				# threading.Thread(target=do_post, args=[url1, {"server": True}]).start()
 
 				url2 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
 				# threading.Thread(target=do_post, args=[url2, {"server": False}]).start()
-				start_new_thread_and_run(do_post,[url2,{"server":False}])
+				start_new_thread_and_run(do_post, [url2, {"server": False}])
 				continue
 
 			if command == 10:
@@ -193,7 +197,6 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 			# 	url = "http://{}:{}/config".format(ip, 5000)
 			# 	threading.Thread(target=do_delete, args=[url]).start()
 			break
-
 
 
 if __name__ == '__main__':
