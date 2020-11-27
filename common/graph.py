@@ -1,3 +1,5 @@
+import matplotlib
+# matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import networkx as nx
 from itertools import islice
@@ -38,7 +40,8 @@ class NetworkTopo:
 		nx.draw_networkx_edges(g, pos, edgelist=[(u, v) for (u, v, d) in g.edges(data=True)])
 		nx.draw_networkx_labels(g, pos)
 		plt.axis('off')
-		plt.show()
+		plt.savefig("/tmp/test.png")
+		# plt.show()
 
 	def ksp(self, source, target, k, weight="capacity"):
 		if weight == "capacity":
