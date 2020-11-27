@@ -38,9 +38,9 @@ class TrafficActor:
 		self.processes = {
 			"iot": [],
 			"video": [],
-			"voip": []
+			"voip": [],
+			"ar":[]
 		}
-		self.flow_types = ["video", "iot", "voip"]
 		self.binary = self.config["traffic_generator"]
 
 		# self.traffic_scales = ["small", "small", "small", "small"]
@@ -172,7 +172,7 @@ class TrafficActor:
 			self.config["controller_socket_port"],
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else ""),
-			(16 if ftype==2 else 1),
+			(16 if ftype==1 else 1),
 		)
 
 		commands = "{} {}".format(self.binary, params)
@@ -288,7 +288,8 @@ class TrafficActor:
 		self.processes = {
 			"iot": [],
 			"video": [],
-			"voip": []
+			"voip": [],
+			"ar":[],
 		}
 		self.genid2pid = {}
 		self.pid2genid = {}
