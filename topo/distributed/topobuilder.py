@@ -15,6 +15,7 @@ from utils.file_utils import del_dir, create_dir
 from utils.process_utils import kill_pid
 from telemetry.telemeter import Telemeter
 from telemetry.base_telemeter import BaseTelemeter
+from collections import defaultdict
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
@@ -596,14 +597,62 @@ class TopoBuilder:
 		local_sw_ids = [int(x) for x in self.local_switch_ids]
 		remote_sw_ids = [int(x) for x in self.remote_switches.keys()]
 
-		for sa_id in local_sw_ids:
-			for sb_id in remote_sw_ids:
+		# # calculate all gre setup
+		n_workers=len(self.config["workers"])
+		debug("#workers {}".format(n_workers))
 
+		# collect all  switch id to worker_id
+		swid_to_worker_id={}
+		for worker_id in range(n_workers):
+			for sid in self.config["workers"][worker_id]:
+				swid_to_worker_id[sid]=worker_id
+
+		worker_id_to_gre=defaultdict(lambda :[])
+		for said in range(len(new_topo)):
+			for sbid in range(len(new_topo[0])):
+				if said>=sbid:continue
+				if -1 in new_topo[said][sbid]:continue
+				if swid_to_worker_id[said]==swid_to_worker_id[sbid]:continue
+				# now we find grep
+				#said<sbid
+				gre="s{}-s{}".format(said,sbid)
+				# reverse_gre="s{}-s{}".format(sbid,said)
+				worker_id_to_gre[swid_to_worker_id[said]].append(gre)
+				worker_id_to_gre[swid_to_worker_id[sbid]].append(gre)
+
+		# map gre to worker id
+		# map gre to local ip
+		'''
+		对于每个worker来说，只要确定了localip就行，比如w0和w1是两个worker, 只需要为两个worker分别分配localip，那么	
+		w0 包含 s1,
+		w2 包含 s2 
+		gre_local_ip[0]={"s1-s2":"192.168.1.2","s2-s1":"192.168.1.2"}
+		gre_local_ip[1]={"s1-s2":"192.168.1.3","s2-s1":"192.168.1.3"}
+		确定localip
+		对于一个worker来说，只要按顺序选择localip,然后选择对应的localip就行了
+		'''
+		gre_to_local_ip=[defaultdict(lambda :None) for _ in range(n_workers)]
+		for worker_id in range(n_workers):
+			worker_id_to_gre[worker_id].sort()
+			content=gre_to_local_ip[worker_id]
+			local_ips = self.config["workers_ip"][worker_id]
+			for idx,gre in enumerate(worker_id_to_gre[worker_id]):
+				n_local_ips=len(local_ips)
+				ip=local_ips[idx%n_local_ips]
+				content[gre]=ip
+				reverse_gre=gre.split("-")[1]+"-"+gre.split("-")[0]
+				content[reverse_gre]=ip
+
+		for sa_id in local_sw_ids:
+			sa_worker_id=swid_to_worker_id[sa_id]
+			for sb_id in remote_sw_ids:
+				sb_worker_id=swid_to_worker_id[sb_id]
 				key = self._get_gre_key(sa_id, sb_id)
 				gretap = "s{}-s{}".format(sa_id, sb_id)
-				local_ip = self.ip
-				# mapping from worker id to remote ip
-				remote_ip = self.remote_ips[int(self.remote_switches[sb_id])]
+
+				# local_ip = self.ip
+				# # mapping from worker id to remote ip
+				# remote_ip = self.remote_ips[int(self.remote_switches[sb_id])]
 
 				if -1 in new_topo[sa_id][sb_id]:
 					if gretap in self.gres:
@@ -616,6 +665,8 @@ class TopoBuilder:
 						del_interface(gretap)
 
 				else:
+					local_ip=gre_to_local_ip[sa_worker_id][gretap]
+					remote_ip=gre_to_local_ip[sb_worker_id][gretap]
 					# debug("setting up gre {}".format(gretap))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
 					rate = delay if int(self.config["enable_delay_constraint"]) == 1 else None

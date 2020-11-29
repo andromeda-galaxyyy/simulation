@@ -48,7 +48,7 @@ class traffic_timer:
 			duration = durations[traffic_scale_idx]
 			obj["mode"] = scale
 			debug("traffic mode change to {}".format(scale))
-			for idx, ip in enumerate(self.config["workers_ip"]):
+			for idx, ip in enumerate(self.config["manage_ip"]):
 				url = "http://{}:{}/traffic2".format(ip, 5000)
 				start_new_thread_and_run(do_post, [url, obj])
 			# threading.Thread(target=do_post, args=[url, obj]).start()
@@ -70,7 +70,7 @@ class traffic_timer:
 		self.cv.acquire()
 		self.cv.notify()
 		self.cv.release()
-		for idx, ip in enumerate(self.config["workers_ip"]):
+		for idx, ip in enumerate(self.config["manage_ip"]):
 			url = "http://{}:{}/traffic2".format(ip, 5000)
 			threading.Thread(target=do_delete, args=[url]).start()
 
@@ -115,7 +115,7 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 			if command == 0:
 				intfs = config["workers_intf"]
 				# set up local switch
-				for idx, ip in enumerate(config["workers_ip"]):
+				for idx, ip in enumerate(config["manage_ip"]):
 					url = "http://{}:{}/config".format(ip, 5000)
 					intf = intfs[idx]
 					start_new_thread_and_run(do_post,
@@ -124,7 +124,7 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				#                                             "intf": intf}]).start()
 				continue
 			if command == 8:
-				for idx, ip in enumerate(config["workers_ip"]):
+				for idx, ip in enumerate(config["manage_ip"]):
 					url = "http://{}:{}/topo".format(ip, 5000)
 					# threading.Thread(target=do_post, args=[url, {"topo": topos[0]["topo"]}]).start()
 					start_new_thread_and_run(do_post, [url, {"topo": topos[0]["topo"]}])
@@ -142,20 +142,20 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 
 			if command == 3:
 				debug("Start telemetry")
-				for idx, ip in enumerate(config["workers_ip"]):
+				for idx, ip in enumerate(config["manage_ip"]):
 					url = "http://{}:{}/telemetry".format(ip, 5000)
 					start_new_thread_and_run(do_post, [url, {}])
 				continue
 
 			if command == 5:
-				for idx, ip in enumerate(config["workers_ip"]):
+				for idx, ip in enumerate(config["manage_ip"]):
 					url = "http://{}:{}/traffic".format(ip, 5000)
 					# threading.Thread(target=do_post, args=[url, {}]).start()
 					start_new_thread_and_run(do_post, [url, {}])
 					continue
 
 			if command == 6:
-				for idx, ip in enumerate(config["workers_ip"]):
+				for idx, ip in enumerate(config["manage_ip"]):
 					url = "http://{}:{}/traffic".format(ip, 5000)
 					# threading.Thread(target=do_delete, args=[url]).start()
 					start_new_thread_and_run(do_delete, [url])
@@ -163,14 +163,16 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 
 			if command == 7:
 				scheduler.stop()
+				global traffictimer
 				traffictimer.stop()
-				for idx, ip in enumerate(config["workers_ip"]):
+				traffictimer=traffic_timer(config)
+				for idx, ip in enumerate(config["manage_ip"]):
 					url = "http://{}:{}/config".format(ip, 5000)
 					start_new_thread_and_run(do_delete, [url])
 				# threading.Thread(target=do_delete, args=[url]).start()
 				continue
 			if command == 9:
-				worker_ips = config["workers_ip"]
+				worker_ips = config["manage_ip"]
 				# set up server access point
 				url1 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
 				start_new_thread_and_run(do_post, [url1, {"server": True}])
