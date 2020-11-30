@@ -667,6 +667,7 @@ class TopoBuilder:
 				else:
 					local_ip=gre_to_local_ip[sa_worker_id][gretap]
 					remote_ip=gre_to_local_ip[sb_worker_id][gretap]
+					debug("gre link {} local ip {} remote ip {}".format(gretap,local_ip,remote_ip))
 					# debug("setting up gre {}".format(gretap))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
 					rate = delay if int(self.config["enable_delay_constraint"]) == 1 else None
