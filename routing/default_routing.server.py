@@ -44,10 +44,12 @@ for topo_idx in range(44):
 	for i in range(n_nodes):
 		for j in range(n_nodes):
 			if i == j: continue
+			if topo_idx==0:
+				if i==99 and j==0:
+					debug(nx.shortest_path(g,i,j))
 			shortest_paths.append(nx.shortest_path(g, i, j))
 
-	shortest_paths.extend(shortest_paths)
-	assert len(shortest_paths) == n_nodes * (n_nodes - 1) * 2
+	# shortest_paths.extend(shortest_paths)
 	default_routing[topo_idx] = shortest_paths
 	debug("compute {} done".format(topo_idx))
 
@@ -60,7 +62,7 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		debug(req_str)
 		# obj = json.loads(req_str)
 		# topo_idx = int(obj["topo_idx"])
-		res = {"res1": default_routing[topo_idx]}
+		res = {"res1": default_routing[0]}
 		debug(res)
 		self.request.sendall(bytes(json.dumps(res), "ascii"))
 	# sendall(self.request,json.dumps(res))
