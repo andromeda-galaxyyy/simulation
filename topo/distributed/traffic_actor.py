@@ -92,7 +92,7 @@ class TrafficActor:
 		         "--ftype {} " \
 		         "--cport {} " \
 		         "{} " \
-		         "--loss_dir {}" \
+		         "--loss_dir {} " \
 		         "--workers {}".format(
 			hid,
 			target_id_fn,
@@ -159,7 +159,7 @@ class TrafficActor:
 		         "--ftype {} " \
 		         "--cport {} " \
 		         "{} " \
-		         "--loss_dir {}" \
+		         "--loss_dir {} " \
 		         "--workers {}".format(
 			hid,
 			target_id_fn,
