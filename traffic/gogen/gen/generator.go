@@ -32,6 +32,8 @@ type generator struct {
 	SelfID         int
 	DestinationIDs []int
 	PktsDir        string
+
+	specifiedPktFn string
 	Int            string
 	WinSize        int
 	ControllerIP   string
@@ -265,9 +267,19 @@ func (g *generator) Start() (err error) {
 		})
 
 		g.reset()
-		pktFile := path.Join(g.PktsDir, pktFns[pktFileIdx])
+		var pktFile string
+		//if len(g.specifiedPktFn)==0{
+		//	pktFile = path.Join(g.PktsDir, pktFns[pktFileIdx])
+		//}else{
+		//	pktFile=g.specifiedPktFn
+		//}
 		var lines []string
 		if g.selfLoadPkt{
+			if len(g.specifiedPktFn)==0{
+				pktFile = path.Join(g.PktsDir, pktFns[pktFileIdx])
+			}else{
+				pktFile=g.specifiedPktFn
+			}
 			lines, err= utils.ReadLines(pktFile)
 			if err != nil {
 				log.Fatalf("Error reading pkt file %s\n", pktFile)
@@ -275,9 +287,7 @@ func (g *generator) Start() (err error) {
 		}else{
 			lines=g.lines
 		}
-
-
-		log.Printf("pkt file %s: #lines: %d", pktFns[pktFileIdx], len(lines))
+		log.Printf("pkt file #lines: %d", len(lines))
 
 		for _, line := range lines {
 			if stopped{
@@ -528,7 +538,7 @@ func (g *generator) Start() (err error) {
 
 func (g *generator) Init() {
 	g.vlan = &layers.Dot1Q{
-		VLANIdentifier: 3,
+		VLANIdentifier: vlanId,
 		Type:           layers.EthernetTypeIPv4,
 	}
 	g.ether = &layers.Ethernet{

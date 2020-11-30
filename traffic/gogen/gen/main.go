@@ -20,6 +20,7 @@ import (
 )
 
 
+
 func main(){
 	//for profiling
 
@@ -29,6 +30,7 @@ func main(){
 	id:=flag.Int("id",0,"self id")
 	dstIdFn:=flag.String("dst_id","/home/stack/code/graduate/sim/system/traffic/gogen/test/0.hostid","destiantion id file")
 	pktDir:=flag.String("pkts","/home/stack/code/graduate/sim/system/traffic/gogen/pkts/default","pkts dir")
+	pktFn:=flag.String("pktsfn","","Specify a pkts file to use")
 	mtu:=flag.Int("mtu",1500,"Interface MTU")
 	emptyPktSize:=flag.Int("emppkt",64,"Empty Layer4 Packet Size in bytes")
 	interf:=flag.String("int","h0-eth0","Interface name")
@@ -53,6 +55,9 @@ func main(){
 	target:=flag.Int("target",-1,"If enable force target,the target id")
 	n_workers:=flag.Int("workers",1,"Number of coroutine to generate traffic")
 
+	vlanid:=flag.Int("vlan",0,"Vlan id")
+
+
 
 	//dumb generator
 	isDumb:=flag.Bool("dumb",false,"Whether use dumb generator")
@@ -64,7 +69,8 @@ func main(){
 
 
 	flag.Parse()
-
+	vlanId=uint16(*vlanid)
+	log.Printf("Specified vlan id %d\n",vlanId)
 	if !(*debug){
 		fmt.Println("disable debug")
 		log.SetOutput(ioutil.Discard)
@@ -77,6 +83,14 @@ func main(){
 	//}()
 	}
 
+
+	if len(*pktFn)>0{
+		log.Printf("Specifed pkt file %s\n",*pktFn)
+		if !utils.IsFile(*pktFn){
+			log.Fatalf("Invalid pkt file %s\n",*pktFn)
+		}
+	}
+
 	fType:= *flowType
 	if fType>=4{
 		log.Fatalf("Unsupported flow type %d\n",fType)
@@ -85,11 +99,11 @@ func main(){
 	log.Printf("flow type %d",fType)
 
 	if *forceTarget{
-		log.Printf("Enable force target")
+		log.Printf("Enable force target\n")
 		if *target==-1{
 			log.Fatalln("You must supply a target id")
 		}else{
-			log.Printf("Supplied target :%d",*target)
+			log.Printf("Supplied target :%d\n",*target)
 		}
 	}
 
@@ -209,7 +223,8 @@ func main(){
 			target:             *target,
 			enablePktLossStats: *enablePktLossStats,
 			pktLossDir:         *pktLossDir,
-			flowType:           fType,	
+			flowType:           fType,
+			specifiedPktFn: *pktFn,
 			rip:*redisIP,
 			rport:*redisPort,
 		}
