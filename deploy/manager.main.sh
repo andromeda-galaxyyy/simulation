@@ -10,6 +10,7 @@ echo ">Enter project":
 echo ">1. Satellite"
 echo ">2. Telemetry"
 echo ">3. Military"
+echo ">4. Rate"
 read prj
 echo "Project ${prj}"
 
@@ -29,7 +30,11 @@ then
        python ./topo/distributed/main.py \
   --config "${root_dir}/topo/distributed/military.config.json" \
   --topos_fn "${root_dir}/static/military.pkl"
-
+elif [[ $prj -eq 4 ]]
+then
+      python ./topo/distributed/main.py \
+  --config "${root_dir}/topo/distributed/rate.config.json" \
+  --topos_fn "${root_dir}/static/satellite_overall.pkl"
 else
   echo "Invalid project"
 fi

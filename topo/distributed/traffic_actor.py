@@ -104,7 +104,7 @@ class TrafficActor:
 			self.config["controller_socket_port"],
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else ""),
-			(16 if ftype==1 else 1)
+			(8 if ftype==1 else 1)
 		)
 
 		commands = "{} {}".format(self.binary, params)
@@ -172,7 +172,7 @@ class TrafficActor:
 			self.config["controller_socket_port"],
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else ""),
-			(16 if ftype==1 else 1),
+			(8 if ftype==1 else 1),
 		)
 
 		commands = "{} {}".format(self.binary, params)

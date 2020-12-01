@@ -13,7 +13,7 @@ fi
 OVS=$1
 HOST=$2
 HOST_IP=$3
-CONTROLLER=$4
+#CONTROLLER=$4
 
 HOST_PORT="${HOST}-eth0"
 OVS_PORT="${OVS}-eth1"
@@ -41,6 +41,6 @@ ovs-vsctl add-port $OVS ${OVS_PORT}
 ifconfig $OVS_PORT up
 
 #set controller
-ovs-vsctl set-controller $OVS tcp:$CONTROLLER
+#ovs-vsctl set-controller $OVS tcp:$CONTROLLER
 
 echo "set up ok"

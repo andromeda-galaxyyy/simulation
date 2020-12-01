@@ -95,6 +95,9 @@
         }
     ],
 
+    "enable_delay_constraint": 0,
+    "enable_rate_constraint": 1,
+    "enable_loss_constraint": 0,
 
     "host_mtu": 1500,
     "gre_mtu": 1458,
