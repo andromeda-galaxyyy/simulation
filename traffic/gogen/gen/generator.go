@@ -567,6 +567,7 @@ func (g *generator) Init() {
 	g.stopChannel = make(chan struct{})
 	g.flowIDToFiveTuple = make(map[int][5]string)
 	g.flowIDToFlowDesc=make(map[int]*common.FlowDesc)
+	g.flowCounter=0
 
 	//register signal
 	//now move to controller
@@ -604,5 +605,6 @@ func (g *generator) reset() {
 
 	g.flowIdToSeq=make(map[int]int64)
 	g.periodPktCount=make(map[int]int64)
+	g.flowCounter=0
 
 }
