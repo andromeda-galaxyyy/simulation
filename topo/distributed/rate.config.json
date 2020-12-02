@@ -84,19 +84,19 @@
         {
             "intf": "enp59s0f0",
             "neighbors": [0,11],
-            "qos": [[10,10,0,0],[10,10,0,0]],
+            "qos": [[10,0,0,0],[10,10,0,0]],
             "tag": "server"
         },
         {
            "intf": "enp59s0f1",
             "neighbors": [54,65],
-            "qos": [[10,10,0,0],[10,10,0,0]],
+            "qos": [[500,10,0,0],[500,10,0,0]],
             "tag": "client"
         }
     ],
 
     "enable_delay_constraint": 0,
-    "enable_rate_constraint": 1,
+    "enable_rate_constraint": 0,
     "enable_loss_constraint": 0,
 
     "host_mtu": 1500,
@@ -113,7 +113,7 @@
     },
     "traffic_generator": "/home/stack/code/simulation/traffic/gogen/bin/gogen",
     "enable_traffic_generator_log": 0,
-    "enable_listener": 1,
+    "enable_listener": 0,
     "enable_loss": 1,
     "listener": "/home/stack/code/simulation/traffic/gogen/bin/golisten",
     "listener_log_base_dir": "/tmp/listener_log",

@@ -18,6 +18,7 @@ do
     ip link del dev ${name}
 done
 
+
 ip link del dev nat1
 ip link del dev nat2
 ip link del dev nat3

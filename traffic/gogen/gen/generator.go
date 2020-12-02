@@ -268,11 +268,7 @@ func (g *generator) Start() (err error) {
 
 		g.reset()
 		var pktFile string
-		//if len(g.specifiedPktFn)==0{
-		//	pktFile = path.Join(g.PktsDir, pktFns[pktFileIdx])
-		//}else{
-		//	pktFile=g.specifiedPktFn
-		//}
+
 		var lines []string
 		if g.selfLoadPkt{
 			if len(g.specifiedPktFn)==0{

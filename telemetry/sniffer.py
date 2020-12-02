@@ -165,6 +165,7 @@ class Sniffer:
 		sniffer_lock.acquire()
 		debug("All returned pkts received")
 
+
 		return 0, ""
 
 	def start(self):
