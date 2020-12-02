@@ -36,6 +36,7 @@ type IntSet struct {
 	content map[int]void
 }
 
+
 func NewIntSet() *IntSet {
 	return &IntSet{
 		content: make(map[int]void),

@@ -15,7 +15,6 @@ func SendByte(ip string,port int,content []byte) (err error)  {
 	_, err = conn.Write(content)
 
 	return err
-
 }
 
 func SendStr(ip string,port int,content *string)(err error)  {
