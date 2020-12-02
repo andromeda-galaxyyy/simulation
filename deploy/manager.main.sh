@@ -28,7 +28,7 @@ then
 elif [[ $prj -eq 3 ]]
 then
        python ./topo/distributed/main.py \
-  --config "${root_dir}/topo/distributed/military.config.json" \
+  --config "${root_dir}/static/military.config.test.json" \
   --topos_fn "${root_dir}/static/military.pkl"
 elif [[ $prj -eq 4 ]]
 then

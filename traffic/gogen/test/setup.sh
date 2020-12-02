@@ -3,8 +3,12 @@
 
 echo "1" >/proc/sys/net/ipv4/ip_forward
 
-
-
+ip netns del h0
+ip netns del h1
+ip link del h0-eth0
+ip link del h0-nat
+ip link del h1-eth0
+ip link del h1-nat
 
 ip netns add h0
 ip netns add h1
@@ -49,6 +53,7 @@ iptables -A FORWARD -p tcp -d 10.1.0.1 --dport 6060 -j ACCEPT
 iptables -A FORWARD -o nat-h0 -i enp0s5 -j ACCEPT
 iptables -A FORWARD -o enp0s5 -i nat-h0 -j ACCEPT
 iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o enp0s5 -j MASQUERADE
+ip netns exec h0 tc qdisc add dev h0-eth0 root netem loss 5
 
 #ip netns exec h0 tc qdisc add dev h0-eth0 root handle 5:0 hfsc default 1
 #ip netns exec h0 tc class add dev h0-eth0 parent 5:0 classid 5:1 hfsc sc rate 500Mbit ul rate 500Mbit

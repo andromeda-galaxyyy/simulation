@@ -193,3 +193,6 @@ db.sqlite3
 
 *.zip
 .plot_env
+
+manger.main.sh
+*/**/*.config.json

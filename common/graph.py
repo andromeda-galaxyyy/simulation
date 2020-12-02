@@ -1,5 +1,5 @@
 import matplotlib
-# matplotlib.use("TkAgg")
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import networkx as nx
 from itertools import islice
@@ -35,13 +35,15 @@ class NetworkTopo:
 
 	def plot(self):
 		g = self.g
-		pos = nx.spring_layout(g)
-		nx.draw_networkx_nodes(g, pos, node_size=600)
+		pos = nx.spring_layout(g,k=2,iterations=100)
+		# pos=nx.circular_layout(g)
+		# pos=nx.multipartite_layout(g)
+		nx.draw_networkx_nodes(g, pos, node_size=500)
 		nx.draw_networkx_edges(g, pos, edgelist=[(u, v) for (u, v, d) in g.edges(data=True)])
 		nx.draw_networkx_labels(g, pos)
-		plt.axis('off')
+		# plt.axis('off')
+		plt.show()
 		plt.savefig("/tmp/test.png")
-		# plt.show()
 
 	def ksp(self, source, target, k, weight="capacity"):
 		if weight == "capacity":
