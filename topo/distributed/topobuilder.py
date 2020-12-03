@@ -231,7 +231,7 @@ def set_ns_mac_addr(ns: str, intf: str, mac: str):
 	os.system("ip netns exec {} ip link set {} address {}".format(ns, intf, mac))
 
 
-def connect_local_switches(sa_id, sb_id, rate, delay, loss):
+def connect_local_switches_with_tc(sa_id, sb_id, rate, delay, loss):
 	sa_name = "s{}".format(sa_id)
 	sb_name = "s{}".format(sb_id)
 	saport = "{}-{}".format(sa_name, sb_name)
@@ -250,9 +250,26 @@ def connect_local_switches(sa_id, sb_id, rate, delay, loss):
 
 	return saport, sbport
 
+def connect_local_switches(sa_id, sb_id):
+	sa_name = "s{}".format(sa_id)
+	sb_name = "s{}".format(sb_id)
+	saport = "{}-{}".format(sa_name, sb_name)
+	sbport = "{}-{}".format(sb_name, sa_name)
 
-def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, delay, loss,
-                               gre_mtu=1554):
+	os.system("ip link add {} type veth peer name {}".format(saport, sbport))
+	os.system("ifconfig {} up".format(saport))
+	os.system("ifconfig {} up".format(sbport))
+	for x in ["gro", "tso", "gso"]:
+		os.system("ethtool -K {} {} off".format(saport, x))
+		os.system("ethtool -K {} {} off".format(sbport, x))
+	os.system("ovs-vsctl add-port {} {}".format(sa_name, saport))
+	os.system("ovs-vsctl add-port {} {}".format(sb_name, sbport))
+
+	return saport, sbport
+
+
+def connect_non_local_switches_with_tc(sa_id, local_ip, sb_id, remote_ip, grekey, rate, delay, loss,
+                                       gre_mtu=1554):
 	local_sw = "s{}".format(sa_id)
 	remote_sw = "s{}".format(sb_id)
 	grename = "{}-{}".format(local_sw, remote_sw)
@@ -276,6 +293,30 @@ def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey, rate, 
 	add_tc(grename, delay, rate, loss)
 	return grename
 
+
+def connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, grekey,
+                                       gre_mtu=1554):
+	local_sw = "s{}".format(sa_id)
+	remote_sw = "s{}".format(sb_id)
+	grename = "{}-{}".format(local_sw, remote_sw)
+	# delete exists gre links
+	# os.system("ip link del {}".format(grename))
+	del_interface(grename)
+	gre_command = "ip link add {} type gretap local {} remote {} ttl 64 key {}".format(
+		grename,
+		local_ip,
+		remote_ip,
+		grekey
+	)
+	os.system(gre_command)
+	attach_interface_to_sw(local_sw, grename)
+
+	gre_mtu = int(gre_mtu)
+	set_mtu(grename, gre_mtu)
+	for x in ["gro", "tso", "gso"]:
+		os.system("ethtool -K {} {} off".format(grename, x))
+	os.system("ip link set dev {} up".format(grename))
+	return grename
 
 def add_hosts_to_switches(switch_id, k, vhost_mtu=1500, tcpdump=False, filter_str: str = "udp",
                           base_dir="/tmp/tcpdump"):
@@ -434,9 +475,12 @@ class TopoBuilder:
 		self._write_targetids()
 
 		self.traffic_scheduler = TrafficScheduler2(self.config, self.hostids)
-		self.enable_host_find = False
+		self.host_found = False
 		self.traffic_actor = TrafficActor(self.config, self.hostids)
 		self.telemeter:BaseTelemeter=None
+		self.vars={
+			"tc":{}
+		}
 
 	def _set_up_switches(self):
 		k = self.config["host_per_switch"]
@@ -529,6 +573,9 @@ class TopoBuilder:
 		self.local_links = []
 		self.hosts = []
 		self.nat_links = []
+		self.vars={
+			"tc":{}
+		}
 
 	def _diff_local_links(self, new_topo: List[List[Tuple]]):
 		debug("diff local links")
@@ -553,7 +600,14 @@ class TopoBuilder:
 					new_links.add(link)
 					new_links.add(reverse_link)
 					if link not in self.local_links:
-						connect_local_switches(sa_id, sb_id, rate, delay, loss)
+						# 如果主机还没有发现（启动ping），说明是第一次建立拓扑，那么就不应该设置链路qos,等第一次建立topo以后
+						# 然后设置ping
+						if not self.host_found:
+							connect_local_switches(sa_id,sb_id)
+							self.vars["tc"][reverse_link]=(rate,delay,loss)
+							self.vars["tc"][link]=(rate,delay,loss)
+						else:
+							connect_local_switches_with_tc(sa_id, sb_id, rate, delay, loss)
 						# todo 在拓扑变换的时候，可能覆盖掉之前抓取的包
 						if self.tcpdump:
 							# sleep(0.5)
@@ -681,9 +735,12 @@ class TopoBuilder:
 						change_tc(gretap, delay, rate, loss)
 					else:
 						# set up gre
-
-						connect_non_local_switches(sa_id, local_ip, sb_id, remote_ip, key, rate,
-						                           delay, loss, gre_mtu)
+						if not self.host_found:
+							self.vars["tc"][gretap]=(rate,delay,loss)
+							connect_non_local_switches(sa_id,local_ip,sb_id,remote_ip,key,gre_mtu)
+						else:
+							connect_non_local_switches_with_tc(sa_id, local_ip, sb_id, remote_ip, key, rate,
+						                                   delay, loss, gre_mtu)
 						if self.tcpdump:
 							# sleep(0.5)
 							fn = os.path.join(self.tcpdump_opts["base_dir"],
@@ -699,12 +756,17 @@ class TopoBuilder:
 		debug("start diff topo")
 		self._diff_local_links(new_topo)
 		self._diff_gre_links(new_topo)
-		debug("diff topo done")
-		if not self.enable_host_find:
-			time.sleep(8)
+		if not self.host_found:
+			time.sleep(5)
 			self._do_find_host()
-			self.enable_host_find = True
+			self.host_found = True
+			# setup up tc
+			for _,(link,qos) in enumerate(self.vars["tc"].items()):
+				rate,delay,loss=qos
+				add_tc(link,delay,rate,loss)
+				debug("Add tc for {} done".format(link))
 
+		debug("diff topo done")
 		self.telemeter=Telemeter(self.local_switch_ids,new_topo,self.config)
 
 	def _set_up_nat(self):
