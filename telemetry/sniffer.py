@@ -38,14 +38,11 @@ class Sniffer:
 		self.cache = []
 		self.edge_port = {}  # vlan_id ->link
 		self.switch_count = {}
+		self.loss_count=0
 		self.link_to_vlan_fn: Dict = link_to_vlan_fn
 
 	def __load_topo(self):
-		# link->port
-		# with open('../../topoInfo/topo0.json', 'r') as f:
-		#     topy = json.load(f)["0"]
-		# print(topy)
-		#todo fix this
+
 		self.edge_port = load_pkl(self.link_to_vlan_fn)
 
 	# port[(0, self.monitor)] = (1, 1)
@@ -82,9 +79,6 @@ class Sniffer:
 				temp[port] = 1
 				self.switch_count[src] = temp
 		# debug("fuck")
-		debug("50 recv time:{}".format(switch_msg["10.0.1.50"][154]))
-		debug("61 recv time:{}".format(switch_msg["10.0.1.61"][187]))
-		debug("(50,61) rtt:{}".format(abs(switch_msg["10.0.1.61"][187]-switch_msg["10.0.1.50"][154])))
 		for u, v in links:
 			t1 = None
 			t2 = None
@@ -94,9 +88,16 @@ class Sniffer:
 				t2 = switch_msg["10.0.1.{}".format(y)][self.edge_port[(y, x)]]
 				link_rtt[(u, v)] = abs(t1 - t2) * 1000
 			except Exception as e:
+				if "10.0.1.{}".format(z) not in switch_msg.keys():
+					self.loss_count += 1
+					if switch_msg["10.0.1.{}".format(y)] not in switch_msg.keys():
+						self.loss_count += 1
+
+				self.loss_count += 1
 				err("exception:{}".format(e))
 		# debug("link {}'s rtt => {}  ----  1 ".format((u, v), abs(t1 - t2) * 1000))
 		debug("link_rtt:{}".format(link_rtt))
+		debug("loss count:{}".format(self.loss_count))
 		ma = -1
 		ma_link = None
 		for u, v in link_rtt.keys():
@@ -136,14 +137,14 @@ class Sniffer:
 					return path[i - 1], v, u
 
 	def __send_telemetry_packet_and_listen(self) -> Tuple[int, str]:
-		sniffer_lock = threading.Lock()
+		# sniffer_lock = threading.Lock()
 		current_count = 0
 		sniffer_started = False
 		sniffer_stopped = False
 
 		def sniffer_started_cbk():
-			nonlocal sniffer_lock
-			sniffer_lock.acquire()
+			# nonlocal sniffer_lock
+			# sniffer_lock.acquire()
 			nonlocal sniffer_started
 			sniffer_started = True
 
@@ -152,22 +153,22 @@ class Sniffer:
 		def handle_pkt(pkt):
 			pkt.sprintf("{IP:%IP.src%},{Port:%Dot1Q.vlan%}")
 			self.cache.append(pkt)
-			t = pkt.time
-			port = int(pkt[Dot1Q].vlan)
-			src = str(pkt[IP].src)
-
-			nonlocal current_count, sniffer_lock
-			current_count += 1
-			debug("received {} pkts src {} port {}".format(current_count, src, port))
-
-			if current_count == self.pkt_count:
-				debug("Received all pkts so far,release the lock")
-				nonlocal sniffer
+			# t = pkt.time
+			# port = int(pkt[Dot1Q].vlan)
+			# src = str(pkt[IP].src)
+			#
+			# nonlocal current_count
+			# current_count += 1
+			# debug("received {} pkts src {} port {}".format(current_count, src, port))
+			#
+			# if current_count == self.pkt_count:
+			# 	debug("Received all pkts so far,release the lock")
+			# 	nonlocal sniffer
 				# sniffer.stop()
-				sniffer_lock.release()
+				# sniffer_lock.release()
 
 		def stop_sniffer():
-			nonlocal sniffer, sniffer_lock, sniffer_stopped
+			nonlocal sniffer, sniffer_stopped
 			sniffer.stop()
 			sniffer_stopped = True
 
@@ -184,28 +185,28 @@ class Sniffer:
 		    UDP(dport=8888, sport=1500) / Raw(load="1234")
 		sendp(p, iface=self.intf)
 		debug("Telemetry pkt sent,now wait for all pkts received")
-		# t = threading.Timer(2.0, stop_sniffer)
-		# t.start()
-		# while not sniffer_stopped:
-		# 	sleep(0.1)
-		sniffer_lock.acquire()
-		debug("All returned pkts received")
-		# debug("Timer timeout,now return")
+		t = threading.Timer(2.0, stop_sniffer)
+		t.start()
+		while not sniffer_stopped:
+			sleep(0.1)
+		debug("timer timeout,return")
+		# debug("All returned pkts received")
 
 		return 0, ""
 
 	def start(self):
 		self.__load_topo()
-		self.__send_telemetry_packet_and_listen()
-		self.__calculate_rtt()
-	# n = 1000
-	# while n > 0:
-	# 	self.__send_telemetry_packet_and_listen()
-	# 	self.__calculate_rtt()
-	# 	self.cache = []
-	# 	n -= 1
-	# 	debug("{}th turn done".format(1000-n))
-	# self.__calculate_loss()
+		# self.__send_telemetry_packet_and_listen()
+		# self.__calculate_rtt()
+		n = 1000
+		while n > 0:
+			self.loss_count=0
+			self.__send_telemetry_packet_and_listen()
+			self.__calculate_rtt()
+			self.cache = []
+			n -= 1
+			debug("{}th turn done".format(1000-n))
+		self.__calculate_loss()
 
 
 if __name__ == "__main__":
