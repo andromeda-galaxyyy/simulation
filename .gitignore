@@ -190,9 +190,12 @@ db.sqlite3
 *.hostids
 *targetids
 *.txt
+*.json
 
 *.zip
 .plot_env
+telemetry/port
 
 manger.main.sh
-*/**/*.config.json
+**/**/*.json
+

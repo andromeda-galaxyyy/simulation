@@ -1,3 +1,4 @@
+
 networkx
 numpy
 keras
@@ -14,3 +15,4 @@ netifaces
 requests
 ovs
 scapy
+redis

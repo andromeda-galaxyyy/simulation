@@ -28,35 +28,20 @@ class Monitor():
         self.capacity=1000
 ####################################################
 # 创建拓扑
-def makeTopo():
+def makeTopo(topo):
     g = nx.Graph()
-    port = {}
+    for i in range(1,len(topo)+1):
+        g.add_node(i)
     edges = []
-    port_edges = []
-    with open('topo0.json', 'r') as f:
-        topy = json.load(f)["0"]
-    # print(topy)
-    for links in topy:
-        for k in links.keys():
-            # print(k)
-            temp = k.split("--->")
-            link = (int(temp[0]) + 1, int(temp[1]) + 1)
-            if (int(temp[0]) + 1, int(temp[1]) + 1) not in edges and (
-            int(temp[1]) + 1, int(temp[0]) + 1) not in edges:
-                edges.append((int(temp[0]) + 1, int(temp[1]) + 1))
-            # print(link)
-            port[link] = int(links[k])
-    # print(port)
-    for (u, v) in port.keys():
-        if (v, u) not in port_edges:
-            port[(u, v)] = (port[(u, v)], port[(v, u)])
-            port_edges.append((u, v))
-    for (u, v) in port_edges:
-        del port[(v, u)]
-    # for (u, v) in edges:
-    #     f1.write(str(u) + " " + str(v) + '\n')
-    # f.close()
-    return port, g
+    for i in range(len(topo)):
+        for j in range(len(topo[i])):
+            if -1 in topo[i][j]:
+                continue
+            edges.append((i+1,j+1))
+    for u,v in edges:
+        if (u,v) not in g.edges() and (v,u) not in g.edges():
+            g.add_edge(u, v)
+    return g
 
 ##########################################################
 #biding 算法
@@ -213,17 +198,17 @@ class Biding:
                                 debug("已经开放的{}添加测量链路----------111111：{}".format(um[i].name, offer_e))
                                 for s,t in offer_e:
                                     if um[i].capacity>0:
-                                        print("add------>",(s,t))
+                                        debug("add------> {}".format((s,t)))
                                         um[i].e.append((s,t))
                                         um[i].capacity -=1
                                         self.remove_e_from_ue((s,t))
                                         um[i].paths.append(m_probepath[(um[i].name,s,t)])
                                         self.remove_path_e(m_probepath[(um[i].name,s,t)],um[i])
-                                        print("add {} finish".format((s,t)))
+                                        debug("add {} finish".format((s,t)))
                                     else:
                                         break
                                 m_probecost = self.update_cost(um[i],offer_e, m_probecost, m_probepath,edgelist)
-                                debug("update_cost2222//m_probecost:", m_probecost)
+                                debug("update_cost2222//m_probecost: {}".format(m_probecost))
                                 time.sleep(0.1)
                             elif len(offer_e)>um[i].capacity and len(offer_e)>0:   #容量不足够
                                 debug("容量不够了------------1111111111")
@@ -303,15 +288,15 @@ class Biding:
         recv_pack = 0
         if len(self.open) > 1:
             # err("error,the number of monitor exceeds 1")
-            return -1,"error,the number of monitor exceeds 1"
+            return -1,"error,the number of monitor exceeds 1",None
         for m in range(len(um)):
             if um[m].lable==1:
                 # print("计算{}的探测路径{}".format(m,um[m].paths))
                 self.paths =self.compute_num(um[m].paths)
                 self.cut_paths()
-                recv_pack=self.recieve_num()
                 for path in self.paths:
                     path.insert(0, 0)
+                recv_pack=self.recieve_num()
                 info("{}开放,测量边集合：{};测量路径：{},返回数据包数量：{}".format(um[m].name,um[m].e,self.paths,recv_pack))
 
         return 0,self.open[0],self.paths,recv_pack

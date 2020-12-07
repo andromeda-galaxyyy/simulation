@@ -3,10 +3,11 @@ import time
 import copy
 import socket
 import sys
+import  copy
 from utils.log_utils import debug, info, err
 class table:
-    def __init__(self,links,path,switches,monitor):
-        self.Links=links
+    def __init__(self,links,path,switches,monitor,vlan):
+        self.Links=copy.deepcopy(links)
         self.link_flag=dict()  ### 记录待测链路是否进行了多播返回操作
         self.n_switches=switches
         self.monitor=monitor
@@ -17,6 +18,7 @@ class table:
         self.multi_p=[]
         self.multi_n={}
         self.json_dict={}
+        self.vlan_id=vlan
         # self.act={"action 1":{},"action 2":{}}
     ################################################
     # 多播的交换机id,以及多播下一跳
@@ -76,28 +78,35 @@ class table:
     # def probeLink(self):
     #     for i in self.Links:
     def is_probelink(self):
-        for x in self.Links:
+        links=self.Links
+        for x in links:
             self.link_flag[x]=0
         for path in self.paths:
             p_list = []
             for i in range(len(path)-1):##判断待测链路节点是否已经是多播节点 不是则新建多播组 是则加入多播组,尾节点会直接返回
                 flag=0
                 p_list.append(path[i])
+
                 if (path[i],path[i+1]) in self.Links:
+                    #print(self.Links)
+                    # print(self.Links)
+                    # print(path[i], path[i + 1],11111)
+                    # print(self.link_flag)
                     flag=1
                 elif (path[i+1],path[i]) in self.Links:
+                    #print(path[i+1], path[i],22222222)
                     flag=2
-                if flag ==1  and self.link_flag[(path[i],path[i+1])]==0:
-                    ##处理节点1
-                    self.add_multi(p_list,path,i)
-                    ##处理节点2
-                    if path[i+1]==path[-1]:  #如果尾节点是路径最后一跳 则不进行尾节点的操作
-                        continue
-                    p_next_list = copy.deepcopy(p_list)
-                    p_next_list.append(path[i + 1])
-                    self.add_multi(p_next_list,path,i+1)
-                    # p_list.pop()
-                    self.link_flag[(path[i], path[i + 1])] =1
+                if flag == 1 and self.link_flag[(path[i],path[i+1])]==0:
+                        ##处理节点1
+                        self.add_multi(p_list,path,i)
+                        ##处理节点2
+                        if path[i+1]==path[-1]:  #如果尾节点是路径最后一跳 则不进行尾节点的操作
+                            continue
+                        p_next_list = copy.deepcopy(p_list)
+                        p_next_list.append(path[i + 1])
+                        self.add_multi(p_next_list,path,i+1)
+                        # p_list.pop()
+                        self.link_flag[(path[i], path[i + 1])] =1
                 elif flag==2 and self.link_flag[(path[i+1],path[i])]==0:
                     # print("flag==2")
                     # p_list.append(path[i])
@@ -200,6 +209,7 @@ class table:
             # temp['outport']=self.get_port(path[- 1],path[- 2])
             temp['src']='10.0.1.{}'.format(path[-1])
             temp['dst']='10.0.0.1'
+            temp["vlan"]=self.vlan_id[(path[-1],path[-2])]
             # temp['vlan']=self.get_port(path[- 1],path[- 2])
             act={}
             act['action2']=temp
@@ -233,6 +243,7 @@ class table:
                     # temp['outport'] = self.get_port(n_list[-1],n_list[-2])
                     temp['src'] = '10.0.1.{}'.format(n_list[-1])
                     temp['dst'] = '10.0.0.1'
+                    temp['vlan'] = self.vlan_id[(n_list[-1],n_list[-2])]
                     # temp['vlan'] = self.get_port(n_list[-1],n_list[-2])
                     act = {}
                     act['action2'] = temp

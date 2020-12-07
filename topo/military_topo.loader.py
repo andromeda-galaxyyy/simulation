@@ -130,6 +130,7 @@ from path_utils import get_prj_root
 import os
 
 static_dir = os.path.join(get_prj_root(), "static")
+save_json(os.path.join(static_dir,"topo.json"),{"topo":topo})
 
 res = []
 for _ in range(44):

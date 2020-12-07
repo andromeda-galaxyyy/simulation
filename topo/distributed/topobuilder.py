@@ -797,7 +797,6 @@ class TopoBuilder:
 			"iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o {} -j MASQUERADE".format(intf))
 
 		# set add link to host
-		# todo remove id from config file,
 		# 改成从命令行接受
 		k = int(self.config["host_per_switch"])
 		local_switches = self.config["workers"][worker_id]

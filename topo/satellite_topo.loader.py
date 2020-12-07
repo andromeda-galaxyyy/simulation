@@ -106,6 +106,7 @@ def read_statellite_topo():
 
 	save_pkl(topo_fn, new_topos)
 	save_pkl(os.path.join(static_dir, "satellite_overall.pkl"), satellite_topos)
+	save_json("/tmp/topo.json",{"topo":satellite_topos[0]["topo"]})
 	debug("satellite topo saved")
 
 
