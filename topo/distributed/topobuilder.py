@@ -146,7 +146,7 @@ def up_interface(port: str):
 def del_tc(interface: str):
 	os.system("tc qdisc del dev {} root".format(interface))
 
-
+#todo fix this fucking bug
 def add_tc(interface: str, delay=None, bandwidth=None, loss=None):
 	# return
 	if delay is None and bandwidth is None and loss is None:
@@ -593,7 +593,7 @@ class TopoBuilder:
 
 				if -1 not in new_topo[sa_id][sb_id]:
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
-					rate = delay if int(self.config["enable_delay_constraint"]) == 1 else None
+					rate = rate if int(self.config["enable_rate_constraint"]) == 1 else None
 					delay = delay if int(
 						self.config["enable_delay_constraint"]) == 1 else None
 					loss = loss if int(self.config["enable_loss_constraint"]) == 1 else None
@@ -724,7 +724,7 @@ class TopoBuilder:
 					debug("gre link {} local ip {} remote ip {}".format(gretap,local_ip,remote_ip))
 					# debug("setting up gre {}".format(gretap))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
-					rate = delay if int(self.config["enable_delay_constraint"]) == 1 else None
+					rate = rate if int(self.config["enable_rate_constraint"]) == 1 else None
 					delay = delay if int(
 						self.config["enable_delay_constraint"]) == 1 else None
 					loss = loss if int(self.config["enable_loss_constraint"]) == 1 else None
@@ -763,6 +763,11 @@ class TopoBuilder:
 			# setup up tc
 			for _,(link,qos) in enumerate(self.vars["tc"].items()):
 				rate,delay,loss=qos
+				# rate = delay if int(self.config["enable_rate_constraint"]) == 1 else None
+				# delay = delay if int(
+				# 	self.config["enable_delay_constraint"]) == 1 else None
+				# loss = loss if int(self.config["enable_loss_constraint"]) == 1 else None
+
 				add_tc(link,delay,rate,loss)
 				debug("Add tc for {} done".format(link))
 
