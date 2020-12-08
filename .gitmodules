@@ -1,0 +1,3 @@
+[submodule "traffic/traffic"]
+	path = traffic/gogen
+	url = https://github.com/andromeda-galaxyyy/traffic.git
