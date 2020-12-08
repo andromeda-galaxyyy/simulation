@@ -185,6 +185,7 @@ traffic/gogen/bin/golisten
 traffic/gogen/bin/goserver
 traffic/gogen/bin/api
 traffic/gogen/bin/collector
+traffic/gogen
 goserver
 golisten
 #gogen
