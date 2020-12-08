@@ -183,6 +183,8 @@ traffic/gogen/pkts
 traffic/gogen/bin/gogen
 traffic/gogen/bin/golisten
 traffic/gogen/bin/goserver
+traffic/gogen/bin/api
+traffic/gogen/bin/collector
 goserver
 golisten
 #gogen
@@ -191,6 +193,7 @@ db.sqlite3
 *targetids
 *.txt
 *.json
+
 
 *.zip
 .plot_env
