@@ -185,7 +185,7 @@ traffic/gogen/bin/golisten
 traffic/gogen/bin/goserver
 goserver
 golisten
-gogen
+#gogen
 db.sqlite3
 *.hostids
 *targetids

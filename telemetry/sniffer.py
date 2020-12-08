@@ -25,7 +25,6 @@ import json
 
 paths = None
 links = None
-
 true_topo = None
 
 
@@ -45,7 +44,7 @@ class Sniffer:
 
 		self.edge_port = load_pkl(self.link_to_vlan_fn)
 
-	# port[(0, self.monitor)] = (1, 1)
+	# port[(0, self.monitor)]  (1, 1)
 	# return port
 
 	def __calculate_rtt(self):
