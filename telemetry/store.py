@@ -13,24 +13,17 @@ class Store:
 
 	def write_delay(self, link: Tuple[int, int], delay: float) -> bool:
 		key = "{}-{}.delay".format(link[0], link[1])
-		reverse_key = "{}-{}.delay".format(link[1], link[0])
 		ts = now_in_milli()
 		return 1 == self.handle.zadd(key, {
-			delay: ts
-		}) and 1 == self.handle.zadd(reverse_key, {
 			delay: ts
 		})
 
 	def write_loss(self, link: Tuple[int, int], loss: float) -> bool:
 		key = "{}-{}.loss".format(link[0], link[1])
-		reverse_key = "{}-{}.delay".format(link[1], link[0])
 		ts = now_in_milli()
 		return 1 == self.handle.zadd(key, {
 			loss: ts
-		}) and 1 == self.handle.zadd(reverse_key, {
-			loss: ts
 		})
-
 
 if __name__ == '__main__':
 	store = Store("localhost", 6379, 7)

@@ -22,6 +22,7 @@ from utils.file_utils import load_json
 from path_utils import get_prj_root
 from utils.file_utils import load_pkl, save_pkl
 import json
+from telemetry.store import Store
 
 paths = None
 links = None
@@ -30,7 +31,7 @@ true_topo = None
 
 # todo store stats in redis
 class Sniffer:
-	def __init__(self, count: int, intf: str, filter: str, link_to_vlan_fn: Dict) -> None:
+	def __init__(self, count: int, intf: str, filter: str, link_to_vlan_fn: Dict,rip:str="192.168.1.196",rport:int=6379) -> None:
 		self.pkt_count = count
 		self.intf = intf
 		self.filter = filter
@@ -39,6 +40,7 @@ class Sniffer:
 		self.switch_count = {}
 		self.loss_count=0
 		self.link_to_vlan_fn: Dict = link_to_vlan_fn
+		self.store=Store(rip,rport)
 
 	def __load_topo(self):
 
@@ -47,7 +49,7 @@ class Sniffer:
 	# port[(0, self.monitor)]  (1, 1)
 	# return port
 
-	def __calculate_rtt(self):
+	def __calculate_rtt_and_store(self):
 		switch_msg = {}
 		link_rtt = {}
 		# switch_msg: ip->port->time
@@ -55,10 +57,7 @@ class Sniffer:
 			t = pkt.time
 			port = int(pkt[Dot1Q].vlan)
 			src = str(pkt[IP].src)
-			# if src=="10.0.1.39" and port==2:
-			# 	debug("switch 39's time from{} is {}".format(port,t))
-			# if src=="10.0.1.40" and port==2:
-			# 	debug("switch 40's time from{} is {}".format(port,t))
+
 			if src in switch_msg.keys():
 				if port in switch_msg[src].keys():
 					err("error, {} already in items".format(port))
@@ -110,7 +109,9 @@ class Sniffer:
 		fixed_link_stats = {}
 		for u, v in link_rtt.keys():
 			fixed_link_stats[(u - 1, v - 1)] = link_rtt[(u, v)]
+			self.store.write_delay((u-1,v-1),fixed_link_stats[(u-1,v-1)])
 			fixed_link_stats[(v - 1, u - 1)] = link_rtt[(u, v)]
+			self.store.write_delay((v-1,u-1),fixed_link_stats[(u-1,v-1)])
 
 	# save_pkl("/tmp/telemetry.link.pkl", fixed_link_stats)
 
@@ -126,6 +127,15 @@ class Sniffer:
 				err("exception:()".format(e))
 			for msg in loss.items():
 				debug("packet loss:{}".format(msg))
+
+		fixed_link_stats={}
+		for u,v in links:
+			fixed_link_stats[(u-1,v-1)]=loss[(u,v)]
+			self.store.write_loss((u-1,v-1),loss[(u,v)])
+			fixed_link_stats[(v-1,u-1)]=loss[(u,v)]
+			self.store.write_loss((v-1,u-1),loss[(u,v)])
+
+
 
 	def find_port(self, u, v):
 		for path in paths:
@@ -201,7 +211,7 @@ class Sniffer:
 		while n > 0:
 			self.loss_count=0
 			self.__send_telemetry_packet_and_listen()
-			self.__calculate_rtt()
+			self.__calculate_rtt_and_store()
 			self.cache = []
 			n -= 1
 			debug("{}th turn done".format(1000-n))
