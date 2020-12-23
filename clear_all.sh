@@ -11,6 +11,8 @@ do
     ip netns del "h${hid}"
 done
 
+ip netns del test
+
 
 for name in $(ifconfig -a | sed 's/[ \t].*//;/^\(lo\|\)$/d' | grep "-")
 do
@@ -25,15 +27,17 @@ ip link del dev nat3
 ip link del dev nat4
 ip link del dev nat5
 
-#iptables -P INPUT ACCEPT
-#iptables -P FORWARD ACCEPT
-#iptables -P OUTPUT ACCEPT
-#iptables -t nat -F
-#iptables -t mangle -F
-#iptables -F
-#iptables -X
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -t nat -F
+iptables -t mangle -F
+iptables -F
+iptables -X
 
 pkill -f '^gogen$'
 pkill -f '^golisten$'
 pkill "ovs-tcpdump"
 pkill "tcpdump"
+
+service docker restart

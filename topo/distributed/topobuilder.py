@@ -1031,6 +1031,7 @@ class TopoBuilder:
 			add_tc(p1, bandwidth=band, delay=None)
 			add_tc(p2, bandwidth=band, delay=None)
 
+
 	def start_telemetry(self):
 		if self.telemeter is not None:
 			self.telemeter.start(None)

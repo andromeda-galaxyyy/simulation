@@ -93,7 +93,8 @@ class Traffic2(Resource):
 
 	def delete(self):
 		debug("stop traffic")
-		start_new_thread_and_run(builder.stop_traffic_actor,args=())
+		if builder is not None:
+			start_new_thread_and_run(builder.stop_traffic_actor,args=())
 		return '',200
 
 
@@ -114,7 +115,8 @@ class Telemetry(Resource):
 
 	def delete(self):
 		debug("Stop telemetry")
-		start_new_thread_and_run(builder.stop_telemetry,args=())
+		if builder is not None:
+			start_new_thread_and_run(builder.stop_telemetry,args=())
 		return '',200
 
 

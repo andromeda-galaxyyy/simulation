@@ -19,7 +19,7 @@ node_labels = {"level1": list(range(12)),
 
 # 生成topo
 topo = [[[-1, -1, -1, -1] for _ in range(100)] for _ in range(100)]
-link = [100, 1, 0, 0]
+link = [100, 0, 0, 0]
 
 
 def connect(i, j):

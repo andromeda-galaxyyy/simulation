@@ -109,7 +109,7 @@ if __name__ == '__main__':
 	import argparse
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--port", type=int, help="service listening port", default=1026)
+	parser.add_argument("--port", type=int, help="service listening port", default=1040)
 	args = parser.parse_args()
 	port = int(args.port)
 	server = Server(port, DTHandler)

@@ -11,6 +11,8 @@ import signal
 from sockets.client import send
 import json
 import requests
+from utils.process_utils import start_new_thread_and_run
+from utils.log_utils import err
 
 static_dir = os.path.join(get_prj_root(), "static")
 topos_pkl = os.path.join(static_dir, "satellite_overall.pkl")
@@ -51,11 +53,14 @@ class Scheduler:
 				break
 
 	def report_topo_idx(self, idx):
-		return
+		# return
 		ip = self.config["controller"].split(":")[0]
 		port = self.config["topo_port"]
 		obj = {"topo_idx": idx}
-		threading.Thread(target=send, args=(ip, port, json.dumps(obj))).start()
+		try:
+			threading.Thread(target=send, args=(ip, port, json.dumps(obj))).start()
+		except Exception as e:
+			err(e)
 
 	def start(self):
 		debug("Topo scheduler started")
@@ -82,18 +87,22 @@ class Scheduler2:
 		def do_post(ip, port, obj):
 			requests.post("http://{}:{}/topo".format(ip, port), json=obj)
 
-		worker_ips = self.config["workers_ip"]
-		for wid in range(len(worker_ips)):
-			ip = worker_ips[wid]
+		manage_ips = self.config["manage_ip"]
+		for wid in range(len(manage_ips)):
+			ip = manage_ips[wid]
 			port = 5000
-			threading.Thread(target=do_post, args=[ip, port, {"topo": topo}]).start()
+			# threading.Thread(target=do_post, args=[ip, port, {"topo": topo}]).start()
+			start_new_thread_and_run(do_post,[ip,port,{"topo":topo}])
 
 	def _report_topo_idx(self, idx):
 		# return
 		ip = self.config["controller"].split(":")[0]
 		port = self.config["topo_port"]
 		obj = {"topo_idx": idx}
-		threading.Thread(target=send, args=(ip, port, json.dumps(obj))).start()
+		try:
+			start_new_thread_and_run(send,(ip,port,json.dumps(obj)))
+		except Exception as e:
+			err(e)
 
 	def _do_start_scheduler(self):
 		ts_idx = 0

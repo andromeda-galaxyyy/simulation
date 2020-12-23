@@ -7,6 +7,7 @@ clear;
 
 echo $root_dir
 echo ">Enter project":
+echo ">0. Demo"
 echo ">1. Satellite"
 echo ">2. Telemetry"
 echo ">3. Military"
@@ -18,7 +19,7 @@ echo "Project ${prj}"
 if [[ $prj -eq 1 ]]
 then
   python ./topo/distributed/main.py \
-  --config "${root_dir}/topo/distributed/satellite.config.json" \
+  --config "${root_dir}/static/satellite.config.json" \
   --topos_fn "${root_dir}/static/satellite_overall.pkl"
 elif [[ $prj -eq 2 ]]
 then
@@ -28,13 +29,18 @@ then
 elif [[ $prj -eq 3 ]]
 then
        python ./topo/distributed/main.py \
-  --config "${root_dir}/static/military.config.test.json" \
+  --config "${root_dir}/static/military.config.json" \
   --topos_fn "${root_dir}/static/military.pkl"
 elif [[ $prj -eq 4 ]]
 then
       python ./topo/distributed/main.py \
   --config "${root_dir}/topo/distributed/rate.config.json" \
   --topos_fn "${root_dir}/static/satellite_overall.pkl"
+elif [[ $prj -eq 0 ]]
+then
+      python ./topo/distributed/main.py \
+  --config "${root_dir}/static/demo.config.json" \
+  --topos_fn "${root_dir}/static/demo.pkl"
 else
   echo "Invalid project"
 fi

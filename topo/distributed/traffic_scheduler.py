@@ -11,7 +11,7 @@ from collections import defaultdict
 import math
 from subprocess import DEVNULL
 from utils.file_utils import *
-from utils.process_utils import kill_pid,run_ns_process_background
+from utils.process_utils import kill_pid, run_ns_process_background
 
 import random
 
@@ -20,8 +20,8 @@ target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
 
 # def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
 # 	os.system("ip netns exec {} nohup {} {} >{} 2>&1 &".format(ns, bin, params, log_fn))
-#
-#
+
+
 # def kill_pid(pid):
 # 	os.system("kill {}".format(pid))
 
@@ -43,7 +43,7 @@ class BasicTrafficScheduler:
 		self.durations = self.config["traffic_duration"]
 		assert len(self.traffic_scales) == len(self.durations)
 		# self.durations = [120, 120, 120, 120]
-		self.flow_types = ["video", "iot", "voip","ar"]
+		self.flow_types = ["video", "iot", "voip"]
 
 	def _do_start_traffic(self, hid, flow_type) -> (int, int):
 		hostname = "h{}".format(hid)
@@ -54,14 +54,20 @@ class BasicTrafficScheduler:
 		log_fn = "/tmp/{}.{}.gen.log".format(hostname, gen_id)
 		pkt_dir = self.config["traffic_dir"][flow_type]
 		ftype = -1
+		report = False
+		vlanid = -1
 		if flow_type == "video":
 			ftype = 0
+			vlanid = 0
 		elif flow_type == "iot":
 			ftype = 1
+			vlanid = 1
 		elif flow_type == "voip":
 			ftype = 2
-		elif flow_type=="ar":
-			ftype=3
+			vlanid = 2
+		elif flow_type == "ar":
+			ftype = 3
+			vlanid = 3
 		else:
 			raise Exception("Unsupported flow type")
 
@@ -81,7 +87,9 @@ class BasicTrafficScheduler:
 		         "--ftype {} " \
 		         "--cport {} " \
 		         "{} " \
-		         "--loss_dir {}" \
+		         "--loss_dir {} " \
+		         "{} " \
+		         "{} " \
 		         "--workers {}".format(
 			hid,
 			target_id_fn,
@@ -93,7 +101,9 @@ class BasicTrafficScheduler:
 			self.config["controller_socket_port"],
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else ""),
-			(16 if ftype==1 else 1 )
+			("--report" if report else ""),
+			("{}".format("--vlan {}".format(vlanid) if not report else "")),
+			1
 		)
 
 		commands = "{} {}".format(self.binary, params)
@@ -102,11 +112,11 @@ class BasicTrafficScheduler:
 		if enable_log:
 			# fp = open(log_fn, "w")
 			# pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
-			pid=run_ns_process_background(hostname,commands,output=log_fn)
+			pid = run_ns_process_background(hostname, commands, output=log_fn)
 		else:
 			# /dev/null
 			# pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
-			pid=run_ns_process_background(hostname,commands)
+			pid = run_ns_process_background(hostname, commands)
 		return pid, self.generator_id
 
 	def _do_start_traffic_to_target(self, hid, target_id, flow_type) -> (int, int):
@@ -118,14 +128,20 @@ class BasicTrafficScheduler:
 		log_fn = "/tmp/{}.{}.gen.log".format(hostname, gen_id)
 		pkt_dir = self.config["traffic_dir"][flow_type]
 		ftype = -1
+		report = False
+		vlanid = -1
 		if flow_type == "video":
 			ftype = 0
+			vlanid = 0
 		elif flow_type == "iot":
 			ftype = 1
+			vlanid = 1
 		elif flow_type == "voip":
 			ftype = 2
-		elif flow_type=="ar":
-			ftype=3
+			vlanid = 2
+		elif flow_type == "ar":
+			ftype = 3
+			vlanid = 3
 		else:
 			raise Exception("Unsupported flow type")
 
@@ -147,7 +163,9 @@ class BasicTrafficScheduler:
 		         "--ftype {} " \
 		         "--cport {} " \
 		         "{} " \
-		         "--loss_dir {}" \
+		         "--loss_dir {} " \
+		         "{} " \
+		         "{} " \
 		         "--workers {}".format(
 			hid,
 			target_id_fn,
@@ -160,7 +178,9 @@ class BasicTrafficScheduler:
 			self.config["controller_socket_port"],
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else ""),
-			(16 if ftype==1 else 1)
+			("--report" if report else ""),
+			("{}".format("--vlan {}".format(vlanid) if not report else "")),
+			1,
 		)
 
 		commands = "{} {}".format(self.binary, params)
@@ -168,11 +188,11 @@ class BasicTrafficScheduler:
 		if enable_log:
 			# fp = open(log_fn, "w")
 			# pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
-			pid=run_ns_process_background(hostname,commands,output=log_fn)
+			pid = run_ns_process_background(hostname, commands, output=log_fn)
 		else:
 			# /dev/null
 			# pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
-			pid=run_ns_process_background(hostname,commands)
+			pid = run_ns_process_background(hostname, commands)
 
 		# pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
 		return pid, self.generator_id
@@ -339,6 +359,19 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		if to_schedule:
 			self.schedule_record.append(pid)
 
+	def _start_traffic_to_target_list(self, hid, target_id_list, flow_type, to_schedule=False,
+	                                  cnt_process=4):
+		for target_id in target_id_list:
+			for _ in range(cnt_process):
+				self._start_traffic_to_target(hid, target_id, flow_type, to_schedule)
+
+	def _select_target_hosts(self, hid):
+		hlist = []
+		for i in range(66):
+			hlist.append(i)
+		hlist.remove(hid)
+		return hlist
+
 	def _stop_traffic(self, pid, flow_type, to_schedule=True):
 		kill_pid(pid)
 		genid = self.pid2genid[pid]
@@ -357,12 +390,18 @@ class TrafficScheduler2(BasicTrafficScheduler):
 			for _ in range(self.config["num_process"][ft][0]):
 				for hid in self.hostids:
 					self._start_traffic(hid, ft)
+		# for ft in flow_types:
+		# for _ in range(self.config["num_process"][ft][0]):
+		# for hid in self.hostids:
+		# dst_host_list = self._select_target_hosts(hid)
+		# self._start_traffic_to_target_list(hid, dst_host_list, ft)
 		debug("started {} process to form small flow".format(self.generator_id))
 		self.cv.acquire()
 
 		# medium,large 分别让20%和50%的主机产生额外的流量,每个主机产生15个进程
 
 		traffic_scale_idx = 0
+		cnt_large = -1
 		while True:
 			scale = self.traffic_scales[traffic_scale_idx]
 			duration = self.durations[traffic_scale_idx]
@@ -372,33 +411,60 @@ class TrafficScheduler2(BasicTrafficScheduler):
 			if scale == "small":
 				target_n_host = 0
 			elif scale == "medium":
-				target_n_host = math.ceil(n_host * 0.2)
+				# target_n_host = math.ceil(n_host * 0.2)
+				target_n_host = 1
 			elif scale == "large":
-				target_n_host = math.ceil(n_host * 0.5)
+				# target_n_host = math.ceil(n_host * 0.5)
+				target_n_host = 2
 			else:
 				err("Invalid traffic scale {}".format(scale))
 
 			# 每个选中的主机产生15个视频流
-			target_n_process = target_n_host * 15
+			# target_n_process = target_n_host * 15
 
 			# we need to add more generator process
 			# 选取连续的主机，让流量集中在某块区域发出去
-			if target_n_process > len(self.schedule_record):
-				n_add = target_n_process - len(self.schedule_record)
-				# sample host
-				# sampled_hosts = random.sample(self.hostids, n_add // 15)
-				n_sampled = n_add // 15
-				# 从start开始的某一段连续的主机,数量为n_sampled
-				start = random.sample(range(len(self.hostids) - n_sampled), 1)[0]
-				# debug("sampled host start from {}, number of hosts {}".format(start,n_sampled))
-				sampled_hosts = self.hostids[start:start + n_sampled]
-				for hid in sampled_hosts:
-					for _ in range(15):
-						self._start_traffic(hid, "video", True)
-
+			# if target_n_process > len(self.schedule_record):
+			# 	n_add = target_n_process - len(self.schedule_record)
+			# 	# sample host
+			# 	# sampled_hosts = random.sample(self.hostids, n_add // 15)
+			# 	n_sampled = n_add // 15
+			# 	# 从start开始的某一段连续的主机,数量为n_sampled
+			# 	start = random.sample(range(len(self.hostids) - n_sampled), 1)[0]
+			# 	# debug("sampled host start from {}, number of hosts {}".format(start,n_sampled))
+			# 	sampled_hosts = self.hostids[start:start + n_sampled]
+			# 	for hid in sampled_hosts:
+			# 		for _ in range(15):
+			# 			self._start_traffic(hid, "video", True)
+			if target_n_host == 2:
+				debug(cnt_large)
+				if cnt_large % 6 == 0:
+					for hid in [24, 25, 26]:
+						self._start_traffic_to_target_list(hid, [2, 3, 4, 13, 14, 15], "video",
+						                                   True)
+				if cnt_large % 6 == 1:
+					for hid in [4, 5, 6]:
+						self._start_traffic_to_target_list(hid, [15, 16, 17, 26, 27, 28], "video",
+						                                   True)
+				if cnt_large % 6 == 2:
+					for hid in [29, 30, 31]:
+						self._start_traffic_to_target_list(hid, [7, 8, 9, 18, 19, 20], "video",
+						                                   True)
+				if cnt_large % 6 == 3:
+					for hid in [7, 8, 9]:
+						self._start_traffic_to_target_list(hid, [18, 19, 20, 29, 30, 31], "video",
+						                                   True)
+				if cnt_large % 6 == 4:
+					for hid in [0, 1, 2]:
+						self._start_traffic_to_target_list(hid, [11, 12, 13, 22, 23, 24], "video",
+						                                   True)
+				if cnt_large % 6 == 5:
+					for hid in [19, 20, 21]:
+						self._start_traffic_to_target_list(hid, [30, 31, 32, 41, 42, 43], "video",
+						                                   True)
 			# we need to reduce generator
-			elif target_n_process < len(self.schedule_record):
-				to_be_killed = self.schedule_record[target_n_process:]
+			if target_n_host == 0:
+				to_be_killed = self.schedule_record[:]
 				for pid in to_be_killed:
 					self._stop_traffic(pid, "video", True)
 
@@ -406,6 +472,8 @@ class TrafficScheduler2(BasicTrafficScheduler):
 
 			if not self.cv.wait(duration):
 				traffic_scale_idx = (traffic_scale_idx + 1) % (len(self.durations))
+				if self.traffic_scales[traffic_scale_idx] == "large":
+					cnt_large += 1
 				debug("traffic mode changed to {}".format(self.traffic_scales[traffic_scale_idx]))
 				continue
 			else:
@@ -427,9 +495,6 @@ class TrafficScheduler2(BasicTrafficScheduler):
 		self.cv.acquire()
 		self.cv.notify()
 		self.cv.release()
-
-
-
 
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 import json
 from json import JSONDecodeError
 import socketserver
+
+from networkx.exception import NetworkXUnfeasible
 from utils.common_utils import info
 from sockets.server import Server, recvall2
 from routing.nn.minor_predictor import MultiProcessPredictor
@@ -11,10 +13,19 @@ from routing.instance import RoutingInput
 from utils.time_utils import now_in_milli
 from utils.log_utils import debug
 from typing import List
+from path_utils import get_prj_root
+
 
 # info("All models loaded")
-topo = NetworkTopo(load_pkl(topo_fn)[0])
-ksp = {}
+
+# topo = NetworkTopo(load_pkl(topo_fn)[0])
+topos=load_pkl(topo_fn)
+nets:List[NetworkTopo]=[]
+for idx in range(44):
+	nets.append(NetworkTopo(topos[idx]))
+
+# ksp = {}
+ksps=[{} for _ in range(44)]
 nodes = 66
 K = 3
 
@@ -24,10 +35,20 @@ src_dsts = [(s, d) for s in range(nodes) for d in range(nodes)]
 
 src_dsts = list(filter(lambda x: x[0] != x[1], src_dsts))
 
-for s, d in src_dsts:
-	large_volume_paths = topo.ksp(s, d, K)
-	low_latency_paths = topo.ksp(s, d, K, "delay")
-	ksp[(s, d)] = (large_volume_paths, low_latency_paths)
+# for s, d in src_dsts:
+# 	large_volume_paths = topo.ksp(s, d, K)
+# 	low_latency_paths = topo.ksp(s, d, K, "delay")
+# 	ksp[(s, d)] = (large_volume_paths, low_latency_paths)
+
+for idx in range(44):
+	net=nets[idx]
+	for s,d in src_dsts:
+		large_volume_paths=net.ksp(s,d,K)
+		low_latency_paths = net.ksp(s, d, K, "delay")
+		ksps[idx][(s, d)] = (large_volume_paths, low_latency_paths)
+	info("ksp {} calculated".format(idx))
+
+		
 
 info("ksp calculated")
 
@@ -65,7 +86,12 @@ class MinorModelHandler(socketserver.BaseRequestHandler):
 		# req_str = str(recvall2(request)), "ascii")
 		req_str = recvall2(self.request)
 		# vols = check(req_str)
-		vols: List[int] = json.loads(req_str)["volumes"]
+		req=json.loads(req_str)
+		vols: List[int] = req["volumes"]
+		topo_idx:int=req["topo_idx"]
+		debug("topo idx {}".format(topo_idx))
+		ksp=ksps[topo_idx]
+
 		shorted = False
 		if len(vols) == 66 * 65 * 3:
 			shorted = True
@@ -114,12 +140,12 @@ class MinorModelHandler(socketserver.BaseRequestHandler):
 			# res.append(low_latency_paths_[output.ar[i]])
 
 		# res = {"res": res}
-		self.request.sendall(bytes(json.dumps(res), "ascii"))
+		self.request.sendall(bytes(json.dumps(res)+"*", "ascii"))
 		debug("response sent")
 
 
 if __name__ == '__main__':
-	port = 1030
+	port = 1055
 	server = Server(port, MinorModelHandler)
 	debug("routing server started")
 	server.start()

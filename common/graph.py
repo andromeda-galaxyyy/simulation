@@ -1,5 +1,9 @@
+from utils.arch_utils import get_platform
+
 import matplotlib
-matplotlib.use("TkAgg")
+
+if "Darwin" in get_platform():
+	matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import networkx as nx
 from itertools import islice

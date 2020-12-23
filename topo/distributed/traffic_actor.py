@@ -12,7 +12,7 @@ import math
 from subprocess import DEVNULL
 from utils.file_utils import *
 import random
-from utils.process_utils import run_ns_process_background,kill_pid
+from utils.process_utils import run_ns_process_background, kill_pid
 
 target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
 
@@ -27,7 +27,7 @@ target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")
 
 
 class TrafficActor:
-	def __init__(self, config: Dict,hostids:List[int]):
+	def __init__(self, config: Dict, hostids: List[int]):
 		self.hostids = hostids
 		self.prev_mode = None
 		self.config = config
@@ -39,7 +39,7 @@ class TrafficActor:
 			"iot": [],
 			"video": [],
 			"voip": [],
-			"ar":[]
+			"ar": []
 		}
 		self.binary = self.config["traffic_generator"]
 
@@ -48,7 +48,7 @@ class TrafficActor:
 		self.durations = self.config["traffic_duration"]
 		assert len(self.traffic_scales) == len(self.durations)
 		# self.durations = [120, 120, 120, 120]
-		self.flow_types = ["video", "iot", "voip","ar"]
+		self.flow_types = ["video", "iot", "voip", "ar"]
 
 		self.schedule_record = []
 		random.seed(int(time.time()))
@@ -65,14 +65,21 @@ class TrafficActor:
 		log_fn = "/tmp/{}.{}.gen.log".format(hostname, gen_id)
 		pkt_dir = self.config["traffic_dir"][flow_type]
 		ftype = -1
+		report = False
+		vlanId = 0
 		if flow_type == "video":
 			ftype = 0
+			vlanId = 0
+			report = True
 		elif flow_type == "iot":
 			ftype = 1
+			vlanId = 1
 		elif flow_type == "voip":
 			ftype = 2
-		elif flow_type=="ar":
-			ftype=3
+			vlanId = 2
+		elif flow_type == "ar":
+			ftype = 3
+			vlanId = 3
 		else:
 			raise Exception("Unsupported flow type")
 
@@ -93,6 +100,8 @@ class TrafficActor:
 		         "--cport {} " \
 		         "{} " \
 		         "--loss_dir {} " \
+		         "{} " \
+		         "{} " \
 		         "--workers {}".format(
 			hid,
 			target_id_fn,
@@ -104,7 +113,9 @@ class TrafficActor:
 			self.config["controller_socket_port"],
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else ""),
-			(8 if ftype==1 else 1)
+			("--report" if report else ""),
+			("{}".format("--vlan {}".format(vlanId) if not report else "")),
+			(8 if ftype == 1 else 1)
 		)
 
 		commands = "{} {}".format(self.binary, params)
@@ -112,13 +123,13 @@ class TrafficActor:
 		enable_log = (int(self.config["enable_traffic_generator_log"]) == 1)
 		if enable_log:
 			# fp = open(log_fn, "w")
-			pid=run_ns_process_background(hostname,commands,output=log_fn)
-			# pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
+			pid = run_ns_process_background(hostname, commands, output=log_fn)
+		# pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
 		else:
 			# /dev/null
 			# pid = subprocess.Popen(commands.split(
 			# 	" "), stdout=DEVNULL, stderr=DEVNULL).pid
-			pid=run_ns_process_background(hostname,commands)
+			pid = run_ns_process_background(hostname, commands)
 		return pid, self.generator_id
 
 	def _do_start_traffic_to_target(self, hid, target_id, flow_type) -> (int, int):
@@ -130,14 +141,21 @@ class TrafficActor:
 		log_fn = "/tmp/{}.{}.gen.log".format(hostname, gen_id)
 		pkt_dir = self.config["traffic_dir"][flow_type]
 		ftype = -1
+		report = False
+		vlanId = 0
 		if flow_type == "video":
 			ftype = 0
+			report = True
+			vlanId = 0
 		elif flow_type == "iot":
 			ftype = 1
+			vlanId = 1
 		elif flow_type == "voip":
 			ftype = 2
-		elif flow_type=="ar":
-			ftype=3
+			vlanId = 2
+		elif flow_type == "ar":
+			ftype = 3
+			vlanId = 3
 		else:
 			raise Exception("Unsupported flow type")
 
@@ -160,6 +178,8 @@ class TrafficActor:
 		         "--cport {} " \
 		         "{} " \
 		         "--loss_dir {} " \
+		         "{} " \
+		         "{} " \
 		         "--workers {}".format(
 			hid,
 			target_id_fn,
@@ -172,7 +192,9 @@ class TrafficActor:
 			self.config["controller_socket_port"],
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else ""),
-			(8 if ftype==1 else 1),
+			("--report" if report else ""),
+			("{}".format("--vlan {}".format(vlanId)) if not report else ""),
+			(8 if ftype == 1 else 1),
 		)
 
 		commands = "{} {}".format(self.binary, params)
@@ -180,12 +202,12 @@ class TrafficActor:
 		if enable_log:
 			# fp = open(log_fn, "w")
 			# pid = subprocess.Popen(commands.split(" "), stdout=fp, stderr=fp).pid
-			pid=run_ns_process_background(hostname,commands,output=log_fn)
+			pid = run_ns_process_background(hostname, commands, output=log_fn)
 		else:
 			# /dev/null
 			# pid = subprocess.Popen(commands.split(
 			# 	" "), stdout=DEVNULL, stderr=DEVNULL).pid
-			pid=run_ns_process_background(hostname,commands)
+			pid = run_ns_process_background(hostname, commands)
 
 		# pid = subprocess.Popen(commands.split(" "), stdout=DEVNULL, stderr=DEVNULL).pid
 		return pid, self.generator_id
@@ -237,7 +259,7 @@ class TrafficActor:
 						for hid in self.hostids:
 							self._start_traffic(hid, ft)
 				debug("started {} process to form small flow".format(self.generator_id))
-				self.prev_mode=mode
+				self.prev_mode = mode
 				return
 			elif mode == "large":
 				# not implemented
@@ -284,13 +306,13 @@ class TrafficActor:
 			kill_pid(pid)
 
 		# 保险起见
-		os.system("for p in `pgrep '^gen$'`;do kill $p;done")
+		os.system("for p in `pgrep '^gogen$'`;do kill $p;done")
 		self.processes = {
 			"iot": [],
 			"video": [],
 			"voip": [],
-			"ar":[],
+			"ar": [],
 		}
 		self.genid2pid = {}
 		self.pid2genid = {}
-		self.prev_mode=None
+		self.prev_mode = None

@@ -202,4 +202,7 @@ telemetry/port
 
 manger.main.sh
 **/**/*.json
+*.json
+*.sh
 
+traffic/gogen
