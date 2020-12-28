@@ -1,3 +1,6 @@
 [submodule "traffic/gogen"]
 	path = traffic/gogen
 	url = https://github.com/andromeda-galaxyyy/traffic.git
+[submodule "utils/timesync"]
+	path = utils/timesync
+	url = http://git.code.sf.net/p/linuxptp/code
