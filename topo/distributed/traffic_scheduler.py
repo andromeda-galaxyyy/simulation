@@ -58,6 +58,7 @@ class BasicTrafficScheduler:
 		vlanid = -1
 		if flow_type == "video":
 			ftype = 0
+			report=True
 			vlanid = 0
 		elif flow_type == "iot":
 			ftype = 1
@@ -132,6 +133,7 @@ class BasicTrafficScheduler:
 		vlanid = -1
 		if flow_type == "video":
 			ftype = 0
+			report=True
 			vlanid = 0
 		elif flow_type == "iot":
 			ftype = 1

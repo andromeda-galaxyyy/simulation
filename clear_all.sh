@@ -40,4 +40,4 @@ pkill -f '^golisten$'
 pkill "ovs-tcpdump"
 pkill "tcpdump"
 
-service docker restart
+# service docker restart
