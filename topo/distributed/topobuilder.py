@@ -1028,8 +1028,9 @@ class TopoBuilder:
 			up_interface(p1)
 			up_interface(p2)
 
-			add_tc(p1, bandwidth=band, delay=None)
-			add_tc(p2, bandwidth=band, delay=None)
+			if is_server:
+				add_tc(p1, bandwidth=band, delay=None)
+				add_tc(p2, bandwidth=band, delay=None)
 
 
 	def start_telemetry(self):

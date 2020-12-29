@@ -206,3 +206,4 @@ manger.main.sh
 *.sh
 
 traffic/gogen
+ topo/distributed/rate.config.json

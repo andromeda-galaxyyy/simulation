@@ -83,14 +83,14 @@
     "supplementary": [
         {
             "intf": "enp59s0f0",
-            "neighbors": [0,11],
-            "qos": [[10,0,0,0],[10,10,0,0]],
+            "neighbors": [11],
+            "qos": [[10,10,0,0]],
             "tag": "server"
         },
         {
            "intf": "enp59s0f1",
-            "neighbors": [54,65],
-            "qos": [[500,10,0,0],[500,10,0,0]],
+            "neighbors": [12],
+            "qos": [[500,10,0,0]],
             "tag": "client"
         }
     ],
