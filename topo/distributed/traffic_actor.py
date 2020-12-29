@@ -102,6 +102,7 @@ class TrafficActor:
 		         "--loss_dir {} " \
 		         "{} " \
 		         "{} " \
+				 "--storefcounter " \
 		         "--workers {}".format(
 			hid,
 			target_id_fn,
@@ -115,7 +116,7 @@ class TrafficActor:
 			(loss_dir if enable_loss else ""),
 			("--report" if report else ""),
 			("{}".format("--vlan {}".format(vlanId) if not report else "")),
-			(8 if ftype == 1 else 1)
+			(4 if ftype == 1 else 1)
 		)
 
 		commands = "{} {}".format(self.binary, params)
@@ -180,6 +181,7 @@ class TrafficActor:
 		         "--loss_dir {} " \
 		         "{} " \
 		         "{} " \
+				 "--storefcounter "\
 		         "--workers {}".format(
 			hid,
 			target_id_fn,
@@ -194,7 +196,7 @@ class TrafficActor:
 			(loss_dir if enable_loss else ""),
 			("--report" if report else ""),
 			("{}".format("--vlan {}".format(vlanId)) if not report else ""),
-			(8 if ftype == 1 else 1),
+			(4 if ftype == 1 else 1),
 		)
 
 		commands = "{} {}".format(self.binary, params)
