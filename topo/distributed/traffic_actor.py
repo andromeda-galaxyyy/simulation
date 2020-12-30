@@ -58,6 +58,8 @@ class TrafficActor:
 
 	def _do_start_traffic(self, hid, flow_type) -> (int, int):
 		hostname = "h{}".format(hid)
+		rip=self.config["redis_ip"]
+		rport=self.config["redis_port"]
 		intf = "{}-eth0".format(hostname)
 		target_id_fn = os.path.join(target_id_dir, "{}.targetids".format(hostname))
 		gen_id = self.generator_id
@@ -103,7 +105,9 @@ class TrafficActor:
 		         "{} " \
 		         "{} " \
 				 "--storefcounter " \
-		         "--workers {}".format(
+		         "--workers {} " \
+		         "--rip {} " \
+		         "--rport {}".format(
 			hid,
 			target_id_fn,
 			pkt_dir,
@@ -116,7 +120,9 @@ class TrafficActor:
 			(loss_dir if enable_loss else ""),
 			("--report" if report else ""),
 			("{}".format("--vlan {}".format(vlanId) if not report else "")),
-			(4 if ftype == 1 else 1)
+			(4 if ftype == 1 else 1),
+			rip,
+			rport
 		)
 
 		commands = "{} {}".format(self.binary, params)
@@ -136,6 +142,8 @@ class TrafficActor:
 	def _do_start_traffic_to_target(self, hid, target_id, flow_type) -> (int, int):
 		hostname = "h{}".format(hid)
 		intf = "{}-eth0".format(hostname)
+		rip=self.config["redis_ip"]
+		rport=self.config["redis_port"]
 		target_id_fn = os.path.join(target_id_dir, "{}.targetids".format(hostname))
 		gen_id = self.generator_id
 		self.generator_id += 1
@@ -182,7 +190,9 @@ class TrafficActor:
 		         "{} " \
 		         "{} " \
 				 "--storefcounter "\
-		         "--workers {}".format(
+		         "--workers {} " \
+		         "--rip {} " \
+		         "--rport {}".format(
 			hid,
 			target_id_fn,
 			pkt_dir,
@@ -197,6 +207,8 @@ class TrafficActor:
 			("--report" if report else ""),
 			("{}".format("--vlan {}".format(vlanId)) if not report else ""),
 			(4 if ftype == 1 else 1),
+			rip,
+			rport
 		)
 
 		commands = "{} {}".format(self.binary, params)

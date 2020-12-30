@@ -757,7 +757,8 @@ class TopoBuilder:
 		self._diff_local_links(new_topo)
 		self._diff_gre_links(new_topo)
 		if not self.host_found:
-			time.sleep(5)
+			info("Wait for all links setup")
+			time.sleep(20)
 			self._do_find_host()
 			self.host_found = True
 			# setup up tc
