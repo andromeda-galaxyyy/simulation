@@ -63,7 +63,7 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		req_str = recvall2(self.request)
 		debug(req_str)
 		if req_str == "default":
-			res = {"default": default_routing[0]}
+			res = {"res1": default_routing[0]}
 		else:
 			# video,iot,voip,ar
 			res = {
@@ -73,10 +73,10 @@ class DumbHandler(socketserver.BaseRequestHandler):
 				"3": default_routing[0],
 			}
 		debug(res)
-		self.request.sendall(bytes(json.dumps(res), "ascii"))
+		self.request.sendall(bytes(json.dumps(res)+"*", "ascii"))
 
 
 if __name__ == '__main__':
-	port = 1038
+	port = 1053
 	server = Server(port, DumbHandler)
 	server.start()

@@ -58,8 +58,8 @@ class TrafficActor:
 
 	def _do_start_traffic(self, hid, flow_type) -> (int, int):
 		hostname = "h{}".format(hid)
-		rip=self.config["redis_ip"]
-		rport=self.config["redis_port"]
+		rip = self.config["redis_ip"]
+		rport = self.config["redis_port"]
 		intf = "{}-eth0".format(hostname)
 		target_id_fn = os.path.join(target_id_dir, "{}.targetids".format(hostname))
 		gen_id = self.generator_id
@@ -104,7 +104,7 @@ class TrafficActor:
 		         "--loss_dir {} " \
 		         "{} " \
 		         "{} " \
-				 "--storefcounter " \
+		         "--storefcounter " \
 		         "--workers {} " \
 		         "--rip {} " \
 		         "--rport {}".format(
@@ -120,7 +120,7 @@ class TrafficActor:
 			(loss_dir if enable_loss else ""),
 			("--report" if report else ""),
 			("{}".format("--vlan {}".format(vlanId) if not report else "")),
-			(4 if ftype == 1 else 1),
+			(16 if ftype == 1 else 1),
 			rip,
 			rport
 		)
@@ -142,8 +142,8 @@ class TrafficActor:
 	def _do_start_traffic_to_target(self, hid, target_id, flow_type) -> (int, int):
 		hostname = "h{}".format(hid)
 		intf = "{}-eth0".format(hostname)
-		rip=self.config["redis_ip"]
-		rport=self.config["redis_port"]
+		rip = self.config["redis_ip"]
+		rport = self.config["redis_port"]
 		target_id_fn = os.path.join(target_id_dir, "{}.targetids".format(hostname))
 		gen_id = self.generator_id
 		self.generator_id += 1
@@ -189,7 +189,7 @@ class TrafficActor:
 		         "--loss_dir {} " \
 		         "{} " \
 		         "{} " \
-				 "--storefcounter "\
+		         "--storefcounter " \
 		         "--workers {} " \
 		         "--rip {} " \
 		         "--rport {}".format(
@@ -206,7 +206,7 @@ class TrafficActor:
 			(loss_dir if enable_loss else ""),
 			("--report" if report else ""),
 			("{}".format("--vlan {}".format(vlanId)) if not report else ""),
-			(4 if ftype == 1 else 1),
+			(16 if ftype == 1 else 1),
 			rip,
 			rport
 		)
@@ -330,3 +330,4 @@ class TrafficActor:
 		self.genid2pid = {}
 		self.pid2genid = {}
 		self.prev_mode = None
+		self.generator_id=0

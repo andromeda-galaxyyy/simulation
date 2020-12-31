@@ -5,17 +5,19 @@ from time import sleep
 from typing import List, Set, Dict, Tuple, Optional
 import hashlib
 from path_utils import get_prj_root
-from utils.log_utils import debug, info, err
+from utils.log_utils import debug, info, err,warn
 from topo.distributed.traffic_scheduler import TrafficScheduler, TrafficScheduler2
 import time
 from utils.file_utils import check_file, create_dir, del_dir, dir_exsit, load_pkl, load_json
 from topo.distributed.traffic_actor import TrafficActor
 import subprocess
+from utils.addr_utils import get_ipv4net_address
 from utils.file_utils import del_dir, create_dir
 from utils.process_utils import kill_pid
 from telemetry.telemeter import Telemeter
 from telemetry.base_telemeter import BaseTelemeter
 from collections import defaultdict
+from utils.process_utils import run_and_get_output
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
@@ -776,10 +778,26 @@ class TopoBuilder:
 		self.telemeter=Telemeter(self.local_switch_ids,new_topo,self.config)
 
 	def _set_up_nat(self):
+
 		debug("Setting up nat")
 		os.system("echo '1' > /proc/sys/net/ipv4/ip_forward")
 		intf = self.inetintf
+		# get ip addr of intf
+		cmd="ip -o -f inet addr show |grep "+intf+" | awk '/scope global/ {print $4}'"
+		ip=None
+		try:
+			ip=run_and_get_output(cmd)
+		except Exception as e:
+			err("cannot get ip address of {}".format(intf))
+			err(str(e))
 
+		warn("if your intf ip address does'nt stay in the same network as redis,some function may not work")
+
+		subnet=get_ipv4net_address(ip)
+		#change ip route metric
+		info("change ip route metric")
+		os.system("ip route add {} dev {} metric 1".format(subnet,intf))
+		info("change ip route metric done")
 		worker_id = self.id
 		nat2_ip = "10.1.0.254"
 		debug("nat out ip {}/16".format(nat2_ip))
