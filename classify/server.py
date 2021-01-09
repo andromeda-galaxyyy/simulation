@@ -1,6 +1,7 @@
 import json
 from json import JSONDecodeError
 import socketserver
+from typing import Dict, List
 from utils.common_utils import is_digit, info, err, debug
 from sockets.server import Server, recvall, recvall2
 # from classify.model import Dumb
@@ -84,6 +85,14 @@ def dt_calculated(stats):
 	model = dts[pid % num_process]
 	return int(model.predict([stats])[0])
 
+def dt_calculated_list(stats:List):
+	global dts
+	pid=os.getpid()
+	model=dts[pid%num_process]
+	# debug(len(stats))
+	res=model.predict(stats)
+	res=[int(r) for r in res]
+	return res
 
 class DTHandler(socketserver.BaseRequestHandler):
 	pool = Pool(num_process)
@@ -93,18 +102,42 @@ class DTHandler(socketserver.BaseRequestHandler):
 		if req_content == "check":
 			self.request.sendall(bytes("ok", "ascii"))
 			return
-		stats = check(req_content)
-		if stats == -1:
-			err("invalid")
-			self.request.close()
+
+		obj:Dict=None
+		try:
+			obj = json.loads(req_content)
+		except JSONDecodeError:
+			err("cannot decode json")
+			return 
+
+		if "stats" not in list(obj.keys()) and "num" not in list(obj.keys()):
+			return 
+			
+		if "stats" in list(obj.keys()):
+			stats = obj["stats"]
+			if len(stats) != 8:
+				self.request.close()
+				return
+			resp = {"res": 0}
+
+			future = DTHandler.pool.apply_async(dt_calculated, args=(stats,))
+			resp["res"] = future.get()
+			self.request.sendall(bytes(json.dumps(resp), "ascii"))
 			return
-		resp = {"res": 0}
-
-		future = DTHandler.pool.apply_async(dt_calculated, args=(stats,))
-		resp["res"] = future.get()
-		self.request.sendall(bytes(json.dumps(resp), "ascii"))
-
-
+		if "num" in list(obj.keys()):
+			n=int(obj["num"])
+			resp={
+				"num":n
+			}
+			stats=[]
+			for d in obj["data"]:
+				stats.append(d["stats"])
+			future=DTHandler.pool.apply_async(dt_calculated_list,args=(stats,))
+			resp["res"]=future.get()
+			self.request.sendall(bytes(json.dumps(resp)+"*",encoding="ascii"))
+			return
+			
+			
 if __name__ == '__main__':
 	import argparse
 

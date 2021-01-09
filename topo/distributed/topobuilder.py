@@ -783,21 +783,21 @@ class TopoBuilder:
 		os.system("echo '1' > /proc/sys/net/ipv4/ip_forward")
 		intf = self.inetintf
 		# get ip addr of intf
-		cmd="ip -o -f inet addr show |grep "+intf+" | awk '/scope global/ {print $4}'"
-		ip=None
-		try:
-			ip=run_and_get_output(cmd)
-		except Exception as e:
-			err("cannot get ip address of {}".format(intf))
-			err(str(e))
-
-		warn("if your intf ip address does'nt stay in the same network as redis,some function may not work")
-
-		subnet=get_ipv4net_address(ip)
-		#change ip route metric
-		info("change ip route metric")
-		os.system("ip route add {} dev {} metric 1".format(subnet,intf))
-		info("change ip route metric done")
+		# cmd="ip -o -f inet addr show |grep "+intf+" | awk '/scope global/ {print $4}'"
+		# ip=None
+		# try:
+		# 	ip=run_and_get_output(cmd)
+		# except Exception as e:
+		# 	err("cannot get ip address of {}".format(intf))
+		# 	err(str(e))
+		#
+		# warn("if your intf ip address does'nt stay in the same network as redis,some function may not work")
+		#
+		# subnet=get_ipv4net_address(ip)
+		# #change ip route metric
+		# info("change ip route metric")
+		# os.system("ip route add {} dev {} metric 1".format(subnet,intf))
+		# info("change ip route metric done")
 		worker_id = self.id
 		nat2_ip = "10.1.0.254"
 		debug("nat out ip {}/16".format(nat2_ip))

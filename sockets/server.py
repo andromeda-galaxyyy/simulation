@@ -6,6 +6,7 @@ import threading
 import socketserver
 from utils.common_utils import is_digit
 from multiprocessing import Pool
+from utils.log_utils import debug,info
 
 socketserver.TCPServer.allow_reuse_address = True
 
@@ -80,7 +81,33 @@ class Handler(socketserver.BaseRequestHandler):
 		self.request.sendall(response)
 
 
+class DummyClassifierHandler(socketserver.BaseRequestHandler):
+	def handle(self) -> None:
+		data=recvall2(self.request)
+		# request
+		'''
+		{
+			"num":50,
+			"data":[]
+		}
+		'''
+		# response
+		'''
+		{
+			"num":50,
+			"res":[0,0]
+		}
+		'''
+		data=json.loads(data)
+		debug(data["num"])
+		n=int(data["num"])
+		resp={
+			"num":n,
+			"res":[0 for _ in range(n)]
+		}
+		self.request.sendall(bytes(json.dumps(resp)+"*",encoding="utf-8"))
+
 if __name__ == '__main__':
-	port = 9999
-	server = Server(9999, Handler)
+	port = 5000
+	server = Server(port, DummyClassifierHandler)
 	server.start()

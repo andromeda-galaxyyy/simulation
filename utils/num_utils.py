@@ -13,3 +13,11 @@ def normalize(x):
 
 def uniform(low, up):
 	return np.random.uniform(low, up)
+
+
+def is_digit(x:str)->bool:
+    try:
+        float(x)
+        return True
+    except:
+        return False

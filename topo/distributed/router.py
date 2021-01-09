@@ -120,12 +120,29 @@ class Telemetry(Resource):
 		return '',200
 
 
+
+class Classifier(Resource):
+	def post(self):
+		debug("start classifier demo")
+		if builder is None:
+			return '',404
+
+		return '',200
+
+	def delete(self):
+		debug("stop classifier")
+		if builder is None:
+			return '',404
+
+		return '',200
+
 api.add_resource(Config, "/config")
 api.add_resource(Topo, "/topo")
 api.add_resource(Traffic, "/traffic")
 api.add_resource(Supplementry, "/supplementary")
 api.add_resource(Traffic2,"/traffic2")
 api.add_resource(Telemetry,"/telemetry")
+api.add_resource(Classifier,"/classifier")
 
 
 @atexit.register

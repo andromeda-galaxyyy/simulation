@@ -58,7 +58,7 @@ class BasicTrafficScheduler:
 		vlanid = -1
 		if flow_type == "video":
 			ftype = 0
-			report=True
+			# report=True
 			vlanid = 0
 		elif flow_type == "iot":
 			ftype = 1
@@ -133,7 +133,7 @@ class BasicTrafficScheduler:
 		vlanid = -1
 		if flow_type == "video":
 			ftype = 0
-			report=True
+			# report=True
 			vlanid = 0
 		elif flow_type == "iot":
 			ftype = 1
@@ -438,37 +438,37 @@ class TrafficScheduler2(BasicTrafficScheduler):
 			# 	for hid in sampled_hosts:
 			# 		for _ in range(15):
 			# 			self._start_traffic(hid, "video", True)
-			if target_n_host == 2:
-				debug(cnt_large)
-				if cnt_large % 6 == 0:
-					for hid in [24, 25, 26]:
-						self._start_traffic_to_target_list(hid, [2, 3, 4, 13, 14, 15], "video",
-						                                   True)
-				if cnt_large % 6 == 1:
-					for hid in [4, 5, 6]:
-						self._start_traffic_to_target_list(hid, [15, 16, 17, 26, 27, 28], "video",
-						                                   True)
-				if cnt_large % 6 == 2:
-					for hid in [29, 30, 31]:
-						self._start_traffic_to_target_list(hid, [7, 8, 9, 18, 19, 20], "video",
-						                                   True)
-				if cnt_large % 6 == 3:
-					for hid in [7, 8, 9]:
-						self._start_traffic_to_target_list(hid, [18, 19, 20, 29, 30, 31], "video",
-						                                   True)
-				if cnt_large % 6 == 4:
-					for hid in [0, 1, 2]:
-						self._start_traffic_to_target_list(hid, [11, 12, 13, 22, 23, 24], "video",
-						                                   True)
-				if cnt_large % 6 == 5:
-					for hid in [19, 20, 21]:
-						self._start_traffic_to_target_list(hid, [30, 31, 32, 41, 42, 43], "video",
-						                                   True)
+			# if target_n_host == 2:
+			# 	debug(cnt_large)
+			# 	if cnt_large % 6 == 0:
+			# 		for hid in [24, 25, 26]:
+			# 			self._start_traffic_to_target_list(hid, [2, 3, 4, 13, 14, 15], "video",
+			# 			                                   True)
+			# 	if cnt_large % 6 == 1:
+			# 		for hid in [4, 5, 6]:
+			# 			self._start_traffic_to_target_list(hid, [15, 16, 17, 26, 27, 28], "video",
+			# 			                                   True)
+			# 	if cnt_large % 6 == 2:
+			# 		for hid in [29, 30, 31]:
+			# 			self._start_traffic_to_target_list(hid, [7, 8, 9, 18, 19, 20], "video",
+			# 			                                   True)
+			# 	if cnt_large % 6 == 3:
+			# 		for hid in [7, 8, 9]:
+			# 			self._start_traffic_to_target_list(hid, [18, 19, 20, 29, 30, 31], "video",
+			# 			                                   True)
+			# 	if cnt_large % 6 == 4:
+			# 		for hid in [0, 1, 2]:
+			# 			self._start_traffic_to_target_list(hid, [11, 12, 13, 22, 23, 24], "video",
+			# 			                                   True)
+			# 	if cnt_large % 6 == 5:
+			# 		for hid in [19, 20, 21]:
+			# 			self._start_traffic_to_target_list(hid, [30, 31, 32, 41, 42, 43], "video",
+			# 			                                   True)
 			# we need to reduce generator
-			if target_n_host == 0:
-				to_be_killed = self.schedule_record[:]
-				for pid in to_be_killed:
-					self._stop_traffic(pid, "video", True)
+			# if target_n_host == 0:
+			# 	to_be_killed = self.schedule_record[:]
+			# 	for pid in to_be_killed:
+			# 		self._stop_traffic(pid, "video", True)
 
 			# debug(self.schedule_record)
 
