@@ -11,7 +11,6 @@ from path_utils import get_prj_root
 from utils.process_utils import start_new_thread_and_run
 import os
 
-
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
 
@@ -87,62 +86,63 @@ class Traffic2(Resource):
 	def post(self):
 		debug("diff traffic mode")
 		data = request.get_json(force=True)
-		mode=data["mode"]
+		mode = data["mode"]
 		builder.diff_traffic_mode(mode)
 		return '', 200
 
 	def delete(self):
 		debug("stop traffic")
 		if builder is not None:
-			start_new_thread_and_run(builder.stop_traffic_actor,args=())
-		return '',200
+			start_new_thread_and_run(builder.stop_traffic_actor, args=())
+		return '', 200
 
 
 class Supplementry(Resource):
 	def post(self):
 		debug("Setup supplementary topo")
-		data=request.get_json(force=True)
-		is_server=data["server"]
+		data = request.get_json(force=True)
+		is_server = data["server"]
 		builder.setup_supplementary_topo(is_server=is_server)
 		return '', 200
+
 
 class Telemetry(Resource):
 	def post(self):
 		debug("Start telemetry")
-		data=request.get_json(force=True)
-		start_new_thread_and_run(builder.start_telemetry,args=())
-		return '',200
+		data = request.get_json(force=True)
+		start_new_thread_and_run(builder.start_telemetry, args=())
+		return '', 200
 
 	def delete(self):
 		debug("Stop telemetry")
 		if builder is not None:
-			start_new_thread_and_run(builder.stop_telemetry,args=())
-		return '',200
-
+			start_new_thread_and_run(builder.stop_telemetry, args=())
+		return '', 200
 
 
 class Classifier(Resource):
 	def post(self):
 		debug("start classifier demo")
 		if builder is None:
-			return '',404
-
-		return '',200
+			return '', 404
+		builder.start_classifier_demo()
+		return '', 200
 
 	def delete(self):
 		debug("stop classifier")
 		if builder is None:
-			return '',404
+			return '', 404
+		builder.stop_classifier_demo()
+		return '', 200
 
-		return '',200
 
 api.add_resource(Config, "/config")
 api.add_resource(Topo, "/topo")
 api.add_resource(Traffic, "/traffic")
 api.add_resource(Supplementry, "/supplementary")
-api.add_resource(Traffic2,"/traffic2")
-api.add_resource(Telemetry,"/telemetry")
-api.add_resource(Classifier,"/classifier")
+api.add_resource(Traffic2, "/traffic2")
+api.add_resource(Telemetry, "/telemetry")
+api.add_resource(Classifier, "/classifier")
 
 
 @atexit.register

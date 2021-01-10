@@ -18,6 +18,7 @@ from telemetry.telemeter import Telemeter
 from telemetry.base_telemeter import BaseTelemeter
 from collections import defaultdict
 from utils.process_utils import run_and_get_output
+from topo.distributed.classifier_scheduler import ClassifierScheduler
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
@@ -483,6 +484,8 @@ class TopoBuilder:
 		self.vars={
 			"tc":{}
 		}
+
+		self.classifier_scheduler:ClassifierScheduler=ClassifierScheduler(self.config,self.hosts)
 
 	def _set_up_switches(self):
 		k = self.config["host_per_switch"]
@@ -1060,6 +1063,19 @@ class TopoBuilder:
 		if self.telemeter is not None:
 			self.telemeter.stop()
 
+	def start_classifier_demo(self):
+		if self.classifier_scheduler is not None:
+			self.classifier_scheduler.start()
+			debug("classifier scheduler start")
+			return
+		err("classifier scheduler not initiated")
+
+	def stop_classifier_demo(self):
+		if self.classifier_scheduler is not None:
+			self.classifier_scheduler.stop()
+			debug("classifier scheduler stop")
+			return
+		err("classfifier scheduler not initiated")
 
 if __name__ == '__main__':
 	config = load_json(os.path.join(
