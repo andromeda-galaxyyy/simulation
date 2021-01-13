@@ -485,7 +485,7 @@ class TopoBuilder:
 			"tc":{}
 		}
 
-		self.classifier_scheduler:ClassifierScheduler=ClassifierScheduler(self.config,self.hosts)
+		self.classifier_scheduler:ClassifierScheduler=ClassifierScheduler(self.config,self.hostids)
 
 	def _set_up_switches(self):
 		k = self.config["host_per_switch"]
@@ -781,7 +781,6 @@ class TopoBuilder:
 		self.telemeter=Telemeter(self.local_switch_ids,new_topo,self.config)
 
 	def _set_up_nat(self):
-
 		debug("Setting up nat")
 		os.system("echo '1' > /proc/sys/net/ipv4/ip_forward")
 		intf = self.inetintf
@@ -922,6 +921,7 @@ class TopoBuilder:
 		os.system("iptables-restore < {}".format(iptables_bk))
 		self.__stop_tcpdump()
 		self.stop_telemetry()
+		self.stop_classifier_demo()
 
 	def _write_targetids(self):
 		target_id_dir = os.path.join(get_prj_root(), "topo/distributed/targetids")

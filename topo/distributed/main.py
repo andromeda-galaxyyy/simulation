@@ -100,6 +100,8 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 			      "> 9.set up supplementary topo\n"
 			      "> 10.(experimental) start traffic actor\n"
 			      "> 11.(experimental) stop traffic actor\n"
+			      "> 12. start classifier demo\n"
+			      "> 13. stop classifier demo\n"
 			      "> Press Enter to print this msg")
 
 			command = input(">Input commands:\n").strip()
@@ -111,6 +113,16 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				continue
 
 			command = int(command)
+			if command==12:
+				for idx,ip in enumerate(config["manage_ip"]):
+					url="http://{}:{}/classifier".format(ip,5000)
+					start_new_thread_and_run(do_post,[url,{"data":"nothing"}])
+					continue
+			if command==13:
+				for idx,ip in enumerate(config["manage_ip"]):
+					url="http://{}:{}/classifier".format(ip,5000)
+					start_new_thread_and_run(do_delete,[url])
+					continue
 
 			if command == 0:
 				intfs = config["workers_intf"]

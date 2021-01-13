@@ -16,7 +16,7 @@ class ClassifierScheduler:
 		classifier_port = config["classifier_port"]
 		redis_ip = config["redis_ip"]
 		redis_port = config["redis_port"]
-		redis_db = self.config["redis_db"]
+		redis_db = config["redis_db"]
 		intf = "h{}-eth0".format(host)
 		pkts_dir = config["pkts_dir"]
 		binary = config["binary_file"]
@@ -33,7 +33,7 @@ class ClassifierScheduler:
 		          "--target {}".format(
 			binary,
 			pkts_dir,
-			2,
+			3,
 			classifier_ip,
 			classifier_port,
 			intf,
@@ -50,7 +50,9 @@ class ClassifierScheduler:
 
 	def start(self):
 		config: Dict = self.config["classifier_demo"]
-		log_to_file: bool = int(config["log"]) == 0
+		log_to_file: bool = int(config["log"]) == 1
+		if log_to_file:
+			debug("log to file")
 		log_dir: str = config["log_dir"]
 		if dir_exsit(log_dir):
 			del_dir(log_dir)
