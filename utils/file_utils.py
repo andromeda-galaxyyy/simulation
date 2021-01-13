@@ -76,3 +76,6 @@ def walk_dir(d:str,filter_func:Callable[[str],bool])->List[str]:
 
     return res
 
+import os
+from path_utils import get_prj_root
+static_dir=os.path.join(get_prj_root(),"static")
