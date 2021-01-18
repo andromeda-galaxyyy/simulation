@@ -201,6 +201,7 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 
 			if command == 11:
 				traffictimer.stop()
+				traffictimer = traffic_timer(config)
 				continue
 
 		except KeyboardInterrupt:

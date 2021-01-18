@@ -451,7 +451,7 @@ class TopoBuilder:
 
 		self.hosts: List[tuple] = []
 		self.remote_ips: List[str] = config["workers_ip"]
-		self.ip: str = config["workers_ip"][self.id]
+		# self.ip: str = config["workers_ip"][self.id]
 
 		self.tcpdump = False
 		self.tcpdump_opts = {
