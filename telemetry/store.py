@@ -12,6 +12,8 @@ class Store:
 			info("Connect to redis {}:{} successfully".format(ip, port))
 
 	def write_delay(self, link: Tuple[int, int], delay: float) -> bool:
+		if link[0]>link[1]:
+			link[0],link[1]=link[1],link[0]
 		key = "{}-{}.delay".format(link[0], link[1])
 		ts = now_in_milli()
 		return 1 == self.handle.zadd(key, {
@@ -19,6 +21,8 @@ class Store:
 		})
 
 	def write_loss(self, link: Tuple[int, int], loss: float) -> bool:
+		if link[0]>link[1]:
+			link[0],link[1]=link[1],link[0]
 		key = "{}-{}.loss".format(link[0], link[1])
 		ts = now_in_milli()
 		return 1 == self.handle.zadd(key, {
@@ -29,7 +33,7 @@ if __name__ == '__main__':
 	store = Store("localhost", 6379, 7)
 	import random
 	from time import sleep
-	for _ in range(10):
+	for _ in range(10000):
 		sleep(0.5)
 		assert store.write_delay((1, 2), random.random())
 		assert store.write_loss((1, 2), random.random())
