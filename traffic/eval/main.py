@@ -1,8 +1,13 @@
 from os.path import pardir
 from path_utils import get_prj_root
 from utils.log_utils import debug,info,err,warn
+from utils.arch_utils import get_platform
 from utils.file_utils import read_lines
 import argparse
+import matplotlib 
+if "Darwin" in get_platform():
+    matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 from collections import namedtuple
 from typing import Dict,List,Tuple,NamedTuple
 DelayInstance=namedtuple("DelayInstance",field_names=["min","max","mean","std","label"])
@@ -24,10 +29,16 @@ delay_true=[5,10,20,50]
 loss_dirs=["/tmp/rxloss_1","/tmp/rxloss_2","/tmp/rxloss_4","/tmp/rxloss_6"]
 loss_true=[0.1,0.2,0.4,0.6]
 
+# boxplot 四合一
+# 每个delay一张图
+# https://matplotlib.org/3.1.1/gallery/statistics/boxplot_demo.html
 def plot_delay(delay_instances:List[DelayInstance],fn="/tmp/delay.png"):
     pass
 
+# boxplot 四合一
+# 每个loss一张图
 def plot_loss(loss_instances:List[LossInstance],fn="/tmp/loss.png"):
+
     pass
 
 def load()->Tuple[List[DelayInstance],List[LossInstance]]:
