@@ -1,4 +1,4 @@
-from utils.file_utils import save_pkl
+from utils.file_utils import load_json, save_pkl
 from utils.log_utils import debug, info, err
 from typing import Any, List, Tuple, Dict
 from sockets.client import send
@@ -15,10 +15,10 @@ class BaseTelemeter:
 		self.topo: List[List[List[int]]] = topo
 		self.config: Dict = config
 		self.sniffer_config = {
-			"iface": "h22-eth0",
+			"iface": "h0-eth0",
 			"filter": "udp port 8888",
 			"count": None,
-			"namespace": "h22"
+			"namespace": "h0"
 		}
 		self.vars = {}
 		self.not_self = False
@@ -66,6 +66,16 @@ class BaseTelemeter:
 
 	def start(self, links: List[Tuple[int, int]]):
 		# 计算monitor
+		if links is None:
+			links=[]
+			topo=load_json(os.path.join(get_prj_root(),"static/topo.json"))
+			for i in range(len(topo)):
+				for j in range(len(topo)):
+					if i>=j:continue 
+					if -1 not in topo[i][j]:
+						links.append((i,j))
+			assert len(links)==283
+			save_pkl(os.path.join(get_prj_root(),"static/telemetry.links.pkl"))
 		# if links is None:
 		# 	links = [(38, 39), (4, 5), (62, 61), (28, 17), (61, 50), (2, 1), (36, 35), (29, 28),
 		# 	         (14, 15), (39, 40), (5, 6),
@@ -87,62 +97,65 @@ class BaseTelemeter:
 		# 	         (8, 9), (49, 48), (65, 64),
 		# 	         (34, 23), (66, 65), (33, 22), (16, 5)]
 
-		# ret_code, msg, monitor_id = self._calculate_monitor(links)
-		# monitor_id = int(monitor_id) - 1
-		# if ret_code != 0:
-		# 	err("Error when calculate monitor {}".format(msg))
-		# 	return
-		# # 如果monitor不在本服务器上,返回
-		# if monitor_id not in self.ovsids:
-		# 	self.not_self = True
-		# 	debug("Noting todo on this server,return")
-		# 	return
-		# vlan_to_link = {}
-		# link_to_vlan = {}
-		# num = 1
-		# for i in range(len(self.topo)):
-		# 	for j in range(len(self.topo[i])):
-		# 		if -1 in self.topo[i][j]:
-		# 			continue
-		# 		vlan_to_link[num] = (i + 1, j + 1)
-		# 		link_to_vlan[(i + 1, j + 1)] = num
-		# 		num += 1
-		# vlan_to_link[num] = (self.vars["monitor"], 0)
-		# link_to_vlan[(self.vars["monitor"], 0)] = num
-		# self.vars["vlan_to_link"] = vlan_to_link
-		# self.vars["link_to_vlan"] = link_to_vlan
+		ret_code, msg, monitor_id = self._calculate_monitor(links)
+		monitor_id = int(monitor_id) - 1
+		if ret_code != 0:
+			err("Error when calculate monitor {}".format(msg))
+			return
+		# 如果monitor不在本服务器上,返回
+		if monitor_id not in self.ovsids:
+			self.not_self = True
+			debug("Noting todo on this server,return")
+			return
+		vlan_to_link = {}
+		link_to_vlan = {}
+		num = 1
+		for i in range(len(self.topo)):
+			for j in range(len(self.topo[i])):
+				if -1 in self.topo[i][j]:
+					continue
+				vlan_to_link[num] = (i + 1, j + 1)
+				link_to_vlan[(i + 1, j + 1)] = num
+				num += 1
+		vlan_to_link[num] = (self.vars["monitor"], 0)
+		link_to_vlan[(self.vars["monitor"], 0)] = num
+		self.vars["vlan_to_link"] = vlan_to_link
+		self.vars["link_to_vlan"] = link_to_vlan
 
-		# static_dir = os.path.join(get_prj_root(), "static")
-		# self.sniffer_config["link_to_vlan_fn"]=os.path.join(static_dir,"telemetry.link_to_vlan.pkl")
-		# save_pkl(os.path.join(static_dir, "telemetry.link_to_vlan.pkl"), link_to_vlan)
+		static_dir = os.path.join(get_prj_root(), "static")
+		self.sniffer_config["link_to_vlan_fn"]=os.path.join(static_dir,"telemetry.link_to_vlan.pkl")
+		save_pkl(os.path.join(static_dir, "telemetry.link_to_vlan.pkl"), link_to_vlan)
 
-		# debug("Monitory calculated")
+		debug("Monitory calculated")
 		# debug("Start to calculate flow rules")
 		# ret_code, msg, obj = self._calculate_flow(links)
+		self.sniffer_config["paths"]=os.path.join(static_dir,"telemetry.paths.json")
 		# if ret_code != 0:
 		# 	err("Error when calculate flow,msg:{}".format(msg))
 		# 	return
 		# debug("Calculate flow successfully")
-		# # send to controller
+		# send to controller
 		# debug("Start to send to controller")
 		# controller_ip = self.config["controller"].split(":")[0]
 		# controller_telemetry_port = int(self.config["controller_telemetry_port"])
 		# send(controller_ip, controller_telemetry_port, json.dumps(obj) + "*")
 		# debug("Flow rules sent to controller")
-		# # return
-		# # sleep for 10 seconds,wait for flow rules to be installed
+		# return
+		# sleep for 10 seconds,wait for flow rules to be installed
 		# time.sleep(10)
-		# # send telemetry_packet and listen
+		# send telemetry_packet and listen
 		# debug("Wake up from 10-seconds sleep")
-		# debug("Start to send telemetry packet")
+		#todo delete this 
+		return
+		debug("Start to send telemetry packet")
 		ret_code, msg = self._start_sniffer()
 		if ret_code != 0:
 			err("Error when send telemetry_packet and listen {}".format(msg))
 			return
 
 		debug("Waiting for telemetry done, for 10 seconds")
-		time.sleep(10)
-		debug("Telemetry work done")
+		# time.sleep(10)
+		# debug("Telemetry work done")
 
 	def collect_stats(self) -> Any:
 		if self.not_self:

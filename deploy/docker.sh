@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 #ssh-keygen -f "/home/stack/.ssh/known_hosts" -R "[localhost]:8101"
+root_dir=`dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )`
+static_dir=$root_dir/static
 docker stop onos22
 docker rm onos22
 
@@ -24,6 +26,8 @@ sshpass -p "karaf" ssh localhost "app activate org.onosproject.fwd"
 sshpass -p "karaf" ssh localhost "app activate org.onosproject.openflow"
 sshpass -p "karaf" ssh localhost "app activate org.onosproject.proxyarp"
 
+
 docker cp /home/yx/commmands.json onos22:/home/
+docker cp $static_dir/telemetry.flow.json onos22:/home/
 
 echo "Onos docker setup done"

@@ -44,6 +44,7 @@ class Telemeter(BaseTelemeter):
 			kill_pid(self.sniffer_pid)
 
 	def _calculate_monitor(self, links: List[Tuple[int, int]]) -> Tuple[int, str, int]:
+		# return 0,"",1
 		g = cm.makeTopo(self.topo)
 		# self.vars["edge_port"]=edge_port
 		debug("拓扑节点集：{}".format(g.nodes))
@@ -64,7 +65,7 @@ class Telemeter(BaseTelemeter):
 			return 0, "", self.vars["monitor"]
 
 	def _calculate_flow(self, links: List[Tuple[int, int]]) -> Tuple[int, str, Any]:
-		switches = 66
+		switches = 100
 		t = wt.table(links, self.vars["paths"], switches, self.vars["monitor"],
 		             self.vars["link_to_vlan"])
 		flow_table = t.make_res()

@@ -31,7 +31,7 @@ true_topo = None
 
 # todo store stats in redis
 class Sniffer:
-	def __init__(self, count: int, intf: str, filter: str, link_to_vlan_fn: Dict,rip:str="192.168.1.196",rport:int=6379) -> None:
+	def __init__(self, count: int, intf: str, filter: str, link_to_vlan_fn: Dict,rip:str="192.168.1.132",rport:int=6379) -> None:
 		self.pkt_count = count
 		self.intf = intf
 		self.filter = filter
@@ -43,7 +43,6 @@ class Sniffer:
 		self.store=Store(rip,rport)
 
 	def __load_topo(self):
-
 		self.edge_port = load_pkl(self.link_to_vlan_fn)
 
 	# port[(0, self.monitor)]  (1, 1)
@@ -82,13 +81,13 @@ class Sniffer:
 			t2 = None
 			x, y, z = self.find_port(u, v)
 			try:
-				t1 = switch_msg["10.0.1.{}".format(z)][self.edge_port[(z, y)]]
-				t2 = switch_msg["10.0.1.{}".format(y)][self.edge_port[(y, x)]]
+				t1 = switch_msg["172.18.1.{}".format(z)][self.edge_port[(z, y)]]
+				t2 = switch_msg["172.18.1.{}".format(y)][self.edge_port[(y, x)]]
 				link_rtt[(u, v)] = abs(t1 - t2) * 1000
 			except Exception as e:
-				if "10.0.1.{}".format(z) not in switch_msg.keys():
+				if "172.18.1.{}".format(z) not in switch_msg.keys():
 					self.loss_count += 1
-					if switch_msg["10.0.1.{}".format(y)] not in switch_msg.keys():
+					if switch_msg["172.18.1.{}".format(y)] not in switch_msg.keys():
 						self.loss_count += 1
 
 				self.loss_count += 1
@@ -111,7 +110,7 @@ class Sniffer:
 			fixed_link_stats[(u - 1, v - 1)] = link_rtt[(u, v)]
 			self.store.write_delay((u-1,v-1),fixed_link_stats[(u-1,v-1)])
 			fixed_link_stats[(v - 1, u - 1)] = link_rtt[(u, v)]
-			self.store.write_delay((v-1,u-1),fixed_link_stats[(u-1,v-1)])
+			# self.store.write_delay((v-1,u-1),fixed_link_stats[(u-1,v-1)])
 
 	# save_pkl("/tmp/telemetry.link.pkl", fixed_link_stats)
 
@@ -120,8 +119,8 @@ class Sniffer:
 		for u, v in links:
 			x, y, z = self.find_port(u, v)
 			try:
-				count1 = self.switch_count["10.0.1.{}".format(z)][self.edge_port[(z, y)]]
-				count2 = self.switch_count["10.0.1.{}".format(y)][self.edge_port[(y, x)]]
+				count1 = self.switch_count["172.18.1.{}".format(z)][self.edge_port[(z, y)]]
+				count2 = self.switch_count["172.18.1.{}".format(y)][self.edge_port[(y, x)]]
 				loss[(u, v)] = (count2 - count1) / count2
 			except Exception as e:
 				err("exception:()".format(e))
@@ -133,7 +132,7 @@ class Sniffer:
 			fixed_link_stats[(u-1,v-1)]=loss[(u,v)]
 			self.store.write_loss((u-1,v-1),loss[(u,v)])
 			fixed_link_stats[(v-1,u-1)]=loss[(u,v)]
-			self.store.write_loss((v-1,u-1),loss[(u,v)])
+			# self.store.write_loss((v-1,u-1),loss[(u,v)])
 
 
 
@@ -190,7 +189,7 @@ class Sniffer:
 			sleep(0.1)
 		# sniffer started,now send pkt
 		debug("Sniffer started,now send pkt")
-		p = Ether() / Dot1Q(vlan=3) / IP(src="10.0.0.1", dst="10.0.0.2") / \
+		p = Ether() / Dot1Q(vlan=3) / IP(src="172.18.0.1", dst="172.18.0.2") / \
 		    UDP(dport=8888, sport=1500) / Raw(load="1234")
 		sendp(p, iface=self.intf)
 		debug("Telemetry pkt sent,now wait for all pkts received")
@@ -207,21 +206,21 @@ class Sniffer:
 		self.__load_topo()
 		# self.__send_telemetry_packet_and_listen()
 		# self.__calculate_rtt()
-		n = 1000
+		n = 100
 		while n > 0:
 			self.loss_count=0
 			self.__send_telemetry_packet_and_listen()
 			self.__calculate_rtt_and_store()
 			self.cache = []
 			n -= 1
-			debug("{}th turn done".format(1000-n))
+			debug("{}th turn done".format(100-n))
 		self.__calculate_loss()
 
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument(
-		"--intf", type=str, help="Interface to send and listen", default="h22-eth0")
+		"--intf", type=str, help="Interface to send and listen", default="h0-eth0")
 	parser.add_argument("--filter", type=str,
 	                    help="BPF filter", default="udp port 8888")
 	parser.add_argument("--count", type=int,
@@ -264,7 +263,7 @@ if __name__ == "__main__":
 	                  filter=args.filter,
 	                  link_to_vlan_fn=args.link_to_vlan)
 
-	true_topo = load_pkl(os.path.join(get_prj_root(), "static/satellite_overall.pkl"))[0]["topo"]
+	true_topo = load_pkl(os.path.join(get_prj_root(), "static/military_overall.pkl"))[0]["topo"]
 	links = load_pkl(args.links)
 	paths = load_json(args.paths)["paths"]
 	sniffer.start()
