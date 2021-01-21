@@ -7,6 +7,7 @@ from typing import Callable,List,Dict,Tuple
 import os
 
 
+
 def check_dir(dir_name):
     if not Path(dir_name).is_dir():
         raise FileNotFoundError
@@ -18,6 +19,14 @@ def check_file(fn):
 def file_exsit(fn):
     return Path(fn).is_file()
 
+def read_lines(fn:str)->List[str]:
+    res=None
+    if not file_exsit(fn):
+        return []
+    with open(fn,"r") as fp:
+        res=fp.readlines()
+        res=[r for r in res if len(r)!=0]
+    return res
 def dir_exsit(fn):
     return Path(fn).is_dir()
 
