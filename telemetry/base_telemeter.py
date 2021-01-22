@@ -130,6 +130,7 @@ class BaseTelemeter:
 		# debug("Start to calculate flow rules")
 		# ret_code, msg, obj = self._calculate_flow(links)
 		self.sniffer_config["paths"]=os.path.join(static_dir,"telemetry.paths.json")
+		self.sniffer_config["count"]=284
 		# if ret_code != 0:
 		# 	err("Error when calculate flow,msg:{}".format(msg))
 		# 	return

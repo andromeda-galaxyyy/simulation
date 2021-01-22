@@ -159,8 +159,11 @@ class Sniffer:
 		# debug("AsyncSniffer started and lock acquired")
 
 		def handle_pkt(pkt):
+			nonlocal current_count
 			pkt.sprintf("{IP:%IP.src%},{Port:%Dot1Q.vlan%}")
 			self.cache.append(pkt)
+			current_count+=1
+			debug("receive {} pkts".format(current_count))
 			# t = pkt.time
 			# port = int(pkt[Dot1Q].vlan)
 			# src = str(pkt[IP].src)
@@ -224,7 +227,7 @@ if __name__ == "__main__":
 	parser.add_argument("--filter", type=str,
 	                    help="BPF filter", default="udp port 8888")
 	parser.add_argument("--count", type=int,
-	                    help="Number of packets to received", default=102)
+	                    help="Number of packets to received", default=284)
 
 	parser.add_argument("--links",
 	                    type=str,
