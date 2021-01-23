@@ -8,30 +8,41 @@ import os
 
 topo_fn=os.path.join(get_prj_root(),"static/topo.json")
 topo=load_json(topo_fn)["topo"]
-
+model_static_dir=os.path.join(get_prj_root(),"routing/nn2/static")
+ratedatedict = load_json(os.path.join(model_static_dir, "ratetest.json"))
+matrixdatadict = load_json(os.path.join(model_static_dir, "matrixtest.json"))
 
 if __name__ == '__main__':
-    req={}
-    for i in range(100):
-        for j in range(100):
-            if i==j:continue
-            if i>j:continue
-            if -1 in topo[i][j]:continue
-            key="{}-{}".format(i,j)
-            req[key]=100
+	req={
+		"rate":ratedatedict,
+		"matrix":matrixdatadict
+	}
+	resp=send_and_recv("localhost",1055,json.dumps(req)+"*")
+	paths=json.loads(resp)["res1"]
+	# debug(paths)
+	assert len(paths)==100*99
 
-    resp=send_and_recv("localhost",7788,json.dumps(req)+"*")
-    paths=json.loads(resp)["res1"]
-    debug("**** {}".format(len(paths)))
-    idx=0
-    for i in range(100):
-        for j in range(100):
-            if i==j:continue
-            path=paths[idx]
-            idx+=1
-            assert path[0]==i
-            assert path[-1]==j
-            if i==0 and j==1 :debug(path)
+    # req={}
+    # for i in range(100):
+    #     for j in range(100):
+    #         if i==j:continue
+    #         if i>j:continue
+    #         if -1 in topo[i][j]:continue
+    #         key="{}-{}".format(i,j)
+    #         req[key]=100
+    #
+    # resp=send_and_recv("localhost",7788,json.dumps(req)+"*")
+    # paths=json.loads(resp)["res1"]
+    # debug("**** {}".format(len(paths)))
+    # idx=0
+    # for i in range(100):
+    #     for j in range(100):
+    #         if i==j:continue
+    #         path=paths[idx]
+    #         idx+=1
+    #         assert path[0]==i
+    #         assert path[-1]==j
+    #         if i==0 and j==1 :debug(path)
 
 
 

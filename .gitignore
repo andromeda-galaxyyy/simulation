@@ -207,3 +207,7 @@ manger.main.sh
 
 traffic/gogen
  topo/distributed/rate.config.json
+
+
+ **/*.pth
+ **/*.json
