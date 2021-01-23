@@ -27,7 +27,7 @@ sshpass -p "karaf" ssh localhost "app activate org.onosproject.openflow"
 sshpass -p "karaf" ssh localhost "app activate org.onosproject.proxyarp"
 
 
-docker cp /home/yx/commmands.json onos22:/home/
-docker cp $static_dir/telemetry.flow.json onos22:/home/
+# docker cp /home/yx/commmands.json onos22:/home/
+cp $static_dir/telemetry.flow.json /tmp/data
 
 echo "Onos docker setup done"

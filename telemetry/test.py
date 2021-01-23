@@ -1,7 +1,12 @@
-import writeCommands as wt
-import calculate_monitor as cm
+# import writeCommands as wt
+# import calculate_monitor as cm
 import copy
 import json
+from utils.file_utils import load_json
+from path_utils import get_prj_root
+import os
+from utils.file_utils import load_pkl, save_pkl
+'''
 with open("/tmp/topo.json",'r') as f:
 	topo=json.load(f)["topo"]
 vars={}
@@ -48,7 +53,7 @@ for link in g.edges:
 t = wt.table(edge,vars["paths"], switches,vars["monitor"],vars["link_to_vlan"])
 flow_table=t.make_res()
 print(flow_table)
-'''
+
 {(1, 2): 1, (1, 11): 2, (1, 12): 3, (2, 1): 4, (2, 3): 5, 
  (2, 13): 6, (3, 2): 7, (3, 4): 8, (4, 3): 9, (4, 5): 10, 
  (5, 4): 11, (5, 6): 12, (5, 16): 13, (6, 5): 14, (6, 7): 15, 
@@ -95,4 +100,38 @@ print(flow_table)
  (63, 52): 193, (63, 62): 194, (63, 64): 195, (64, 63): 196, 
 (64, 65): 197, (65, 64): 198, (65, 66): 199, 
  (66, 55): 200, (66, 56): 201, (66, 65): 202, (23, 0): 203}
- '''
+'''
+
+with open("/tmp/topo.json", 'r') as f:
+	topo = json.load(f)["topo"]
+vars = {}
+vlan_to_link = {}
+link_to_vlan = {}
+num = 1
+for i in range(len(topo)):
+	for j in range(len(topo[i])):
+		if -1 in topo[i][j]:
+			continue
+		vlan_to_link[num] = (1+i, 1+j)
+		link_to_vlan[(i+1, j+1)] = num
+		num += 1
+vlan_to_link[num] = (1, 0)
+link_to_vlan[(1, 0)] = num
+print("link to vlan:",link_to_vlan)
+print("vlan to link:", vlan_to_link)
+from utils.file_utils import save_pkl ,save_json
+from path_utils import get_prj_root
+import os 
+save_pkl(os.path.join(get_prj_root(),"static/telemetry.link_to_vlan.pkl"),link_to_vlan)
+save_pkl(os.path.join(get_prj_root(),"static/telemetry.vlan_to_link.pkl"),vlan_to_link)
+save_json(os.path.join(get_prj_root(),"static/telemetry.vlan_to_link.json"),vlan_to_link)
+# save_json(os.path.join(get_prj_root(),"static/telemetry.link_to_vlan.json"),link_to_vlan)
+'''
+# last_link=[]
+# return_link=[]
+# paths = load_json(os.path.join(get_prj_root(), "static/telemetry.paths.json"))["paths"]
+# for path in paths:
+# 	if (path[-1],path[-2]) not in return_link:
+# 		return_link.append((path[-1],path[-2]))
+# print(last_link)
+'''
