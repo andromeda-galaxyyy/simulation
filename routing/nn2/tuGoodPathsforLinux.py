@@ -129,11 +129,16 @@ class handler(socketserver.BaseRequestHandler):
 		req = json.loads(req)
 		rate = req["rate"]
 		matrix = req["matrix"]
-		paths_idxs = out114Goodpaths(rate, matrix)
-		debug(len(paths_idxs))
+		debug(req)
+		allpathsanswer = out114Goodpaths(rate, matrix)
+		print(allpathsanswer[17], allpathsanswer[19], allpathsanswer[21], allpathsanswer[23],
+		      allpathsanswer[25], allpathsanswer[27], allpathsanswer[215], allpathsanswer[217],
+		      allpathsanswer[219], allpathsanswer[221], allpathsanswer[1807], allpathsanswer[1808],
+		      allpathsanswer[1809], allpathsanswer[1810], allpathsanswer[1811])
+		debug(len(allpathsanswer))
 		paths = []
 		# for demand_idx in range()
-		for demand_idx,path_idx in enumerate(paths_idxs):
+		for demand_idx,path_idx in enumerate(allpathsanswer):
 			paths.append(ksps[demand_idx][path_idx])
 		res = {
 			"res1": paths
