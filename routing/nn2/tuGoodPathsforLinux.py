@@ -130,6 +130,7 @@ class handler(socketserver.BaseRequestHandler):
 		rate = req["rate"]
 		matrix = req["matrix"]
 		debug(req)
+		#[] 100*99 [0,4]
 		allpathsanswer = out114Goodpaths(rate, matrix)
 		print(allpathsanswer[17], allpathsanswer[19], allpathsanswer[21], allpathsanswer[23],
 		      allpathsanswer[25], allpathsanswer[27], allpathsanswer[215], allpathsanswer[217],
