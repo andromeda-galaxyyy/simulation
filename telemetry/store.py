@@ -8,22 +8,26 @@ import redis
 class Store:
 	def __init__(self, ip: str, port: int, db: int):
 		self.handle = redis.Redis(host=ip, port=port, db=db)
-		if self.handle.set("hello", "world"):
-			info("Connect to redis {}:{} successfully".format(ip, port))
+		# if self.handle.set("hello", "world"):
+		# 	info("Connect to redis {}:{} successfully".format(ip, port))
 
 	def write_delay(self, link: Tuple[int, int], delay: float) -> bool:
-		if link[0]>link[1]:
-			link[0],link[1]=link[1],link[0]
-		key = "{}-{}.delay".format(link[0], link[1])
+		a,b=link[0],link[1]
+		if a>b:
+			a,b=b,a
+		key = "{}-{}.delay".format(a, b)
 		ts = now_in_milli()
 		return 1 == self.handle.zadd(key, {
 			delay: ts
 		})
 
 	def write_loss(self, link: Tuple[int, int], loss: float) -> bool:
-		if link[0]>link[1]:
-			link[0],link[1]=link[1],link[0]
-		key = "{}-{}.loss".format(link[0], link[1])
+		a,b=link[0],link[1]
+		if a>b:
+			a,b=b,a
+		# if link[0]>link[1]:
+		# 	link[0],link[1]=link[1],link[0]
+		key = "{}-{}.loss".format(a,b)
 		ts = now_in_milli()
 		return 1 == self.handle.zadd(key, {
 			loss: ts
