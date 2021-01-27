@@ -6,7 +6,7 @@ from common.graph import NetworkTopo
 from routing.eval.evaluator import RoutingEvaluator
 import matplotlib
 
-# matplotlib.use('TkAgg')
+matplotlib.use('TkAgg')
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 from routing.constant import *
@@ -177,7 +177,7 @@ def plot_cdf():
 
 if __name__ == '__main__':
 	# test()
-	# # load routing instances
+	# load routing instances
 	inst_dir=os.path.join(get_prj_root(),"routing", "instances.5.3")
 	instances_fns = walk_dir(inst_dir, lambda s: "ilpinstance" in s)
 	debug("find instances fns {}".format(len(instances_fns)))
