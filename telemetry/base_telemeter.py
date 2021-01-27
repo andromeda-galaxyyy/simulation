@@ -1,4 +1,4 @@
-from utils.file_utils import save_pkl
+from utils.file_utils import load_json, save_pkl
 from utils.log_utils import debug, info, err
 from typing import Any, List, Tuple, Dict
 from sockets.client import send
@@ -15,10 +15,10 @@ class BaseTelemeter:
 		self.topo: List[List[List[int]]] = topo
 		self.config: Dict = config
 		self.sniffer_config = {
-			"iface": "h22-eth0",
+			"iface": "h0-eth0",
 			"filter": "udp port 8888",
 			"count": None,
-			"namespace": "h22"
+			"namespace": "h0"
 		}
 		self.vars = {}
 		self.not_self = False
@@ -67,25 +67,35 @@ class BaseTelemeter:
 	def start(self, links: List[Tuple[int, int]]):
 		# 计算monitor
 		if links is None:
-			links = [(38, 39), (4, 5), (62, 61), (28, 17), (61, 50), (2, 1), (36, 35), (29, 28),
-			         (14, 15), (39, 40), (5, 6),
-			         (54, 55), (44, 43), (43, 42), (52, 51), (61, 60), (29, 18), (12, 1), (44, 34),
-			         (60, 49), (20, 19),
-			         (37, 36), (30, 29), (3, 2), (13, 12), (46, 47), (22, 21), (53, 54), (23, 24),
-			         (40, 41), (45, 46), (6, 7),
-			         (24, 25), (60, 59), (51, 50), (59, 58), (30, 19), (13, 2), (38, 27), (38, 37),
-			         (21, 20), (4, 3), (62, 63),
-			         (7, 8), (50, 49), (39, 28), (44, 33), (14, 13), (31, 30), (52, 53), (18, 19),
-			         (27, 28), (57, 56), (42, 41),
-			         (64, 63), (12, 22), (35, 46), (55, 45), (66, 56), (34, 35), (10, 11), (58, 57),
-			         (17, 16), (25, 26),
-			         (1, 11), (63, 52), (18, 17), (27, 26), (9, 10), (27, 16), (45, 34), (62, 51),
-			         (18, 7), (24, 13), (31, 32),
-			         (57, 46), (47, 48), (24, 35), (40, 51), (6, 17), (19, 8), (15, 16), (56, 45),
-			         (23, 33), (41, 52), (50, 39),
-			         (32, 33), (55, 66), (29, 40), (11, 22), (12, 23), (55, 44), (49, 38), (30, 41),
-			         (8, 9), (49, 48), (65, 64),
-			         (34, 23), (66, 65), (33, 22), (16, 5)]
+			links=[]
+			topo=load_json(os.path.join(get_prj_root(),"static/topo.json"))
+			for i in range(len(topo)):
+				for j in range(len(topo)):
+					if i>=j:continue 
+					if -1 not in topo[i][j]:
+						links.append((i,j))
+			assert len(links)==283
+			save_pkl(os.path.join(get_prj_root(),"static/telemetry.links.pkl"))
+		# if links is None:
+		# 	links = [(38, 39), (4, 5), (62, 61), (28, 17), (61, 50), (2, 1), (36, 35), (29, 28),
+		# 	         (14, 15), (39, 40), (5, 6),
+		# 	         (54, 55), (44, 43), (43, 42), (52, 51), (61, 60), (29, 18), (12, 1), (44, 34),
+		# 	         (60, 49), (20, 19),
+		# 	         (37, 36), (30, 29), (3, 2), (13, 12), (46, 47), (22, 21), (53, 54), (23, 24),
+		# 	         (40, 41), (45, 46), (6, 7),
+		# 	         (24, 25), (60, 59), (51, 50), (59, 58), (30, 19), (13, 2), (38, 27), (38, 37),
+		# 	         (21, 20), (4, 3), (62, 63),
+		# 	         (7, 8), (50, 49), (39, 28), (44, 33), (14, 13), (31, 30), (52, 53), (18, 19),
+		# 	         (27, 28), (57, 56), (42, 41),
+		# 	         (64, 63), (12, 22), (35, 46), (55, 45), (66, 56), (34, 35), (10, 11), (58, 57),
+		# 	         (17, 16), (25, 26),
+		# 	         (1, 11), (63, 52), (18, 17), (27, 26), (9, 10), (27, 16), (45, 34), (62, 51),
+		# 	         (18, 7), (24, 13), (31, 32),
+		# 	         (57, 46), (47, 48), (24, 35), (40, 51), (6, 17), (19, 8), (15, 16), (56, 45),
+		# 	         (23, 33), (41, 52), (50, 39),
+		# 	         (32, 33), (55, 66), (29, 40), (11, 22), (12, 23), (55, 44), (49, 38), (30, 41),
+		# 	         (8, 9), (49, 48), (65, 64),
+		# 	         (34, 23), (66, 65), (33, 22), (16, 5)]
 
 		ret_code, msg, monitor_id = self._calculate_monitor(links)
 		monitor_id = int(monitor_id) - 1
@@ -117,23 +127,27 @@ class BaseTelemeter:
 		save_pkl(os.path.join(static_dir, "telemetry.link_to_vlan.pkl"), link_to_vlan)
 
 		debug("Monitory calculated")
-		debug("Start to calculate flow rules")
-		ret_code, msg, obj = self._calculate_flow(links)
-		if ret_code != 0:
-			err("Error when calculate flow,msg:{}".format(msg))
-			return
-		debug("Calculate flow successfully")
+		# debug("Start to calculate flow rules")
+		# ret_code, msg, obj = self._calculate_flow(links)
+		self.sniffer_config["paths"]=os.path.join(static_dir,"telemetry.paths.json")
+		self.sniffer_config["count"]=284
+		# if ret_code != 0:
+		# 	err("Error when calculate flow,msg:{}".format(msg))
+		# 	return
+		# debug("Calculate flow successfully")
 		# send to controller
-		debug("Start to send to controller")
-		controller_ip = self.config["controller"].split(":")[0]
-		controller_telemetry_port = int(self.config["controller_telemetry_port"])
-		send(controller_ip, controller_telemetry_port, json.dumps(obj) + "*")
-		debug("Flow rules sent to controller")
-		return
+		# debug("Start to send to controller")
+		# controller_ip = self.config["controller"].split(":")[0]
+		# controller_telemetry_port = int(self.config["controller_telemetry_port"])
+		# send(controller_ip, controller_telemetry_port, json.dumps(obj) + "*")
+		# debug("Flow rules sent to controller")
+		# return
 		# sleep for 10 seconds,wait for flow rules to be installed
-		time.sleep(10)
+		# time.sleep(10)
 		# send telemetry_packet and listen
-		debug("Wake up from 10-seconds sleep")
+		# debug("Wake up from 10-seconds sleep")
+		#todo delete this 
+		return
 		debug("Start to send telemetry packet")
 		ret_code, msg = self._start_sniffer()
 		if ret_code != 0:
@@ -141,8 +155,8 @@ class BaseTelemeter:
 			return
 
 		debug("Waiting for telemetry done, for 10 seconds")
-		time.sleep(10)
-		debug("Telemetry work done")
+		# time.sleep(10)
+		# debug("Telemetry work done")
 
 	def collect_stats(self) -> Any:
 		if self.not_self:
