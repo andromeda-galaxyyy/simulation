@@ -213,3 +213,7 @@ routing/nn2/static
 
  **/*.pth
  **/*.json
+topo/distributed/rate.config.json
+**/*.tar.gz
+**/*.delay
+**/*.loss
