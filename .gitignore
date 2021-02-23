@@ -177,7 +177,6 @@ traffic/DITG/.idea
 *.out
 *.app
 traffic/DITG/bin
-*.pkl
 *.hdf5
 traffic/gogen/pkts
 traffic/gogen/bin/gogen
@@ -217,3 +216,6 @@ topo/distributed/rate.config.json
 **/*.tar.gz
 **/*.delay
 **/*.loss
+
+
+
