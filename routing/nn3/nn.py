@@ -136,14 +136,14 @@ class NN3:
 	def save_model(self):
 		model_id = self.id_
 		model_dir = os.path.join(get_prj_root(), "routing/nn3/nns")
-		fn = os.path.join(model_dir, "{}.hdf5".format(model_id))
+		fn = os.path.join(model_dir, "{}.ckt.hdf5".format(model_id))
 		self.model.save(fn)
 		debug("model {} saved to {}".format(model_id, fn))
 
 	def load_model(self):
 		model_id = self.id_
 		model_dir = os.path.join(get_prj_root(), "routing/nn3/nns")
-		fn = os.path.join(model_dir, "{}.hdf5".format(model_id))
+		fn = os.path.join(model_dir, "{}.ckt.hdf5".format(model_id))
 		self.model = load_model(fn, custom_objects={
 			"cost": self.cost,
 			"softmax": self.softmax,
@@ -197,6 +197,12 @@ class Worker:
 
 
 if __name__ == '__main__':
+	# import numpy as np
+	# model=NN3(0)
+	# model.load_model()
+	# res=model.predict(np.asarray([[0 for _ in range(100*99)]]))[0]
+	# debug(res)
+	# debug(len(res))
 	import argparse
 	parser=argparse.ArgumentParser()
 	parser.add_argument("--model_id",type=int,default=0)

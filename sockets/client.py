@@ -26,6 +26,13 @@ def send_and_recv(ip: str, port: int, content: str) -> str:
 
 
 if __name__ == '__main__':
+	req={
+		"matrix":[0 for _ in range(100*99)]
+	}
+	resp=send_and_recv("192.168.1.196",1055,json.dumps(req)+"*")
+	resp=json.loads(resp)
+	debug(len(resp["res1"]))
+
 	# tmp=[0 for _ in range(100*99)]
 	# req={
 	# 	"0":tmp,
@@ -33,9 +40,9 @@ if __name__ == '__main__':
 	# 	"2":tmp,
 	# 	"3":tmp
 	# }
-	resp=send_and_recv("192.168.1.196",1053,"default*")
-	save_json("/tmp/military.default_routing.json",resp)
-	debug(resp)
+	# resp=send_and_recv("192.168.1.196",1053,"default*")
+	# save_json("/tmp/military.default_routing.json",resp)
+	# debug(resp)
 
 	# x = [1 for _ in range(66 * 65)]
 	# obj={

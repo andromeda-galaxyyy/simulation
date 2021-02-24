@@ -55,7 +55,7 @@ class Predictor:
 		finally:
 			client.close()
 		resp = json.loads(resp)
-		actions = resp["actions"]
+		actions = resp["res"]
 		n_action = len(modelid_to_targets[model_id])
 		actions = actions[:n_action]
 		for idx, target in enumerate(modelid_to_targets[model_id]):
@@ -89,18 +89,24 @@ class NN3Server(socketserver.BaseRequestHandler):
 		except JSONDecodeError as e:
 			err(obj)
 
-		routing: RoutingOutput = predictor(obj["matrix"])
+		inpt=RoutingInput(traffic=obj["matrix"])
+		routing: RoutingOutput = predictor(inpt)
+		debug(len(routing.labels))
 		paths = []
 		for i in range(100):
 			for j in range(100):
 				if i == j: continue
-				paths.append(ksps[routing.labels[flattenidxes[(i, j)]]])
+
+				paths.append(ksps[(i,j)])
 
 		res = {"res1": paths}
 		self.request.sendall(bytes(json.dumps(res) + "*", "ascii"))
 
 
 if __name__ == '__main__':
+	# inpt=RoutingInput(traffic=[0 for _ in range(100*99)])
+	# out=predictor(inpt)
+	# debug(len(out.labels))
 	port = 1055
 	server = Server(port, NN3Server)
 	debug("nn routing server started")
