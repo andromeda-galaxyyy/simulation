@@ -33,3 +33,5 @@ sshpass -p "karaf" ssh localhost "app activate org.onosproject.proxyarp"
 cp $static_dir/telemetry.flow.json /tmp/data
 
 echo "Onos docker setup done"
+
+ssh-keygen -f "/home/stack/.ssh/known_hosts" -R "[localhost]:8101"

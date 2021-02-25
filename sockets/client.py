@@ -5,6 +5,7 @@ from typing import Dict
 from utils.log_utils import debug
 from sockets.server import recvall, recvall2
 from utils.file_utils import save_json
+from routing.nn3.contants import flattenidxes
 
 
 def send(ip: str, port: int, content: str):
@@ -32,6 +33,8 @@ if __name__ == '__main__':
 	resp=send_and_recv("192.168.1.196",1055,json.dumps(req)+"*")
 	resp=json.loads(resp)
 	debug(len(resp["res1"]))
+	routing=resp["res1"]
+	debug(routing[flattenidxes[(10,99)]])
 
 	# tmp=[0 for _ in range(100*99)]
 	# req={

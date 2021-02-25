@@ -89,21 +89,103 @@ class NN3Server(socketserver.BaseRequestHandler):
 		except JSONDecodeError as e:
 			err(obj)
 
-		inpt=RoutingInput(traffic=obj["matrix"])
+		debug("traffic stats collected {}".format(len(obj["matrix"]["0"])))
+		inpt=RoutingInput(traffic=obj["matrix"]["0"])
+		if len(obj["matrix"]["0"])!=100*99:
+			err("invalid traffic matrix of len {}".format(len(obj["matrix"]["0"])))
+			paths=[]
+			for i in range(100):
+				for j in range(100):
+					if i==j:continue
+					paths.append(ksps[(i,j)][0])
+
+			res = {"res1": paths}
+			self.request.sendall(bytes(json.dumps(res) + "*", "ascii"))
+			return
+
 		routing: RoutingOutput = predictor(inpt)
 		debug(len(routing.labels))
 		paths = []
 		for i in range(100):
 			for j in range(100):
 				if i == j: continue
-
-				paths.append(ksps[(i,j)])
+				paths.append(ksps[(i,j)][routing.labels[flattenidxes[(i,j)]]])
 
 		res = {"res1": paths}
 		self.request.sendall(bytes(json.dumps(res) + "*", "ascii"))
 
 
 if __name__ == '__main__':
+
+	# labels_dir="/tmp/labels"
+	# from routing.eval.evaluator3 import RoutingEvaluator3
+	# from routing.nn3.contants import topo
+	# evaluator=RoutingEvaluator3(topo)
+	#
+	# fns = []
+	# for fn in os.listdir(labels_dir):
+	# 	if "partition" not in fn: continue
+	# 	fns.append(os.path.join(labels_dir, fn))
+	# debug("number of fns {}".format(len(fns)))
+	# fns.sort()
+	# ilproutings:List[Routing]=[]
+	# validate_fns=fns[int(len(fns)*0.9):]
+	# debug("validate fns {}".format(len(validate_fns)))
+	# for fn in validate_fns:
+	# 	ilproutings.extend(load_pkl(fn))
+	# import random
+	# random.shuffle(ilproutings)
+	# ilproutings=ilproutings[:500]
+	#
+	# debug("validate instances {}".format(len(ilproutings)))
+	# ilp_ratios:List[float]=[]
+	# nn_ratios:List[float]=[]
+	# ospf_ratios:List[float]=[]
+	# ratios_dir="/tmp/ratios"
+	# # for idx,routing in enumerate(ilproutings):
+	# # 	ilp_ratios.append(evaluator(routing))
+	# # 	debug("ilp routing evaluate done {}".format(idx))
+	# #
+	# # debug("ilp ratios calculate done")
+	# ilp_ratio_fn=os.path.join(ratios_dir,"ilp_ratios.pkl")
+	# # save_pkl(ilp_ratio_fn,ilp_ratios)
+	#
+	# # for idx,routing in enumerate(ilproutings):
+	# # 	inpt=RoutingInput(traffic=routing.traffic)
+	# # 	out=predictor(inpt)
+	# # 	instance=Routing(inpt.traffic,out.labels)
+	# # 	nn_ratios.append(evaluator(instance))
+	# # 	debug("nn routing {} evaluate done".format(idx))
+	# nn_ratio_fn=os.path.join(ratios_dir,"nn_ratios.pkl")
+	# # save_pkl(nn_ratio_fn,nn_ratios)
+	#
+	# action=[0 for _ in range(100*99)]
+	# # for idx,routing in enumerate(ilproutings):
+	# # 	ospf_ratios.append(evaluator(Routing(traffic=routing.traffic,labels=action)))
+	# # 	debug("ospf evaluate done {}".format(idx))
+	# ospf_ratio_fn=os.path.join(ratios_dir,"ospf_ratios.pkl")
+	# # save_pkl(ospf_ratio_fn,ospf_ratios)
+	# import matplotlib
+	# matplotlib.use("TkAgg")
+	# import matplotlib.pyplot as plt
+	# ilpratios=load_pkl(ilp_ratio_fn)
+	# nnratios=load_pkl(nn_ratio_fn)
+	# ospfratios=load_pkl(ospf_ratio_fn)
+	# ilp_plt,=plt.plot(ilpratios,label="ilp")
+	# nn_plt,= plt.plot(nnratios,label="nn")
+	# ospf_plt,=plt.plot(ospfratios,label="ospf")
+	# plt.legend(handles=[ilp_plt,nn_plt,ospf_plt])
+	# plt.show()
+
+
+
+
+
+
+
+
+
+
 	# inpt=RoutingInput(traffic=[0 for _ in range(100*99)])
 	# out=predictor(inpt)
 	# debug(len(out.labels))

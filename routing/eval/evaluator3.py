@@ -22,7 +22,7 @@ debug(ksps[(10, 45)])
 
 
 class RoutingEvaluator3:
-	def __init__(self, topo: List[List[Tuple]], K: int):
+	def __init__(self, topo: List[List[Tuple]], K: int=5):
 		self.topo: List[List[Tuple]] = topo
 		self.k = K
 		N = len(topo[0])
