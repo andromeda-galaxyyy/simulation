@@ -7,16 +7,16 @@ from collections import Counter
 from utils.file_utils import read_lines
 import json
 
+Routing = namedtuple("Routing", ["traffic", "labels"])
+RoutingInput = namedtuple("RoutingInput", ["traffic"])
+RoutingOutput = namedtuple("RoutingOutput", ["labels"])
 
-Routing=namedtuple("Routing",["traffic","labels"])
-RoutingInput=namedtuple("RoutingInput",["traffic"])
-RoutingOutput=namedtuple("RoutingOutput",["labels"])
 
-def load_routing_instances(fn:str):
-	res:List[RoutingInput]=[]
-	lines=read_lines(fn)
+def load_routing_instances(fn: str):
+	res: List[RoutingInput] = []
+	lines = read_lines(fn)
 	for l in lines:
-		obj=json.loads(l)
+		obj = json.loads(l)
 		res.append(RoutingInput(traffic=obj["0"]))
 	return res
 

@@ -54,3 +54,9 @@ class NetworkTopo:
 		if weight == "capacity":
 			return list(islice((nx.shortest_simple_paths(self.g, source, target, "weight")), k))
 		return list(islice((nx.shortest_simple_paths(self.g, source, target, "delay")), k))
+
+	def add_edge_attr(self,u,v,key:str,val):
+		self.g.edges[u,v][key]=val
+
+	def get_edge_attr(self,u,v,key):
+		return self.g.edges[u,v][key]
