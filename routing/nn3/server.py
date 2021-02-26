@@ -78,6 +78,22 @@ class Predictor:
 
 
 predictor = Predictor()
+import numpy as np
+
+
+class RandomPredictor:
+	def __init__(self):
+		np.random.seed()
+
+	def __call__(self, inpt: RoutingInput) -> RoutingOutput:
+		res = [0 for _ in range(100 * 99)]
+		for model_id in modelid_to_targets.keys():
+			for target in modelid_to_targets[model_id]:
+				res[flattenidxes[(model_id, target)]] = np.random.choice(list(range(5)))
+		return RoutingOutput(labels=res)
+
+
+random_predictor = RandomPredictor()
 
 
 class NN3Server(socketserver.BaseRequestHandler):
@@ -90,33 +106,33 @@ class NN3Server(socketserver.BaseRequestHandler):
 			err(obj)
 
 		debug("traffic stats collected {}".format(len(obj["matrix"]["0"])))
-		inpt=RoutingInput(traffic=obj["matrix"]["0"])
-		if len(obj["matrix"]["0"])!=100*99:
+		inpt = RoutingInput(traffic=obj["matrix"]["0"])
+		if len(obj["matrix"]["0"]) != 100 * 99:
 			err("invalid traffic matrix of len {}".format(len(obj["matrix"]["0"])))
-			paths=[]
+			paths = []
 			for i in range(100):
 				for j in range(100):
-					if i==j:continue
-					paths.append(ksps[(i,j)][0])
+					if i == j: continue
+					paths.append(ksps[(i, j)][0])
 
 			res = {"res1": paths}
 			self.request.sendall(bytes(json.dumps(res) + "*", "ascii"))
 			return
 
-		routing: RoutingOutput = predictor(inpt)
+		routing:RoutingOutput=predictor(inpt)
+		# routing: RoutingOutput = random_predictor(inpt)
 		debug(len(routing.labels))
 		paths = []
 		for i in range(100):
 			for j in range(100):
 				if i == j: continue
-				paths.append(ksps[(i,j)][routing.labels[flattenidxes[(i,j)]]])
+				paths.append(ksps[(i, j)][routing.labels[flattenidxes[(i, j)]]])
 
 		res = {"res1": paths}
 		self.request.sendall(bytes(json.dumps(res) + "*", "ascii"))
 
 
 if __name__ == '__main__':
-
 	# labels_dir="/tmp/labels"
 	# from routing.eval.evaluator3 import RoutingEvaluator3
 	# from routing.nn3.contants import topo
@@ -176,15 +192,6 @@ if __name__ == '__main__':
 	# ospf_plt,=plt.plot(ospfratios,label="ospf")
 	# plt.legend(handles=[ilp_plt,nn_plt,ospf_plt])
 	# plt.show()
-
-
-
-
-
-
-
-
-
 
 	# inpt=RoutingInput(traffic=[0 for _ in range(100*99)])
 	# out=predictor(inpt)
