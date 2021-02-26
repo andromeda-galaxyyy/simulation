@@ -11,6 +11,7 @@ from typing import List, Tuple
 
 
 class NetworkTopo:
+
 	def __init__(self, topo: List[List[Tuple]]):
 		self.g = self.__gen_graph(topo)
 		self.weights = []
