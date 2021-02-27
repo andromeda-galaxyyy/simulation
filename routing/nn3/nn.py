@@ -1,5 +1,5 @@
 from keras.models import Model
-from keras.layers import Dense, BatchNormalization, Input
+from keras.layers import Dense, BatchNormalization, Input,Dropout,Add
 from keras.optimizers import Adam
 import keras.backend as K
 from routing.nn.dataset_generator import ILPGenerator
@@ -61,25 +61,41 @@ class NN3:
 		          input_shape=(feature_dim,), )(x)
 
 		# x = BatchNormalization()(x)
-		x = Dense(units=feature_dim // 4,
+		x = Dense(units=feature_dim // 8,
 		          activation="relu",
 		          input_shape=(feature_dim // 4,), )(x)
+		x=Dropout(rate=0.2)(x)
 
-		x = Dense(units=feature_dim // 4,
+		x = Dense(units=feature_dim // 8,
 		          activation="relu",
-		          input_shape=(feature_dim // 4,), )(x)
+		          input_shape=(feature_dim // 8,), )(x)
 		x = BatchNormalization()(x)
 		# y = x
 
-		x = Dense(units=feature_dim // 4,
+		x = Dense(units=feature_dim // 8,
 		          activation="relu",
-		          input_shape=(feature_dim // 4,), )(x)
-		# x = BatchNormalization()(x)
+		          input_shape=(feature_dim // 8,), )(x)
+		x = Dense(units=feature_dim // 8,
+		          activation="relu",
+		          input_shape=(feature_dim // 8,), )(x)
+		x = Dense(units=feature_dim // 8,
+		          activation="relu",
+		          input_shape=(feature_dim // 8,), )(x)
+
+
+		# x=Dropout(rate=0.2)(x)
+
 		# x = Add()([y, x])
 		# x=BatchNormalization()(x)
 		x = Dense(units=feature_dim // 4,
 		          activation="relu",
+		          input_shape=(feature_dim // 8,), )(x)
+
+		x = BatchNormalization()(x)
+		x = Dense(units=feature_dim // 4,
+		          activation="relu",
 		          input_shape=(feature_dim // 4,), )(x)
+		# x=Dropout(rate=0.1)(x)
 		o = Dense(units=output_dim,
 		          activation=self.softmax,
 		          input_dim=(feature_dim // 4),
@@ -120,11 +136,12 @@ class NN3:
 			restore_best_weights=True
 		)
 		debug("model {} prepare to fit".format(model_id))
+		tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="/tmp/tensorboard.{}.log".format(self.id_),update_freq="batch")
 		history = self.model.fit(
 			train_dataset,
-			epochs=15,
+			epochs=100,
 			verbose=1,
-			callbacks=[ckpt, early_stop],
+			callbacks=[ckpt, tensorboard_callback],
 			validation_data=validate_dataset,
 		)
 		debug("model {} fit done".format(model_id))
