@@ -217,5 +217,7 @@ topo/distributed/rate.config.json
 **/*.delay
 **/*.loss
 
+routing/nn2.1/static
+
 
 

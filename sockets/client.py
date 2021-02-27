@@ -28,7 +28,12 @@ def send_and_recv(ip: str, port: int, content: str) -> str:
 
 if __name__ == '__main__':
 	req={
-		"matrix":[0 for _ in range(100*99)]
+		"matrix":{
+			"0":[0 for _ in range(100*99)],
+			"1": [0 for _ in range(100 * 99)],
+			"2": [0 for _ in range(100 * 99)],
+			"3": [0 for _ in range(100 * 99)],
+		}
 	}
 	resp=send_and_recv("192.168.1.196",1055,json.dumps(req)+"*")
 	resp=json.loads(resp)
