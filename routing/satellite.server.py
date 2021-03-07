@@ -15,17 +15,16 @@ from utils.log_utils import debug
 from typing import List
 from path_utils import get_prj_root
 
-
 # info("All models loaded")
 
 # topo = NetworkTopo(load_pkl(topo_fn)[0])
-topos=load_pkl(topo_fn)
-nets:List[NetworkTopo]=[]
+topos = load_pkl(topo_fn)
+nets: List[NetworkTopo] = []
 for idx in range(44):
 	nets.append(NetworkTopo(topos[idx]))
 
 # ksp = {}
-ksps=[{} for _ in range(44)]
+ksps = [{} for _ in range(44)]
 nodes = 66
 K = 3
 
@@ -41,14 +40,12 @@ src_dsts = list(filter(lambda x: x[0] != x[1], src_dsts))
 # 	ksp[(s, d)] = (large_volume_paths, low_latency_paths)
 
 for idx in range(44):
-	net=nets[idx]
-	for s,d in src_dsts:
-		large_volume_paths=net.ksp(s,d,K)
+	net = nets[idx]
+	for s, d in src_dsts:
+		large_volume_paths = net.ksp(s, d, K)
 		low_latency_paths = net.ksp(s, d, K, "delay")
 		ksps[idx][(s, d)] = (large_volume_paths, low_latency_paths)
 	info("ksp {} calculated".format(idx))
-
-		
 
 info("ksp calculated")
 
@@ -86,11 +83,11 @@ class MinorModelHandler(socketserver.BaseRequestHandler):
 		# req_str = str(recvall2(request)), "ascii")
 		req_str = recvall2(self.request)
 		# vols = check(req_str)
-		req=json.loads(req_str)
+		req = json.loads(req_str)
 		vols: List[int] = req["volumes"]
-		topo_idx:int=req["topo_idx"]
+		topo_idx: int = req["topo_idx"]
 		debug("topo idx {}".format(topo_idx))
-		ksp=ksps[topo_idx]
+		ksp = ksps[topo_idx]
 
 		shorted = False
 		if len(vols) == 66 * 65 * 3:
@@ -113,34 +110,34 @@ class MinorModelHandler(socketserver.BaseRequestHandler):
 		# res = []
 		res = {}
 		# video
-		video=[]
+		video = []
 		for i in range(n_src_dsts):
 			src_dst = idx_to_src_dst[i]
 			large_volume_paths_, low_latency_paths_ = ksp[src_dst]
 			video.append(large_volume_paths_[output.video[i]])
-		res["res1"]=video
-		iot=[]
+		res["res1"] = video
+		iot = []
 		for i in range(n_src_dsts):
 			src_dst = idx_to_src_dst[i]
 			large_volume_paths_, low_latency_paths_ = ksp[src_dst]
 			iot.append(low_latency_paths_[output.iot[i]])
-		res["res2"]=iot
+		res["res2"] = iot
 
-		voip=[]
+		voip = []
 		for i in range(n_src_dsts):
 			src_dst = idx_to_src_dst[i]
 			large_volume_paths_, low_latency_paths_ = ksp[src_dst]
 			voip.append(low_latency_paths_[output.voip[i]])
-		res["res3"]=voip
+		res["res3"] = voip
 
 		if not shorted:
 			for i in range(n_src_dsts):
 				src_dst = idx_to_src_dst[i]
 				large_volume_paths_, low_latency_paths_ = ksp[src_dst]
-			# res.append(low_latency_paths_[output.ar[i]])
+		# res.append(low_latency_paths_[output.ar[i]])
 
 		# res = {"res": res}
-		self.request.sendall(bytes(json.dumps(res)+"*", "ascii"))
+		self.request.sendall(bytes(json.dumps(res) + "*", "ascii"))
 		debug("response sent")
 
 
