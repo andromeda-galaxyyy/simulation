@@ -4,6 +4,7 @@ from common.graph import NetworkTopo
 from utils.file_utils import load_pkl, load_json
 from path_utils import get_prj_root
 import os
+import numpy as np
 
 flattened_idxes = {}
 idx_to_srcdst = []
@@ -16,6 +17,7 @@ for i in range(66):
 		src_dsts.append((i, j))
 		idx += 1
 
+debug(src_dsts[1])
 
 class Online:
 	def __init__(self, network: NetworkTopo):
@@ -25,6 +27,7 @@ class Online:
 		self.src_dsts = src_dsts
 		self.ksp = {}
 		self._ksp()
+		debug("online algorithm solve ksp done")
 		# init w
 		for u, v, d in self.network.g.edges(data=True):
 			cap = self.network.get_edge_attr(u, v, "capacity")
@@ -34,15 +37,20 @@ class Online:
 		for s, d in self.src_dsts:
 			self.ksp[(s, d)] = self.network.ksp(s, d, self.K)
 
+	def reset(self):
+		for u, v, d in self.network.g.edges(data=True):
+			cap = self.network.get_edge_attr(u, v, "capacity")
+			self.network.add_edge_attr(u, v, "w", 1 / cap)
+
 	def __call__(self, inpt: RoutingInput) -> RoutingOutput:
 		output: RoutingOutput = None
 		res = [0 for _ in range(100 * 99)]
 		ksps = self.ksp
 		traffic = inpt.traffic
 		for traffic_idx, traffic in enumerate(traffic):
-			s, d = ksps[traffic_idx]
+			s, d = src_dsts[traffic_idx]
 			min_sum_w = 1e10
-			min_sum_idx = 0
+			min_sum_idx = -1
 			for path_idx, path in enumerate(ksps[(s, d)]):
 				sum_w = 0
 				for u, v in zip(path[:-1], path[1:]):
@@ -73,3 +81,13 @@ if __name__ == '__main__':
 	online_router = Online(network)
 	debug(network.get_edge_attr(1, 2, "hello"))
 	debug(network.get_edge_attr(1, 2, "capacity"))
+	inpt=RoutingInput(traffic=[2*np.random.randint(1,10) for _ in range(66*65)])
+	output=online_router(inpt)
+	debug("solve done")
+	routing=Routing(traffic=inpt.traffic,labels=output.labels)
+	from routing.eval.evaluator2 import RoutingEvaluator2
+	evaluator=RoutingEvaluator2(topos[0],K=3)
+	debug(evaluator(routing))
+	debug("evaluation done")
+
+
