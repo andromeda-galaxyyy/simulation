@@ -22,21 +22,22 @@ debug(ksps[(10, 45)])
 
 
 class RoutingEvaluator3:
-	def __init__(self, topo: List[List[Tuple]], K: int = 5):
+	def __init__(self, topo: List[List[Tuple]], K: int = 5, ksps_: Dict[Tuple, List] = None):
 		self.topo: List[List[Tuple]] = topo
 		self.k = K
 		N = len(topo[0])
 		self.topo = NetworkTopo(topo)
 		# src_dsts = [(i, j) for i in range(N) for j in range(N)]
 		src_dsts = []
-		for i in range(100):
-			for j in range(100):
+		for i in range(N):
+			for j in range(N):
 				if i == j: continue
 				src_dsts.append((i, j))
 		# self.src_dsts = list(filter(lambda x: x[1] != x[0], src_dsts))
 		self.src_dsts = src_dsts
 
-		self.ksp = ksps
+		if ksps_ is None:
+			self.ksp = ksps
 		self.cache: Dict = {}
 		# for s, d in self.src_dsts:
 		# 	large_volume_paths = self.topo.ksp(s, d, self.k)
@@ -60,7 +61,7 @@ class RoutingEvaluator3:
 				paths = ksp[(src, dst)]
 				# video
 				path = paths[routing.labels[i]]
-				key = "{}-{}-{}".format(u, v, "%".join(map(str,path)))
+				key = "{}-{}-{}".format(u, v, "%".join(map(str, path)))
 				if key not in self.cache.keys():
 					cache[key] = self.topo.edge_in_path(u, v, path)
 
