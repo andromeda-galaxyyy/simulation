@@ -35,7 +35,10 @@ if __name__ == '__main__':
 			"3": [0 for _ in range(100 * 99)],
 		}
 	}
-	resp=send_and_recv("192.168.1.196",1055,json.dumps(req)+"*")
+	from utils.time_utils import now_in_milli
+	start=now_in_milli()
+	resp=send_and_recv("localhost",1055,json.dumps(req)+"*")
+	debug(now_in_milli()-start)
 	resp=json.loads(resp)
 	debug(len(resp["res1"]))
 	routing=resp["res1"]
@@ -48,7 +51,10 @@ if __name__ == '__main__':
 	# 	"2":tmp,
 	# 	"3":tmp
 	# }
-	# resp=send_and_recv("192.168.1.196",1053,"default*")
+	# from utils.time_utils import now_in_milli
+	# start=now_in_milli()
+	# resp=send_and_recv("192.168.1.196",1053,json.dumps(req)+"*")
+	# debug(now_in_milli()-start)
 	# save_json("/tmp/military.default_routing.json",resp)
 	# debug(resp)
 
