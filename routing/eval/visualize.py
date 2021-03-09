@@ -98,6 +98,7 @@ def solve_and_visualize2(topo: List[List[Tuple]], instances: List[RoutingInstanc
 	ospf_utilities = []
 	online_ratios = []
 	online_utilities=[]
+	nn_time=[]
 
 	online_evaluator = RoutingEvaluator2(topo, K=3)
 
@@ -112,30 +113,33 @@ def solve_and_visualize2(topo: List[List[Tuple]], instances: List[RoutingInstanc
 			ar=instance.ar
 		)
 		s = [0 for _ in range(66 * 65)]
-		# ospf_output = RoutingOutput(video=s, iot=s, voip=s, ar=s)
-		#
-		# random_output = RoutingOutput(video=[np.random.randint(0, 3) for _ in range(66 * 65)],
-		#                               iot=[np.random.randint(0, 3) for _ in range(66 * 65)]
-		#                               , ar=[np.random.randint(0, 3) for _ in range(66 * 65)],
-		#                               voip=[np.random.randint(0, 3) for _ in range(66 * 65)])
+		ospf_output = RoutingOutput(video=s, iot=s, voip=s, ar=s)
+		
+		random_output = RoutingOutput(video=[np.random.randint(0, 3) for _ in range(66 * 65)],
+		                              iot=[np.random.randint(0, 3) for _ in range(66 * 65)]
+		                              , ar=[np.random.randint(0, 3) for _ in range(66 * 65)],
+		                              voip=[np.random.randint(0, 3) for _ in range(66 * 65)])
 
 		start = now_in_milli()
-		# nn_output = solver["nn"](inpt)
-		# debug("nn solve done use {} milliseconds".format(now_in_milli() - start))
-		#
-		# nn_instance = convert(inpt, nn_output)
-		# nn_utility = evaluator(nn_instance)
-		# nn_utilities.append(nn_utility)
-		# nn_ratios.append((nn_utility - ilp_utility) / ilp_utility)
-		#
-		# ospf_instance = convert(inpt, ospf_output)
-		# ospf_utility = evaluator(ospf_instance)
-		# ospf_utilities.append(ospf_utility)
-		# ospf_ratios.append((ospf_utility - ilp_utility) / ilp_utility)
-		#
-		# random_utility = evaluator(convert(inpt, random_output))
-		# random_utilities.append(random_utility)
-		# random_ratios.append((random_utility - ilp_utility) / ilp_utility)
+		nn_output = solver["nn"](inpt)
+		d=now_in_milli()-start
+		nn_time.append(d)
+
+		debug("nn solve done use {} milliseconds".format(d))
+		
+		nn_instance = convert(inpt, nn_output)
+		nn_utility = evaluator(nn_instance)
+		nn_utilities.append(nn_utility)
+		nn_ratios.append((nn_utility - ilp_utility) / ilp_utility)
+		
+		ospf_instance = convert(inpt, ospf_output)
+		ospf_utility = evaluator(ospf_instance)
+		ospf_utilities.append(ospf_utility)
+		ospf_ratios.append((ospf_utility - ilp_utility) / ilp_utility)
+		
+		random_utility = evaluator(convert(inpt, random_output))
+		random_utilities.append(random_utility)
+		random_ratios.append((random_utility - ilp_utility) / ilp_utility)
 
 		online_traffic = [0 for _ in range(66 * 65)]
 		for idx in range(66 * 65):
@@ -152,16 +156,17 @@ def solve_and_visualize2(topo: List[List[Tuple]], instances: List[RoutingInstanc
 		online_ratios.append((online_utility-ilp_utility)/ilp_utility)
 		debug("online algorithm {} done".format(instance_idx))
 
-	# save_pkl("/tmp/shortest.pkl", ospf_ratios)
-	# save_pkl("/tmp/random.pkl", random_ratios)
-	# save_pkl("/tmp/nn.pkl", nn_ratios)
-	#
-	# save_pkl("/tmp/random.utility.pkl", random_utilities)
-	# save_pkl("/tmp/ospf.utility.pkl", ospf_utilities)
-	# save_pkl("/tmp/ilp.utility.pkl", ilp_utilities)
-	# save_pkl("/tmp/nn.utility.pkl", nn_utilities)
+	save_pkl("/tmp/shortest.pkl", ospf_ratios)
+	save_pkl("/tmp/random.pkl", random_ratios)
+	save_pkl("/tmp/nn.pkl", nn_ratios)
+	
+	save_pkl("/tmp/random.utility.pkl", random_utilities)
+	save_pkl("/tmp/ospf.utility.pkl", ospf_utilities)
+	save_pkl("/tmp/ilp.utility.pkl", ilp_utilities)
+	save_pkl("/tmp/nn.utility.pkl", nn_utilities)
 	save_pkl("/tmp/online.utility.pkl",online_utilities)
 	save_pkl("/tmp/online.pkl",online_ratios)
+	save_pkl("/tmp/nn.time.pkl",nn_time)
 
 
 # return nn_ratios
@@ -214,7 +219,7 @@ if __name__ == '__main__':
 	debug("find instances fns {}".format(len(instances_fns)))
 	# random.shuffle(instances_fns)
 	# num=int(len(instances_fns)*0.8)
-	instances_fns = instances_fns[-8:]
+	instances_fns = instances_fns[-16:]
 	instances = []
 	for fn in instances_fns:
 		instances.extend(load_pkl(fn))
