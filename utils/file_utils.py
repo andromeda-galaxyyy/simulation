@@ -27,7 +27,7 @@ def read_lines(fn: str) -> List[str]:
 		return []
 	with open(fn, "r") as fp:
 		res = fp.readlines()
-		res = [r for r in res if len(r) != 0]
+		res = [r for r in res if len(r.strip()) != 0]
 	return res
 
 
