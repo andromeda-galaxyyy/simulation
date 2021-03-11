@@ -599,9 +599,9 @@ class TopoBuilder:
 				if -1 not in new_topo[sa_id][sb_id]:
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
 					rate = rate if int(self.config["enable_rate_constraint"]) == 1 else None
-					delay = delay if int(
-						self.config["enable_delay_constraint"]) == 1 else None
-					loss = loss if int(self.config["enable_loss_constraint"]) == 1 else None
+					delay = delay if (int(
+						self.config["enable_delay_constraint"]) == 1 and delay>0) else None
+					loss = loss if (int(self.config["enable_loss_constraint"]) == 1 and loss>0) else None
 					new_links.add(link)
 					new_links.add(reverse_link)
 					if link not in self.local_links:
@@ -730,9 +730,9 @@ class TopoBuilder:
 					# debug("setting up gre {}".format(gretap))
 					rate, delay, loss, _ = new_topo[sa_id][sb_id]
 					rate = rate if int(self.config["enable_rate_constraint"]) == 1 else None
-					delay = delay if int(
-						self.config["enable_delay_constraint"]) == 1 else None
-					loss = loss if int(self.config["enable_loss_constraint"]) == 1 else None
+					delay = delay if (int(
+						self.config["enable_delay_constraint"]) == 1 and delay>0) else None
+					loss = loss if (int(self.config["enable_loss_constraint"]) == 1 and loss>0) else None
 					# debug("bandwidth:{};delay:{}".format(rate,delay))
 					new_gres.add(gretap)
 					if gretap in self.gres:

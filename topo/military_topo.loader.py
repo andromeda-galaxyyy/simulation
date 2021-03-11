@@ -19,7 +19,7 @@ node_labels = {"level1": list(range(12)),
 
 # 生成topo
 topo = [[[-1, -1, -1, -1] for _ in range(100)] for _ in range(100)]
-link = [100, 10, 10, 0]
+link = [100, 0, 0, 0]
 
 
 def connect(i, j):
@@ -98,6 +98,10 @@ connect(start + 1, 3)
 connect(start + 2, 6)
 connect(start + 4, 9)
 
+
+
+
+
 # net = NetworkTopo(topo)
 # debug(net.g.number_of_edges())
 
@@ -119,6 +123,9 @@ for i in range(len(topo)):
 			count += 1
 
 debug(count)
+topo[77][61]=[100,10,20,0]
+topo[61][77]=[100,10,20,0]
+
 net = NetworkTopo(topo)
 # topo.plot()
 net.plot()
