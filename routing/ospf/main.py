@@ -26,6 +26,13 @@ class OSPF:
 		for u,v,d in self.net.g.edges(data=True):
 			self.net.add_edge_attr(u,v,"remain",1e5)
 			self.net.add_edge_attr(u,v,"w",1/1e5)
+			self.net.add_edge_attr(u,v,"simple",1)
+
+	def reset(self):
+		for u,v,d in self.net.g.edges(data=True):
+			self.net.add_edge_attr(u,v,"remain",1e5)
+			self.net.add_edge_attr(u,v,"w",1/1e5)
+
 
 	def __call__(self, inpt:RoutingInput):
 		traffic=inpt.traffic
@@ -47,16 +54,16 @@ class OSPF:
 				src_dsts.append((i,j))
 
 		for s,d in src_dsts:
-			t=traffic[flattenidxes[(s,d)]]
-			p=self.net.shortest_path(s,d,"w")
-			paths[(s,d)]=self.net.shortest_path(s,d,"w")
-			#update weight
-			for u,v,d in self.net.g.edges(data=True):
-				if self.net.edge_in_path(u,v,p):
-					oldv=self.net.get_edge_attr(u,v,"remain")
-					newv=oldv-t
-					self.net.add_edge_attr(u,v,"remain",newv)
-					self.net.add_edge_attr(u,v,"w",1/newv)
+			# t=traffic[flattenidxes[(s,d)]]
+			# p=self.net.shortest_path(s,d,"w")
+			paths[(s,d)]=self.net.shortest_path(s,d,"simple")
+			# #update weight
+			# for u,v,d in self.net.g.edges(data=True):
+			# 	if self.net.edge_in_path(u,v,p):
+			# 		oldv=self.net.get_edge_attr(u,v,"remain")
+			# 		newv=oldv-t
+			# 		self.net.add_edge_attr(u,v,"remain",newv)
+			# 		self.net.add_edge_attr(u,v,"w",1/newv)
 
 		# out=RoutingOutput(labels=[0 for _ in range(100*99)])
 		out=[]
@@ -80,10 +87,14 @@ class OFPFHandler(socketserver.BaseRequestHandler):
 
 		debug("traffic stats collected {}".format(len(obj["matrix"]["0"])))
 		inpt = RoutingInput(traffic=obj["matrix"]["0"])
+		start=now_in_milli()
 		out=ospf(inpt)
+		debug("ospf calculating use {} miliseconds".format(now_in_milli()-start))
 		res={
 			"res1":out
 		}
+		ospf.reset()
+		debug("reset done")
 		self.request.sendall(bytes(json.dumps(res) + "*", "ascii"))
 
 

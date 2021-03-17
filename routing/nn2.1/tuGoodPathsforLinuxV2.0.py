@@ -104,6 +104,7 @@ def out114Goodpaths(matrixdatadict):
 	return allpathsanswer
 
 
+from utils.time_utils import now_in_milli
 class handler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
 		req = recvall2(self.request)
@@ -111,12 +112,12 @@ class handler(socketserver.BaseRequestHandler):
 		# rate = req["rate"]
 		matrix = req["matrix"]
 		# debug(req)
+
+		start=now_in_milli()
 		allpathsanswer = out114Goodpaths(matrix)
-		# print(allpathsanswer[17], allpathsanswer[19], allpathsanswer[21], allpathsanswer[23],
-		#       allpathsanswer[25], allpathsanswer[27], allpathsanswer[215], allpathsanswer[217],
-		#       allpathsanswer[219], allpathsanswer[221], allpathsanswer[1807], allpathsanswer[1808],
-		#       allpathsanswer[1809], allpathsanswer[1810], allpathsanswer[1811])
+		debug("routing computing cost {} milliseconds".format(now_in_milli()-start))
 		debug(len(allpathsanswer))
+
 		paths = []
 		# for demand_idx in range()
 		for demand_idx,path_idx in enumerate(allpathsanswer):

@@ -190,9 +190,9 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				start_new_thread_and_run(do_post, [url1, {"server": True}])
 				# threading.Thread(target=do_post, args=[url1, {"server": True}]).start()
 
-				url2 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
-				# threading.Thread(target=do_post, args=[url2, {"server": False}]).start()
-				start_new_thread_and_run(do_post, [url2, {"server": False}])
+				# url2 = "http://{}:{}/supplementary".format(worker_ips[0], 5000)
+				# # threading.Thread(target=do_post, args=[url2, {"server": False}]).start()
+				# start_new_thread_and_run(do_post, [url2, {"server": False}])
 				continue
 
 			if command == 10:

@@ -1011,48 +1011,137 @@ class TopoBuilder:
 
 	def setup_supplementary_topo(self, is_server: bool = True):
 		supp_topos = self.config["supplementary"]
-		supp_topo = None
-		ovs_id = -1
-		for t in supp_topos:
-			if is_server and t["tag"] == "server":
-				supp_topo = t
-				# todo how to eliminate this constant
-				ovs_id = 66
-				break
-			elif (not is_server) and t["tag"] == "client":
-				supp_topo = t
-				ovs_id = 67
-				break
-
-		if ovs_id == -1:
-			debug("Nothing to do;return from setup_supplementary_topo")
+		ovs_id=11
+		if ovs_id not in self.local_switch_ids:
 			return
 
+		controller = self.config["controller"]
 		ovs_name = "s{}".format(ovs_id)
 
-		controller = self.config["controller"]
-		add_ovs(ovs_id, controller)
-		attach_interface_to_sw(ovs_name, supp_topo["intf"])
-		up_interface(supp_topo["intf"])
+		access_id=69
+		access_name="s{}".format(access_id)
+		add_ovs(access_id,controller)
+		p3,p4="{}-{}".format(access_name,ovs_name),"{}-{}".format(ovs_name,access_name)
+		add_veth(p3,p4)
+		attach_interface_to_sw(access_name,p3)
+		up_interface(p3)
+		attach_interface_to_sw(ovs_name,p4)
+		up_interface(p4)
 
-		neighbors = supp_topo["neighbors"]
-		debug("set up supplementary topo for {}".format(supp_topo["tag"]))
-		for nidx, neighbor in enumerate(neighbors):
-			qos = supp_topo["qos"][nidx]
-			band = qos[0]
-			delay = qos[1]
-			n = "s{}".format(neighbor)
-			p1, p2 = "{}-{}".format(ovs_name, n), "{}-{}".format(n, ovs_name)
-			add_veth(p1, p2)
 
-			attach_interface_to_sw(ovs_name, p1)
-			attach_interface_to_sw(n, p2)
-			up_interface(p1)
-			up_interface(p2)
+		server_accessid=67
+		client_accessid=68
+		server_access="s{}".format(server_accessid)
+		add_ovs(server_accessid,controller)
+		client_access="s{}".format(client_accessid)
+		add_ovs(client_accessid,controller)
 
-			if is_server:
-				add_tc(p1, bandwidth=band, delay=None)
-				add_tc(p2, bandwidth=band, delay=None)
+		p1,p2="{}-{}".format(access_name,server_access),"{}-{}".format(server_access,access_name)
+		add_veth(p1,p2)
+		attach_interface_to_sw(access_name,p1)
+		attach_interface_to_sw(server_access,p2)
+		up_interface(p1)
+		up_interface(p2)
+		os.system("ovs-vsctl set interface {}  ingress_policing_rate=10000".format(p1))
+		# os.system("ovs-vsctl set interface {}  ingress_policing_burst=10000".format(p1))
+		os.system("ovs-vsctl set interface {}  ingress_policing_rate=10000".format(p2))
+		# os.system("ovs-vsctl set interface {}  ingress_policing_burst=10000".format(p2))
+		# add_tc(p1,bandwidth=5,delay=None,loss=None)
+		# add_tc(p2,bandwidth=5,delay=None,loss=None)
+
+		attach_interface_to_sw(server_access,"enp59s0f0")
+		up_interface("enp59s0f0")
+
+		p3,p4="{}-{}".format(access_name,client_access),"{}-{}".format(client_access,access_name)
+		add_veth(p3,p4)
+		attach_interface_to_sw(access_name,p3)
+		attach_interface_to_sw(client_access,p4)
+		up_interface(p3)
+		up_interface(p4)
+		attach_interface_to_sw(client_access,"enp59s0f1")
+		up_interface("enp59s0f1")
+
+		return
+		# add_tc(p1,bandwidth=5,delay=None,loss=None)
+		# add_tc(p2,bandwidth=5,delay=None,loss=None)
+
+
+
+
+
+
+		# access_id=67
+		# controller = self.config["controller"]
+		# add_ovs(access_id, controller)
+		# access_name="s{}".format(access_id)
+		#
+		# p1, p2 = "{}-{}".format(ovs_name, access_name), "{}-{}".format(access_name, ovs_name)
+		# add_veth(p1, p2)
+		# attach_interface_to_sw(ovs_name,p1)
+		# attach_interface_to_sw(access_name,p2)
+		# up_interface(p1)
+		# up_interface(p2)
+		#
+		#
+		# intfs=supp_topos[0]["intfs"]
+		# qos=supp_topos[0]["qos"][0]
+		# attach_interface_to_sw(access_name,intfs[0])
+		# up_interface(intfs[0])
+		#
+		# attach_interface_to_sw(access_name,intfs[1])
+		# add_tc(intfs[0],bandwidth=band)
+		#
+		#
+		# up_interface(intfs[1])
+		# band=qos[0]
+		# add_tc(intfs[0],bandwidth=band)
+		# add_tc(intfs[0],bandwidth=band)
+		# return
+
+
+
+
+		# supp_topos = self.config["supplementary"]
+		# supp_topo = None
+		# ovs_id = -1
+		# for t in supp_topos:
+		# 	if is_server and t["tag"] == "server":
+		# 		supp_topo = t
+		# 		# todo how to eliminate this constant
+		# 		ovs_id = 66
+		# 		break
+		# 	elif (not is_server) and t["tag"] == "client":
+		# 		supp_topo = t
+		# 		ovs_id = 67
+		# 		break
+		#
+		# if ovs_id == -1:
+		# 	debug("Nothing to do;return from setup_supplementary_topo")
+		# 	return
+
+		# controller = self.config["controller"]
+		# add_ovs(ovs_id, controller)
+		# attach_interface_to_sw(ovs_name, supp_topo["intf"])
+		# up_interface(supp_topo["intf"])
+		#
+		# neighbors = supp_topo["neighbors"]
+		# debug("set up supplementary topo for {}".format(supp_topo["tag"]))
+		# for nidx, neighbor in enumerate(neighbors):
+		# 	qos = supp_topo["qos"][nidx]
+		# 	band = qos[0]
+		# 	delay = qos[1]
+		# 	n = "s{}".format(neighbor)
+		# 	p1, p2 = "{}-{}".format(ovs_name, n), "{}-{}".format(n, ovs_name)
+		# 	add_veth(p1, p2)
+		#
+		# 	attach_interface_to_sw(ovs_name, p1)
+		# 	attach_interface_to_sw(n, p2)
+		# 	up_interface(p1)
+		# 	up_interface(p2)
+		#
+		# 	if is_server:
+		# 		add_tc(p1, bandwidth=band, delay=None)
+		# 		add_tc(p2, bandwidth=band, delay=None)
 
 
 	def start_telemetry(self):

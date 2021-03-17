@@ -82,6 +82,10 @@
     ],
     "supplementary": [
         {
+            "intfs": ["enp59s0f0","enp59s0f1"],
+            "qos": [[5,10,0,0],[500,10,0,0]]
+        },
+        {
             "intf": "enp59s0f0",
             "neighbors": [11],
             "qos": [[5,10,0,0]],
@@ -89,7 +93,7 @@
         },
         {
            "intf": "enp59s0f1",
-            "neighbors": [12],
+            "neighbors": [11],
             "qos": [[500,10,0,0]],
             "tag": "client"
         }
