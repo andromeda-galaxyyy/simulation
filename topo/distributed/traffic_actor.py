@@ -58,6 +58,9 @@ class TrafficActor:
 		create_dir(gen_base_log_dir)
 
 	def _do_start_traffic(self, hid, flow_type) -> (int, int):
+		flowcounter_config=self.config["flowcounter"]
+		redis_ip=flowcounter_config["redis_ip"]
+		redis_port=flowcounter_config["redis_port"]
 		hostname = "h{}".format(hid)
 		intf = "{}-eth0".format(hostname)
 		target_id_fn = os.path.join(target_id_dir, "{}.targetids".format(hostname))
@@ -68,11 +71,15 @@ class TrafficActor:
 		ftype = -1
 		report = False
 		vlanid = -1
+		nworkers=1
+		store_flow_counter=False
 		if flow_type == "video":
 			ftype = 0
 			# report=True
 			vlanid = 0
 		elif flow_type == "iot":
+			store_flow_counter=True
+			nworkers=8
 			ftype = 1
 			vlanid = 1
 		elif flow_type == "voip":
@@ -103,7 +110,9 @@ class TrafficActor:
 		         "--loss_dir {} " \
 		         "{} " \
 		         "{} " \
-		         "--workers {}".format(
+		         "--workers {} " \
+				 "{} " \
+				 "--rip {}".format(
 			hid,
 			target_id_fn,
 			pkt_dir,
@@ -116,7 +125,9 @@ class TrafficActor:
 			(loss_dir if enable_loss else ""),
 			("--report" if report else ""),
 			("{}".format("--vlan {}".format(vlanid) if not report else "")),
-			1
+			nworkers,
+			"--storefcounter" if store_flow_counter else "",
+			redis_ip,
 		)
 
 		commands = "{} {}".format(self.binary, params)
@@ -243,6 +254,25 @@ class TrafficActor:
 		self.processes[flow_type].remove(pid)
 		if to_schedule:
 			self.schedule_record.remove(pid)
+
+	def start_anomaly_traffic(self):
+		config:Dict=self.config["anomaly_traffic"]
+		src_id=config["src"]
+		if src_id not in self.hostids:
+			debug("noting to do return")
+			return 
+		dst_id=config["dst"]
+		debug("anomaly traffic src {}".format(src_id))
+		debug("anomaly traffic dst {}".format(dst_id))
+		pid,_=self._do_start_traffic_to_target(int(src_id),int(dst_id),"video")
+		self.anomaly_traffic_pid=pid
+
+	def stop_anomaly_traffic(self):
+		if hasattr(self,"anomaly_traffic_pid"):
+			debug("kill anomaly traffic pid")
+			kill_pid(self.anomaly_traffic_pid)
+			return 
+		debug("noting to do return")
 
 	def act(self, mode: str):
 		'''

@@ -90,7 +90,7 @@ class ClassifierScheduler2:
 		self.hosts = hosts
 		self.pids = []
 
-	def _start_traffic(self, host: int, target: int, log: bool, log_fn: str, flow_type="video"):
+	def _start_traffic(self, host: int, target: int, log_fn: str, flow_type="video"):
 		config = self.config["classifier_demo"]
 		if flow_type not in ["iot", "video", "voip", "ar"]:
 			err("invalid flow type {}".format(flow_type))
@@ -152,7 +152,7 @@ class ClassifierScheduler2:
 			controller_ip,
 			target_id,
 			ftype,
-			self.config["controller_socket_port"],
+			config["controller_classifier_port"],
 			("--loss" if enable_loss else ""),
 			(loss_dir if enable_loss else ""),
 			("--report" if report else ""),
@@ -191,13 +191,15 @@ class ClassifierScheduler2:
 			ts = targets[idx]
 			debug("host {},target {}".format(host, ts))
 			for t in ts:
-				debug("start traffic from {} to {}".format(host, t))
-				log_fn = "{}_{}.classifier_demo".format(host, t)
-				pid = self._start_traffic(host, t, log_to_file, log_fn)
-				self.pids.append(pid)
+				for flow_type in ["iot","video","voip","ar"]:
+					debug("start traffic from {} to {}".format(host, t))
+					log_fn = "{}_{}.classifier_demo".format(host, t)
+					pid = self._start_traffic(host, t, log_fn,flow_type)
+					self.pids.append(pid)
 
 	def stop(self):
 		debug("stop classifier demo")
+		os.system("pkill gogen")
 		for p in self.pids:
 			kill_pid(p)
 		self.pids = []

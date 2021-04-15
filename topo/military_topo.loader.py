@@ -98,10 +98,6 @@ connect(start + 1, 3)
 connect(start + 2, 6)
 connect(start + 4, 9)
 
-
-
-
-
 # net = NetworkTopo(topo)
 # debug(net.g.number_of_edges())
 
@@ -122,13 +118,15 @@ for i in range(len(topo)):
 		if -1 not in topo[i][j]:
 			count += 1
 
-debug(count)
-topo[77][61]=[100,10,20,0]
-topo[61][77]=[100,10,20,0]
+# debug(count)
+# topo[77][61]=[100,10,20,0]
+# topo[61][73]=[100,0,5,0]
+topo[2][5] = [-1, -1, -1, -1]
+topo[5][2] = [-1, -1, -1, -1]
 
 net = NetworkTopo(topo)
 # topo.plot()
-net.plot()
+# net.plot()
 # import netgraph
 # netgraph.draw(net.g)
 debug(net.g.number_of_edges())
@@ -137,7 +135,7 @@ from path_utils import get_prj_root
 import os
 
 static_dir = os.path.join(get_prj_root(), "static")
-save_json(os.path.join(static_dir,"topo.json"),{"topo":topo})
+# save_json(os.path.join(static_dir, "topo.json"), {"topo": topo})
 
 res = []
 for _ in range(44):
@@ -147,4 +145,4 @@ for _ in range(44):
 	})
 
 save_json(os.path.join(static_dir, "node_labels.json"), node_labels)
-save_pkl(os.path.join(static_dir, "military.pkl"), res)
+save_pkl(os.path.join(static_dir, "military.anomaly.pkl"), res)

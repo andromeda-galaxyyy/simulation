@@ -106,6 +106,13 @@ class Supplementry(Resource):
 		return '', 200
 
 
+class Supplementary2(Resource):
+	def post(self):
+		debug("Setup supplementary topo2")
+		data = request.get_json(force=True)
+		builder.setup_supplementary_topo2(int(data["band"]))
+
+
 class Telemetry(Resource):
 	def post(self):
 		debug("Start telemetry")
@@ -136,13 +143,40 @@ class Classifier(Resource):
 		return '', 200
 
 
+class AnomalySupplementary(Resource):
+	def post(self):
+		debug("setup anomaly supplementary topo")
+		if builder is None:
+			return '', 404
+		builder.setup_anomaly_supplementary_topo()
+		return '', 200
+
+class AnomalyTraffic(Resource):
+	def post(self):
+		debug("router start anomaly traffic")
+		if builder is None:
+			return '',404
+		builder.start_anomaly_traffic()
+		return '',200
+
+	def delete(self):
+		if builder is None:
+			return '',404
+		builder.stop_anomaly_traffic()
+		return '',200
+
+
 api.add_resource(Config, "/config")
 api.add_resource(Topo, "/topo")
 api.add_resource(Traffic, "/traffic")
 api.add_resource(Supplementry, "/supplementary")
+api.add_resource(Supplementary2, "/supplementary2")
 api.add_resource(Traffic2, "/traffic2")
 api.add_resource(Telemetry, "/telemetry")
 api.add_resource(Classifier, "/classifier")
+api.add_resource(AnomalySupplementary, "/anomaly")
+api.add_resource(AnomalyTraffic,"/anomaly_traffic")
+
 
 
 @atexit.register

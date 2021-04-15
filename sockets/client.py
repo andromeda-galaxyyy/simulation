@@ -27,24 +27,35 @@ def send_and_recv(ip: str, port: int, content: str) -> str:
 
 
 if __name__ == '__main__':
+	# req={
+	# 	"matrix":{
+	# 		"0":[0 for _ in range(100*99)],
+	# 		"1": [0 for _ in range(100 * 99)],
+	# 		"2": [0 for _ in range(100 * 99)],
+	# 		"3": [0 for _ in range(100 * 99)],
+	# 	}
+	# }
+
+	
+	tmp1=[0 for _ in range(100*99)]
+	tmp1[flattenidxes[(8,10)]]=100
+	tmp=[0 for _ in range(100*99)]
 	req={
-		"matrix":{
-			"0":[0 for _ in range(100*99)],
-			"1": [0 for _ in range(100 * 99)],
-			"2": [0 for _ in range(100 * 99)],
-			"3": [0 for _ in range(100 * 99)],
-		}
+		"0":tmp1,
+		"1":tmp,
+		"2":tmp,
+		"3":tmp,
 	}
 	from utils.time_utils import now_in_milli
 	start=now_in_milli()
-	resp=send_and_recv("localhost",1055,json.dumps(req)+"*")
+	resp=send_and_recv("192.168.1.196",1057,json.dumps(req)+"*")
 	debug(now_in_milli()-start)
 	resp=json.loads(resp)
 	debug(len(resp["res1"]))
 	routing=resp["res1"]
-	debug(routing[flattenidxes[(10,99)]])
+	debug(flattenidxes[(8,10)])
+	debug(routing[flattenidxes[(8,10)]])
 
-	# tmp=[0 for _ in range(100*99)]
 	# req={
 	# 	"0":tmp,
 	# 	"1":tmp,

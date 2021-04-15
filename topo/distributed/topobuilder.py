@@ -18,7 +18,7 @@ from telemetry.telemeter import Telemeter
 from telemetry.base_telemeter import BaseTelemeter
 from collections import defaultdict
 from utils.process_utils import run_and_get_output
-from topo.distributed.classifier_scheduler import ClassifierScheduler
+from topo.distributed.classifier_scheduler import ClassifierScheduler,ClassifierScheduler2
 
 tmp_dir = os.path.join(get_prj_root(), "topo/distributed/tmp")
 iptables_bk = os.path.join(tmp_dir, "iptables.bk")
@@ -418,6 +418,9 @@ def run_ns_binary(ns: str, bin: str, params: str, log_fn: str = "/tmp/log.log"):
 	os.system("ip netns exec {} nohup {} {} >{} 2>&1 &".format(
 		ns, bin, params, log_fn))
 
+def add_bandwidth_contraits_with_ovsset(port:str,band:int):
+	os.system("ovs-vsctl set interface {}  ingress_policing_rate={}".format(port,band*1000))
+	os.system("ovs-vsctl set interface {}  ingress_policing_burst={}".format(port,band*1000))
 
 class TopoBuilder:
 	def __init__(self, config: dict, id_, inetintf: str):
@@ -485,7 +488,7 @@ class TopoBuilder:
 			"tc":{}
 		}
 
-		self.classifier_scheduler:ClassifierScheduler=ClassifierScheduler(self.config,self.hostids)
+		self.classifier_scheduler:ClassifierScheduler2=ClassifierScheduler2(self.config,self.hostids)
 
 	def _set_up_switches(self):
 		k = self.config["host_per_switch"]
@@ -581,6 +584,13 @@ class TopoBuilder:
 		self.vars={
 			"tc":{}
 		}
+		cmd="for bridge in `ovs-vsctl list-br`;" \
+		    "do " \
+		    "ovs-vsctl del-br $bridge " \
+		    "echo '$bridge' deleted " \
+		    "done"
+		os.system(cmd)
+
 
 	def _diff_local_links(self, new_topo: List[List[Tuple]]):
 		debug("diff local links")
@@ -1009,7 +1019,39 @@ class TopoBuilder:
 	def stop_traffic_actor(self):
 		self.traffic_actor.stop()
 
+	def setup_supplementary_topo2(self,band):
+		if self.id!=0:
+			debug("nothing to do,return")
+			return
+
+		debug("set band to {}Mbps".format(band))
+		add_bandwidth_contraits_with_ovsset("s{}-s{}".format(9,10),band)
+		add_bandwidth_contraits_with_ovsset("s{}-s{}".format(10,9),band)
+		add_bandwidth_contraits_with_ovsset("s{}-s{}".format(11,10),20)
+		add_bandwidth_contraits_with_ovsset("s{}-s{}".format(10,11),20)
+
+		# ens1f0
+		attach_interface_to_sw("s{}".format(10),"ens1f0")
+		up_interface("ens1f0")
+		attach_interface_to_sw("s{}".format(8),"ens1f1")
+		up_interface("ens1f1")
+		# ens1f1:
+
+
+	def setup_anomaly_supplementary_topo(self):
+		if self.id!=0:
+			debug("nothing todo return")
+			return
+
+		attach_interface_to_sw("s{}".format(2),"ens5f0")
+		up_interface("ens5f0")
+		attach_interface_to_sw("s{}".format(5),"ens5f1")
+		up_interface("ens5f1")
+
+
+
 	def setup_supplementary_topo(self, is_server: bool = True):
+
 		supp_topos = self.config["supplementary"]
 		ovs_id=11
 		if ovs_id not in self.local_switch_ids:
@@ -1042,9 +1084,9 @@ class TopoBuilder:
 		attach_interface_to_sw(server_access,p2)
 		up_interface(p1)
 		up_interface(p2)
-		os.system("ovs-vsctl set interface {}  ingress_policing_rate=10000".format(p1))
+		os.system("ovs-vsctl set interface {}  ingress_policing_rate=5000".format(p1))
+		os.system("ovs-vsctl set interface {}  ingress_policing_rate=5000".format(p2))
 		# os.system("ovs-vsctl set interface {}  ingress_policing_burst=10000".format(p1))
-		os.system("ovs-vsctl set interface {}  ingress_policing_rate=10000".format(p2))
 		# os.system("ovs-vsctl set interface {}  ingress_policing_burst=10000".format(p2))
 		# add_tc(p1,bandwidth=5,delay=None,loss=None)
 		# add_tc(p2,bandwidth=5,delay=None,loss=None)
@@ -1165,6 +1207,13 @@ class TopoBuilder:
 			debug("classifier scheduler stop")
 			return
 		err("classfifier scheduler not initiated")
+
+
+	def start_anomaly_traffic(self):
+		self.traffic_actor.start_anomaly_traffic()
+
+	def stop_anomaly_traffic(self):
+		self.traffic_actor.stop_anomaly_traffic()
 
 if __name__ == '__main__':
 	config = load_json(os.path.join(

@@ -117,7 +117,7 @@ ospf = OSPF(net)
 anomaly_ospf = AnomalyOSPF(anomaly_net)
 
 
-class OFPFHandler(socketserver.BaseRequestHandler):
+class OSPFHandler(socketserver.BaseRequestHandler):
 	def handle(self) -> None:
 		req_content = recvall2(self.request)
 		obj: Dict = {}
@@ -125,22 +125,12 @@ class OFPFHandler(socketserver.BaseRequestHandler):
 			obj = json.loads(req_content)
 		except JSONDecodeError as e:
 			err(obj)
-
-		debug("traffic stats collected {}".format(len(obj["matrix"]["0"])))
-		inpt = RoutingInput(traffic=obj["matrix"]["0"])
-		start = now_in_milli()
-		out = ospf(inpt)
+			
+		out = anomaly_ospf()
 		# debug("ospf calculating use {} miliseconds".format(now_in_milli()-start))
-		# res = {
-            #                 "res1": out
-            #             }
-		# ospf.reset()
-		# debug("reset done")
-		# self.request.sendall(bytes(json.dumps(res) + "*", "ascii"))
-		debug("ospf calculating use {} miliseconds".format(now_in_milli()-start))
 		res = {
-                    "res1": out
-                }
+                "res1": out
+        }
 		ospf.reset()
 		debug("reset done")
 		self.request.sendall(bytes(json.dumps(res) + "*", "ascii"))
@@ -154,7 +144,7 @@ if __name__ == '__main__':
 	# inpt=ospf(inpt)
 	# debug(now_in_milli()-start)
 
-	port = 1061
-	server = Server(port, OFPFHandler)
-	debug("ospf server start")
+	port = 1059
+	server = Server(port, OSPFHandler)
+	debug("anomaly server start")
 	server.start()

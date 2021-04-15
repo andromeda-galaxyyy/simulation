@@ -107,7 +107,14 @@ class DummyClassifierHandler(socketserver.BaseRequestHandler):
 		}
 		self.request.sendall(bytes(json.dumps(resp)+"*",encoding="utf-8"))
 
+class DummyLogHandler(socketserver.BaseRequestHandler):
+	def handle(self) -> None:
+		data=recvall2(self.request)
+		data=json.loads(data)
+		debug(data)
+		return
+
 if __name__ == '__main__':
-	port = 5000
-	server = Server(port, DummyClassifierHandler)
+	port = 1058
+	server = Server(port, DummyLogHandler)
 	server.start()

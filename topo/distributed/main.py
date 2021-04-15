@@ -102,6 +102,10 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 			      "> 11.(experimental) stop traffic actor\n"
 			      "> 12. start classifier demo\n"
 			      "> 13. stop classifier demo\n"
+			      "> 14. setup military supplementary topo 10Mbps\n"
+			      "> 15. setup military supplementary topo 5Mbps\n" 
+			      "> #############\n"
+			      "> 16. setup anomaly supplementary topo\n"
 			      "> Press Enter to print this msg")
 
 			command = input(">Input commands:\n").strip()
@@ -122,6 +126,24 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				for idx,ip in enumerate(config["manage_ip"]):
 					url="http://{}:{}/classifier".format(ip,5000)
 					start_new_thread_and_run(do_delete,[url])
+					continue
+
+			if command==14:
+				for idx,ip in enumerate(config["manage_ip"]):
+					url="http://{}:{}/supplementary2".format(ip,5000)
+					start_new_thread_and_run(do_post,[url,{"band":10}])
+					continue
+
+			if command==15:
+				for idx,ip in enumerate(config["manage_ip"]):
+					url="http://{}:{}/supplementary2".format(ip,5000)
+					start_new_thread_and_run(do_post,[url,{"band":5}])
+					continue
+
+			if command==16:
+				for idx,ip in enumerate(config["manage_ip"]):
+					url="http://{}:{}/anomaly".format(ip,5000)
+					start_new_thread_and_run(do_post,[url,{"band":5}])
 					continue
 
 			if command == 0:

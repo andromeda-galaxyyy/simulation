@@ -129,6 +129,9 @@ class Sniffer:
 				count1 = self.switch_count["172.18.1.{}".format(z)][self.edge_port[(z, y)]]
 				count2 = self.switch_count["172.18.1.{}".format(y)][self.edge_port[(y, x)]]
 				loss[(u, v)] = (count2 - count1) / count2
+				# a=loss[(u,v)]
+				# a=1-(1-a)**0.5
+				# loss[(u,v)]=a
 			except Exception as e:
 				err("exception:{},cannot calculate loss on link {}".format(e, (y, z)))
 			for msg in loss.items():
@@ -137,7 +140,8 @@ class Sniffer:
 		fixed_link_stats = {}
 		for u, v in links:
 			fixed_link_stats[(u - 1, v - 1)] = loss[(u, v)]
-			self.store.write_loss((u-1,v-1),loss[(u,v)])
+			if loss[(u,v)]>=0:
+				self.store.write_loss((u-1,v-1),loss[(u,v)])
 			fixed_link_stats[(v - 1, u - 1)] = loss[(u, v)]
 		# self.store.write_loss((v-1,u-1),loss[(u,v)])
 
@@ -208,7 +212,7 @@ class Sniffer:
 		    UDP(dport=8888, sport=1500) / Raw(load="1234")
 		sendp(p, iface=self.intf)
 		debug("Telemetry pkt sent,now wait for all pkts received")
-		t = threading.Timer(5.0, stop_sniffer)
+		t = threading.Timer(1, stop_sniffer)
 		t.start()
 
 		# sniffer_lock.acquire()
@@ -242,7 +246,7 @@ class Sniffer:
 		# self.__calculate_rtt()
 		while True:
 			debug("new telemetry")
-			n = 100
+			n = 200
 			while n > 0:
 				self.loss_count = 0
 				self.__send_telemetry_packet_and_listen()
@@ -250,7 +254,7 @@ class Sniffer:
 				self.cache = []
 				# self.loss_count=0
 				n -= 1
-				debug("{}th turn done".format(100 - n))
+				debug("{}th turn done".format(200 - n))
 			self.__calculate_loss()
 			self.switch_count = {}
 
