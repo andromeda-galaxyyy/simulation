@@ -1,4 +1,6 @@
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+# from sklearn.ra
 from path_utils import get_prj_root
 from pathlib import Path
 import os
@@ -58,8 +60,32 @@ class DT(Classifier):
 		save_pkl(fn_name, self.model)
 
 	def load_model(self, fn_name):
+		# print(fn_name)
 		fn_name = os.path.join(model_dir, fn_name)
 		self.model: DecisionTreeClassifier = load_pkl(fn_name)
+
+
+class RF(Classifier):
+	def __init__(self) -> None:
+		super(RF,self).__init__()
+		self.model:RandomForestClassifier=None
+
+	def fit(self, data):
+		return super().fit(data)
+
+	def predict(self, features):
+		return self.model.predict(features)
+
+	def save_model(self, fn_name):
+		return super().save_model(fn_name)
+
+	def load_model(self, fn_name):
+		# print(fn_name)
+		# fn_name = os.path.join(model_dir, fn_name)
+		self.model=load_pkl(fn_name)
+
+
+
 
 
 class Dumb(Classifier):

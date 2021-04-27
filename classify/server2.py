@@ -9,22 +9,22 @@ import multiprocessing
 import random
 import numpy as np
 import time
-from classify.model import DT
+from classify.model import RF
 from path_utils import get_prj_root
 import os
 from multiprocessing import Pool
 import asyncio, socket
 
-dt_model_dir = os.path.join(get_prj_root(), "classify/models")
-dt_model_pkl = os.path.join(dt_model_dir, "dt2.pkl")
+rf_model_dir = os.path.join(get_prj_root(), "classify/models")
+rf_model_pkl = os.path.join(rf_model_dir, "random_forest.pkl")
 
-num_process = 20
-dt = DT()
-dts = [None for _ in range(num_process)]
+num_process = 1
+rf = RF()
+rfs = [None for _ in range(num_process)]
 
 for idx in range(num_process):
-	dts[idx] = DT()
-	dts[idx].load_model(dt_model_pkl)
+	rfs[idx] = RF()
+	rfs[idx].load_model(rf_model_pkl)
 	debug("{}th process loaded model".format(idx))
 
 
@@ -54,7 +54,7 @@ def dumb_calculate(stats):
 
 class DumbHandler(socketserver.BaseRequestHandler):
 	# pool = Pool(num_process)
-	pool=None
+	pool = None
 
 	def handle(self) -> None:
 		req_str = recvall2(self.request)
@@ -75,26 +75,28 @@ class DumbHandler(socketserver.BaseRequestHandler):
 		                                      args=(obj["stats"],),
 		                                      )
 
-		self.request.sendall(bytes(json.dumps({"res": future.get()}), "ascii"))
+		self.request.sendall(bytes(json.dumps({"res": future.get()})+"*", "ascii"))
 
 
-def dt_calculated(stats):
-	global dts
+def rf_calculated(stats):
+	global rfs
 	pid = os.getpid()
 	# proc=multiprocessing.current_process.
-	model = dts[pid % num_process]
+	model = rfs[pid % num_process]
 	return int(model.predict([stats])[0])
 
-def dt_calculated_list(stats:List):
+
+def rf_calculated_list(stats: List):
 	global rfs
-	pid=os.getpid()
-	model=dts[pid%num_process]
+	pid = os.getpid()
+	model = rfs[pid % num_process]
 	# debug(len(stats))
-	res=model.predict(stats)
-	res=[int(r) for r in res]
+	res = model.predict(stats)
+	res = [int(r) for r in res]
 	return res
 
-class DTHandler(socketserver.BaseRequestHandler):
+
+class RFHandler(socketserver.BaseRequestHandler):
 	pool = Pool(num_process)
 
 	def handle(self) -> None:
@@ -103,41 +105,40 @@ class DTHandler(socketserver.BaseRequestHandler):
 			self.request.sendall(bytes("ok", "ascii"))
 			return
 
-		obj:Dict=None
+		obj: Dict = None
 		try:
 			obj = json.loads(req_content)
 		except JSONDecodeError:
 			err("cannot decode json")
-			return 
+			return
 
 		if "stats" not in list(obj.keys()) and "num" not in list(obj.keys()):
-			return 
-			
+			return
+
 		if "stats" in list(obj.keys()):
 			stats = obj["stats"]
 			if len(stats) != 8:
 				self.request.close()
 				return
 			resp = {"res": 0}
-
-			future = DTHandler.pool.apply_async(dt_calculated, args=(stats,))
+			future = RFHandler.pool.apply_async(rf_calculated, args=(stats,))
 			resp["res"] = future.get()
 			self.request.sendall(bytes(json.dumps(resp), "ascii"))
 			return
 		if "num" in list(obj.keys()):
-			n=int(obj["num"])
-			resp={
-				"num":n
+			n = int(obj["num"])
+			resp = {
+				"num": n
 			}
-			stats=[]
+			stats = []
 			for d in obj["data"]:
 				stats.append(d["stats"])
-			future=DTHandler.pool.apply_async(dt_calculated_list,args=(stats,))
-			resp["res"]=future.get()
-			self.request.sendall(bytes(json.dumps(resp)+"*",encoding="ascii"))
+			future = RFHandler.pool.apply_async(rf_calculated_list, args=(stats,))
+			resp["res"] = future.get()
+			self.request.sendall(bytes(json.dumps(resp) + "*", encoding="ascii"))
 			return
-			
-			
+
+
 if __name__ == '__main__':
 	import argparse
 
@@ -145,5 +146,7 @@ if __name__ == '__main__':
 	parser.add_argument("--port", type=int, help="service listening port", default=1040)
 	args = parser.parse_args()
 	port = int(args.port)
-	server = Server(port, DTHandler)
+	server = Server(port, RFHandler)
 	server.start()
+	# stats=[1 for _ in range(8)]
+	# debug(rf_calculated(stats))
