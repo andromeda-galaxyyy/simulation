@@ -50,6 +50,10 @@ class OSPF:
 	def __call__(self, inpt: RoutingInput):
 		traffic = inpt.traffic
 		#find max
+		ma=-1
+		# for x in ma:
+		# 	if x>ma:
+		# 		ma=x
 		ma = max(traffic)
 		if ma == 0:
 			paths = []

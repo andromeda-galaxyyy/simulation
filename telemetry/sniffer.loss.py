@@ -41,8 +41,9 @@ class Sniffer:
 		self.pkt_count = count
 		self.intf = intf
 		self.filter = filter
-		self.cache = []
-		self.edge_port = {}  # vlan_id ->link
+		self.each_cache = []
+		self.cache=[]
+		self.edge_port = {}  # vlan_id ->linkkk
 		self.switch_count = {}
 		self.loss_count = 0
 		self.link_to_vlan_fn: str = link_to_vlan_fn
@@ -51,7 +52,9 @@ class Sniffer:
 
 	def __load_topo(self):
 		self.edge_port = load_pkl(self.link_to_vlan_fn)
-
+		# for  link in self.edge_port.keys():
+		# 	if self.edge_port[link]==567:
+		# 		debug("567---{}".format(link))
 	# port[(0, self.monitor)]  (1, 1)
 	# return port
 
@@ -60,20 +63,24 @@ class Sniffer:
 		switch_msg = {}
 		link_rtt = {}
 		# switch_msg: ip->port->time
-		for pkt in self.cache:
+		for pkt in self.each_cache:
 			t = pkt.time
 			port = int(pkt[Dot1Q].vlan)
 			src = str(pkt[IP].src)
 
 			if src in switch_msg.keys():
-				if port in switch_msg[src].keys():
-					err("error, {} already in items".format(port))
-					return
-				switch_msg[src][port] = t
+				# uncomment
+				pass
+				# if port in switch_msg[src].keys():
+				# 	err("error, {} already in items".format(port))
+				# 	# return
+				# switch_msg[src][port] = t
 			else:
-				temp = {}
-				temp[port] = t
-				switch_msg[src] = temp
+				# uncomment
+				pass
+				# temp = {}
+				# temp[port] = t
+				# switch_msg[src] = temp
 			if src in self.switch_count.keys():
 				if port in self.switch_count[src].keys():
 					self.switch_count[src][port] += 1
@@ -84,24 +91,24 @@ class Sniffer:
 				temp[port] = 1
 				self.switch_count[src] = temp
 		# debug("fuck")
-		for u, v in links:
-			t1 = None
-			t2 = None
-			x, y, z = self.find_port(u, v)
-			try:
-				t1 = switch_msg["172.18.1.{}".format(z)][self.edge_port[(z, y)]]
-				t2 = switch_msg["172.18.1.{}".format(y)][self.edge_port[(y, x)]]
-				link_rtt[(u, v)] = abs(t1 - t2) * 1000
-			except Exception as e:
-				if "172.18.1.{}".format(z) not in switch_msg.keys():
-					self.loss_count += 1
-					if "172.18.1.{}".format(y) not in switch_msg.keys():
-						self.loss_count += 1
-				self.loss_count += 1
-				err("exception:{}".format(e))
-		# debug("link {}'s rtt => {}  ----  1 ".format((u, v), abs(t1 - t2) * 1000))
-		debug("link_rtt:{}".format(link_rtt))
-		debug("loss count:{}".format(self.loss_count))
+		# for u, v in links:
+		# 	t1 = None
+		# 	t2 = None
+		# 	x, y, z = self.find_port(u, v)
+		# 	try:
+		# 		t1 = switch_msg["172.18.1.{}".format(z)][self.edge_port[(z, y)]]
+		# 		t2 = switch_msg["172.18.1.{}".format(y)][self.edge_port[(y, x)]]
+		# 		link_rtt[(u, v)] = abs(t1 - t2) * 1000
+		# 	except Exception as e:
+		# 		if "172.18.1.{}".format(z) not in switch_msg.keys():
+		# 			self.loss_count += 1
+		# 			if "172.18.1.{}".format(y) not in switch_msg.keys():
+		# 				self.loss_count += 1
+		# 		self.loss_count += 1
+		# 		err("exception:{}".format(e))
+		# # debug("link {}'s rtt => {}  ----  1 ".format((u, v), abs(t1 - t2) * 1000))
+		# debug("link_rtt:{}".format(link_rtt))
+		# debug("loss count:{}".format(self.loss_count))
 		# ma = -1
 		# ma_link = None
 		# for u, v in link_rtt.keys():
@@ -112,11 +119,11 @@ class Sniffer:
 
 		# debug("Delay estimation maximum error ratio {} on link {}".format(ma, ma_link))
 		# fixed link stats
-		fixed_link_stats = {}
-		for u, v in link_rtt.keys():
-			fixed_link_stats[(u - 1, v - 1)] = link_rtt[(u, v)]
-			self.store.write_delay((u-1,v-1),fixed_link_stats[(u-1,v-1)])
-			fixed_link_stats[(v - 1, u - 1)] = link_rtt[(u, v)]
+		# fixed_link_stats = {}
+		# for u, v in link_rtt.keys():
+		# 	fixed_link_stats[(u - 1, v - 1)] = link_rtt[(u, v)]
+		# 	self.store.write_delay((u-1,v-1),fixed_link_stats[(u-1,v-1)])
+		# 	fixed_link_stats[(v - 1, u - 1)] = link_rtt[(u, v)]
 			# self.store.write_delay((v-1,u-1),fixed_link_stats[(u-1,v-1)])
 
 	# save_pkl("/tmp/telemetry.link.pkl", fixed_link_stats)
@@ -135,7 +142,8 @@ class Sniffer:
 			except Exception as e:
 				err("exception:{},cannot calculate loss on link {}".format(e, (y, z)))
 			for msg in loss.items():
-				debug("packet loss:{}".format(msg))
+				pass
+				# debug("packet loss:{}".format(msg))
 
 		fixed_link_stats = {}
 		for u, v in links:
@@ -161,6 +169,7 @@ class Sniffer:
 		sniffer_stopped = False
 		recv_vlan = []
 		return_link = []
+		n=20
 
 		def sniffer_started_cbk():
 			# nonlocal sniffer_lock
@@ -176,8 +185,11 @@ class Sniffer:
 			pkt.sprintf("{IP:%IP.src%},{Port:%Dot1Q.vlan%}")
 
 			recv_vlan.append(pkt[Dot1Q].vlan)
+			self.each_cache.append(pkt)
 			self.cache.append(pkt)
 			current_count += 1
+			if current_count==n*284:
+				debug("ok done")
 			# debug("receive {} pkts".format(current_count))
 			t = pkt.time
 			port = int(pkt[Dot1Q].vlan)
@@ -185,11 +197,11 @@ class Sniffer:
 
 			# nonlocal current_count
 			# current_count += 1
-			debug("received {} pkts src {} port {}".format(current_count, src, port))
+			# debug("received {} pkts src {} port {}".format(current_count, src, port))
 
 		# if current_count == self.pkt_count:
 		# 	debug("Received all pkts so far,release the lock")
-		# 	nonlocal sniffer
+			# nonlocal sniffer
 		# 	# sniffer.stop()
 		# 	# sniffer_lock.release()
 
@@ -209,10 +221,14 @@ class Sniffer:
 		# sniffer started,now send pkt
 		debug("Sniffer started,now send pkt")
 		p = Ether() / Dot1Q(vlan=3) / IP(src="172.18.0.1", dst="172.18.0.2") / \
-		    UDP(dport=9999, sport=1500) / Raw(load="1234")
-		sendp(p, iface=self.intf)
+		    UDP(dport=8888, sport=1500) / Raw(load="1234")
+		# m=n
+		# while m>0:
+		# 	m-=1
+		sendp(p, iface=self.intf,count=n)
+
 		debug("Telemetry pkt sent,now wait for all pkts received")
-		t = threading.Timer(1, stop_sniffer)
+		t = threading.Timer(10, stop_sniffer)
 		t.start()
 
 		# sniffer_lock.acquire()
@@ -220,23 +236,23 @@ class Sniffer:
 			sleep(0.1)
 		debug("timer timeout,return")
 		# debug("All returned pkts received")
-		loss_link = []
-		last_link = []
-		paths = load_json(os.path.join(get_prj_root(), "static/telemetry.paths.json"))["paths"]
-		for path in paths:
-			if (path[-1], path[-2]) not in last_link:
-				last_link.append((path[-1], path[-2]))
-			for i in range(1, len(path)):
-				if (path[i], path[i - 1]) not in return_link:
-					return_link.append((path[i], path[i - 1]))
-		for link in return_link:
-			if self.edge_port[link] in recv_vlan:
-				continue
-			loss_link.append(link)
-		print("return_link:", return_link, len(return_link))
-		print("last_link:", last_link, len(last_link))
-		print("loss_link:", loss_link)
-		print(len(loss_link))
+		# loss_link = []
+		# last_link = []
+		# paths = load_json(os.path.join(get_prj_root(), "static/telemetry.paths.json"))["paths"]
+		# for path in paths:
+		# 	if (path[-1], path[-2]) not in last_link:
+		# 		last_link.append((path[-1], path[-2]))
+		# 	for i in range(1, len(path)):
+		# 		if (path[i], path[i - 1]) not in return_link:
+		# 			return_link.append((path[i], path[i - 1]))
+		# for link in return_link:
+		# 	if self.edge_port[link] in recv_vlan:
+		# 		continue
+		# 	loss_link.append(link)
+		# print("return_link:", return_link, len(return_link))
+		# print("last_link:", last_link, len(last_link))
+		# print("loss_link:", loss_link)
+		# print(len(loss_link))
 		return 0, ""
 
 	def start(self):
@@ -246,17 +262,24 @@ class Sniffer:
 		# self.__calculate_rtt()
 		while True:
 			debug("new telemetry")
-			n = 1
-			while n > 0:
-				self.__send_telemetry_packet_and_listen()
-				self.__calculate_rtt_and_store()
-				self.cache = []
-				# self.loss_count=0
-				n -= 1
-				debug("{}th turn done".format(200 - n))
-			break
-			# self.__calculate_loss()
-			# self.switch_count = {}
+			# n = 200
+			# while n > 0:
+			# 	self.loss_count = 0
+			# 	self.__send_telemetry_packet_and_listen()
+			# 	self.__calculate_rtt_and_store()
+			# 	self.cache = []
+			# 	# self.loss_count=0
+			# 	n -= 1
+			# 	debug("{}th turn done".format(200 - n))
+			# 	break
+			# n = 200
+			# for i in range(100):
+			self.__send_telemetry_packet_and_listen()
+			self.__calculate_rtt_and_store()
+			debug("now calculating loss")
+			self.__calculate_loss()
+			self.each_cache=[]
+			# break
 
 
 if __name__ == "__main__":
@@ -264,7 +287,7 @@ if __name__ == "__main__":
 	parser.add_argument(
 		"--intf", type=str, help="Interface to send and listen", default="h0-eth0")
 	parser.add_argument("--filter", type=str,
-	                    help="BPF filter", default="udp port 9999")
+	                    help="BPF filter", default="udp port 8888")
 	parser.add_argument("--count", type=int,
 	                    help="Number of packets to received", default=284)
 
@@ -309,6 +332,7 @@ if __name__ == "__main__":
 	true_topo = load_json(os.path.join(get_prj_root(), 'static/topo.json'))["topo"]
 	vlan_to_link_fn = os.path.join(get_prj_root(), "static/telemetry.vlan_to_link.pkl")
 	vlan_to_link = load_pkl(vlan_to_link_fn)
+
 	## warn! fix link by add 1
 	links = load_pkl(args.links)
 	links_bk = links

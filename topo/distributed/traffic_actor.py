@@ -116,6 +116,7 @@ class TrafficActor:
 		         "{} " \
 		         "--workers {} " \
 		         "{} " \
+				 "--stats " \
 		         "--rip {}".format(
 			hid,
 			target_id_fn,
@@ -196,6 +197,7 @@ class TrafficActor:
 		         "--loss_dir {} " \
 		         "{} " \
 		         "{} " \
+				 "--stats " \
 		         "--workers {}".format(
 			hid,
 			target_id_fn,

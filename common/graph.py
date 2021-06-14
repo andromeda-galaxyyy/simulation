@@ -62,4 +62,5 @@ class NetworkTopo:
 		return self.g.edges[u,v][key]
 
 	def shortest_path(self,s,d,w):
+		# nx.shortest_path(self.g, source=s, target=d, weight=w)
 		return nx.shortest_path(self.g,source=s,target=d,weight=w)

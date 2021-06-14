@@ -7,6 +7,7 @@ import hashlib
 from path_utils import get_prj_root
 from utils.log_utils import debug, info, err, warn
 from topo.distributed.traffic_scheduler import TrafficScheduler, TrafficScheduler2
+from topo.distributed.parse_predict_scheduler import PktsPrinter
 import time
 from utils.file_utils import check_file, create_dir, del_dir, dir_exsit, load_pkl, load_json
 from topo.distributed.traffic_actor import TrafficActor
@@ -506,6 +507,8 @@ class TopoBuilder:
         self.classifier_scheduler: ClassifierScheduler2 = ClassifierScheduler2(
             self.config, self.hostids)
 
+        self.pkts_printer:PktsPrinter=PktsPrinter(self.config,self.hostids)
+
     def _set_up_switches(self):
         k = self.config["host_per_switch"]
         k = int(k)
@@ -606,6 +609,7 @@ class TopoBuilder:
             "echo '$bridge' deleted " \
             "done"
         os.system(cmd)
+        self.stop_pkts_printer()
 
     def _diff_local_links(self, new_topo: List[List[Tuple]]):
         debug("diff local links")
@@ -1236,6 +1240,13 @@ class TopoBuilder:
 
     def stop_anomaly_traffic(self):
         self.traffic_actor.stop_anomaly_traffic()
+
+    def start_pkts_printer(self):
+        self.pkts_printer.start()
+
+    def stop_pkts_printer(self):
+        self.pkts_printer.stop()
+
 
 
 if __name__ == '__main__':

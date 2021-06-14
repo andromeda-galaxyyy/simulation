@@ -106,6 +106,9 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 			      "> 15. setup military supplementary topo 5Mbps\n" 
 			      "> #############\n"
 			      "> 16. setup anomaly supplementary topo\n"
+			      "> #############\n"
+			      "> 17. start flow printer\n"
+			      "> 18. stop flow printer\n"
 			      "> Press Enter to print this msg")
 
 			command = input(">Input commands:\n").strip()
@@ -117,6 +120,19 @@ def cli(topos: List, config: Dict, scheduler: Scheduler2):
 				continue
 
 			command = int(command)
+
+			if command==17:
+				for idx,ip in enumerate(config["manage_ip"]):
+					url="http://{}:{}/printer".format(ip,5000)
+					start_new_thread_and_run(do_post,[url,{"data":"nothing"}])
+					continue
+
+			if command==18:
+				for idx,ip in enumerate(config["manage_ip"]):
+					url="http://{}:{}/printer".format(ip,5000)
+					start_new_thread_and_run(do_delete,[url,{"data":"nothing"}])
+					continue
+
 			if command==12:
 				for idx,ip in enumerate(config["manage_ip"]):
 					url="http://{}:{}/classifier".format(ip,5000)

@@ -6,6 +6,7 @@ from path_utils import get_prj_root
 import os
 import numpy as np
 
+
 flattened_idxes = {}
 idx_to_srcdst = []
 idx = 0
@@ -70,6 +71,9 @@ class Online:
 
 		output = RoutingOutput(labels=res)
 		return output
+
+
+
 
 
 if __name__ == '__main__':

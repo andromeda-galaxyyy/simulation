@@ -254,7 +254,6 @@ class Sniffer:
 				# self.loss_count=0
 				n -= 1
 				debug("{}th turn done".format(200 - n))
-			break
 			# self.__calculate_loss()
 			# self.switch_count = {}
 

@@ -7,6 +7,7 @@ import atexit
 import threading
 from utils.log_utils import debug, info, err
 from utils.process_utils import start_new_thread_and_run
+from utils.file_utils import del_dir,create_dir
 from path_utils import get_prj_root
 from utils.process_utils import start_new_thread_and_run
 import os
@@ -151,19 +152,35 @@ class AnomalySupplementary(Resource):
 		builder.setup_anomaly_supplementary_topo()
 		return '', 200
 
+
 class AnomalyTraffic(Resource):
 	def post(self):
 		debug("router start anomaly traffic")
 		if builder is None:
-			return '',404
+			return '', 404
 		builder.start_anomaly_traffic()
-		return '',200
+		return '', 200
 
 	def delete(self):
 		if builder is None:
-			return '',404
+			return '', 404
 		builder.stop_anomaly_traffic()
-		return '',200
+		return '', 200
+
+
+class PktsParser(Resource):
+	def post(self):
+		debug("router start to parse pkts")
+		if builder is None:
+			return "", 404
+		builder.start_pkts_printer()
+		return '', 200
+
+	def delete(self):
+		if builder is None:
+			return '', 404
+		builder.stop_pkts_printer()
+		return '', 200
 
 
 api.add_resource(Config, "/config")
@@ -175,8 +192,8 @@ api.add_resource(Traffic2, "/traffic2")
 api.add_resource(Telemetry, "/telemetry")
 api.add_resource(Classifier, "/classifier")
 api.add_resource(AnomalySupplementary, "/anomaly")
-api.add_resource(AnomalyTraffic,"/anomaly_traffic")
-
+api.add_resource(AnomalyTraffic, "/anomaly_traffic")
+api.add_resource(PktsParser, "/printer")
 
 
 @atexit.register
@@ -189,5 +206,8 @@ def exit_handler():
 
 
 if __name__ == '__main__':
+	volume_stats_dir="/tmp/volume.stats"
+	del_dir(volume_stats_dir)
+	create_dir(volume_stats_dir)
 	atexit.register(exit_handler)
 	app.run(host="0.0.0.0", port=5000)
